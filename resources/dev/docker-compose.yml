@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: uxrr_dev
+      POSTGRES_USER: uxrr
+      POSTGRES_PASSWORD: dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U uxrr -d uxrr_dev
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: redis-cli ping
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  s3:
+    image: localstack/localstack:latest
+    ports:
+      - 4566:4566
+    volumes:
+      - s3_data:/var/lib/localstack
+    healthcheck:
+      test: curl -sf http://localhost:4566/_localstack/health || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
+  s3_data:

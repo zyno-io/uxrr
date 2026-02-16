@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UXRR SDK Test Client</title>
+    <style>
+        * {
+            /* Disable all animations for VRT stability */
+            animation-duration: 0s !important;
+            animation-delay: 0s !important;
+            transition-duration: 0s !important;
+            transition-delay: 0s !important;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .status.ready {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .button-group {
+            margin: 20px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:active {
+            background: #4c5cbb;
+        }
+        .form-group {
+            margin: 20px 0;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .counter {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .log-output {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .log-entry {
+            margin: 4px 0;
+            padding: 4px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UXRR SDK Test Client</h1>
+
+        <div class="status ready" id="status">
+            ⏳ Initializing SDK...
+        </div>
+
+        <div class="button-group">
+            <button id="incrementBtn">Increment Counter</button>
+            <button id="resetBtn">Reset Counter</button>
+            <button id="logBtn">Add Log Entry</button>
+            <button id="reloadBtn">Reload Page</button>
+        </div>
+
+        <div class="counter" id="counter">0</div>
+
+        <div class="form-group">
+            <input type="text" id="textInput" placeholder="Type something to record..." />
+        </div>
+
+        <div class="log-output" id="logOutput">
+            <div class="log-entry">Waiting for user actions...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Global state accessible to tests
+        window.uxrrState = {
+            sessionId: null,
+            appId: 'test-app',
+            ready: false,
+            error: null
+        };
+
+        let counter = 0;
+        let logCount = 0;
+
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'status error' : 'status ready';
+        }
+
+        function addLogEntry(message) {
+            const logOutput = document.getElementById('logOutput');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = message;
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        // Try to load SDK with detailed error handling
+        let uxrr;
+        try {
+            addLogEntry('Loading SDK module...');
+            const module = await import('/client-sdk.js');
+            addLogEntry('SDK module loaded, keys: ' + Object.keys(module).join(', '));
+            uxrr = module.uxrr;
+
+            if (!uxrr) {
+                throw new Error('uxrr export not found in module');
+            }
+
+            // Make uxrr globally accessible
+            window.uxrr = uxrr;
+            addLogEntry('SDK module ready, uxrr type: ' + typeof uxrr);
+        } catch (error) {
+            const msg = 'Failed to load SDK: ' + error.message;
+            updateStatus('❌ ' + msg, true);
+            addLogEntry('ERROR: ' + msg);
+            console.error('SDK load error:', error);
+            window.uxrrState.error = error.message;
+            throw error;
+        }
+
+        // Initialize UXRR SDK
+        (async function initSDK() {
+            try {
+                addLogEntry('Calling uxrr.init()...');
+
+                // Get deviceId from query string if provided (for deterministic testing)
+                const urlParams = new URLSearchParams(window.location.search);
+                const deviceId = urlParams.get('deviceId');
+
+                const initResult = uxrr.init({
+                    appId: window.uxrrState.appId,
+                    endpoint: 'http://localhost:8977',
+                    deviceId: deviceId || undefined,
+                    enabled: {
+                        sessions: true,
+                        logging: true,
+                        tracing: true,
+                        support: true
+                    }
+                });
+
+                addLogEntry('init() returned, result type: ' + typeof initResult);
+
+                // Await if it's a promise
+                if (initResult && typeof initResult.then === 'function') {
+                    addLogEntry('Awaiting init promise...');
+                    await initResult;
+                    addLogEntry('Init promise resolved');
+                } else {
+                    addLogEntry('Init completed synchronously');
+                }
+
+                // Get session ID after initialization
+                addLogEntry('Getting session ID...');
+                const sessionId = uxrr.sessionId;
+                window.uxrrState.sessionId = sessionId;
+                window.uxrrState.ready = true;
+
+                updateStatus(`✅ SDK Ready | Session: [MASKED]`);
+                addLogEntry(`SDK initialized`);
+
+                // Identify user for better tracking
+                uxrr.identify({
+                    userId: 'test-user-123',
+                    userEmail: 'test@example.com',
+                    userName: 'Test User'
+                });
+                addLogEntry('User identified: test-user-123');
+
+                // Create logger for capturing console output
+                window.logger = uxrr.createLogger('test-app');
+                addLogEntry('Logger created');
+                console.log('✓ UXRR Logger created:', typeof window.logger, Object.keys(window.logger || {}));
+
+            } catch (error) {
+                window.uxrrState.error = error.message;
+                updateStatus(`❌ SDK Error: ${error.message}`, true);
+                addLogEntry(`ERROR: ${error.message}`);
+                addLogEntry(`STACK: ${error.stack}`);
+                console.error('SDK initialization failed:', error);
+                console.error('Stack trace:', error.stack);
+            }
+        })();
+
+        // Event handlers
+        document.getElementById('incrementBtn').addEventListener('click', () => {
+            counter++;
+            document.getElementById('counter').textContent = counter;
+            addLogEntry(`Counter incremented to ${counter}`);
+            if (window.logger) {
+                try {
+                    console.log(`→ Calling window.logger.info with Counter: ${counter}`);
+                    window.logger.info(`Counter: ${counter}`);
+                    console.log('→ logger.log() called successfully');
+                } catch (err) {
+                    console.error('✗ Error calling logger.log():', err);
+                    console.log(`Counter: ${counter}`);
+                }
+            } else {
+                console.log('⚠ window.logger not available, using native console');
+                console.log(`Counter: ${counter}`);
+            }
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            counter = 0;
+            document.getElementById('counter').textContent = counter;
+            addLogEntry('Counter reset to 0');
+            if (window.logger) {
+                window.logger.info('Counter reset');
+            } else {
+                console.log('Counter reset');
+            }
+        });
+
+        document.getElementById('logBtn').addEventListener('click', () => {
+            logCount++;
+            const message = `Test log entry #${logCount}`;
+            addLogEntry(message);
+            if (window.logger) {
+                window.logger.info(message);
+            } else {
+                console.log(message);
+            }
+        });
+
+        document.getElementById('reloadBtn').addEventListener('click', () => {
+            addLogEntry('Reloading page...');
+            window.location.reload();
+        });
+
+        document.getElementById('textInput').addEventListener('input', (e) => {
+            addLogEntry(`Input changed: "${e.target.value}"`);
+        });
+
+        // Log periodic heartbeat for activity
+        setInterval(() => {
+            console.log('Heartbeat:', new Date().toISOString());
+        }, 5000);
+    </script>
+</body>
+</html>

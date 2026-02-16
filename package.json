@@ -1,0 +1,37 @@
+{
+    "private": true,
+    "name": "uxrr",
+    "license": "SEE LICENSE IN LICENSE",
+    "workspaces": [
+        "packages/*"
+    ],
+    "packageManager": "yarn@4.12.0",
+    "scripts": {
+        "build": "yarn workspaces foreach -At run build",
+        "build:client": "yarn workspace @zyno-io/uxrr-client build",
+        "build:api": "yarn workspace @zyno-io/uxrr-api build",
+        "build:ui": "yarn workspace @zyno-io/uxrr-ui build",
+        "dev:api": "yarn workspace @zyno-io/uxrr-api dev",
+        "dev:ui": "yarn workspace @zyno-io/uxrr-ui dev",
+        "docs:dev": "vitepress dev docs",
+        "docs:build": "vitepress build docs",
+        "docs:preview": "vitepress preview docs",
+        "migrate": "yarn workspace @zyno-io/uxrr-api migrate",
+        "test": "yarn workspace @zyno-io/uxrr-api test",
+        "test:e2e": "scripts/test-e2e.sh",
+        "test:e2e:vrt": "scripts/test-e2e.sh vrt",
+        "test:e2e:live": "scripts/test-e2e.sh live",
+        "clean": "yarn workspaces foreach -A run clean",
+        "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && prettier --write ."
+    },
+    "devDependencies": {
+        "lefthook": "^2.1.1",
+        "oxlint": "^1.47.0",
+        "prettier": "^3.8.1",
+        "typescript": "~5.9",
+        "vitepress": "^1.6.4"
+    },
+    "resolutions": {
+        "deepkit-openapi-core": "0.0.9"
+    }
+}

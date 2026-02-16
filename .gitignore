@@ -1,0 +1,22 @@
+node_modules/
+dist/
+packages/api/static/
+.DS_Store
+*.tsbuildinfo
+openapi-client-generated/
+.env
+.env.local
+.yarn/*
+!.yarn/releases
+!.yarn/patches
+!.yarn/plugins
+.claude/settings.local.json
+docs/.vitepress/cache
+
+# Testing artifacts
+test-results/
+playwright-report/
+screenshots/
+*.png
+!packages/ui/public/**/*.png
+!docs/public/**/*.png

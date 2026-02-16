@@ -1,0 +1,1239 @@
+openapi: 3.0.3
+info:
+  title: OpenAPI
+  contact: {}
+  license:
+    name: MIT
+  version: 0.0.1
+servers: []
+paths:
+  /v1/admin/apps:
+    get:
+      tags:
+        - admin
+      operationId: getAdminListApps
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppResponse"
+    post:
+      tags:
+        - admin
+      operationId: postAdminCreateApp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppBody"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppResponse"
+  /v1/admin/apps/{id}:
+    patch:
+      tags:
+        - admin
+      operationId: patchAdminUpdateApp
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAppBody"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppResponse"
+    delete:
+      tags:
+        - admin
+      operationId: deleteAdminDeactivateApp
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+  /v1/admin/users:
+    get:
+      tags:
+        - admin
+      operationId: getAdminListUsers
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserResponse"
+  /v1/admin/users/{id}:
+    patch:
+      tags:
+        - admin
+      operationId: patchAdminUpdateUser
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+  /v1/auth/config:
+    get:
+      tags:
+        - auth
+      operationId: getAuthGetConfig
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthConfigResponse"
+  /v1/auth/me:
+    get:
+      tags:
+        - auth
+      operationId: getAuthGetMe
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+  /v1/auth/ws-token:
+    post:
+      tags:
+        - auth
+      operationId: postAuthGetWsToken
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                required:
+                  - token
+  /v1/ng/{appId}/{sessionId}/data:
+    post:
+      tags:
+        - ingest
+      operationId: postIngestIngestData
+      parameters:
+        - in: path
+          name: appId
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: sessionId
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestDataPayload"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  ws:
+                    type: boolean
+                    enum:
+                      - true
+                required:
+                  - ok
+  /v1/ng/{appId}/{sessionId}/t:
+    post:
+      tags:
+        - ingest
+      operationId: postIngestIngestOtlpTraces
+      parameters:
+        - in: path
+          name: appId
+          schema:
+            type: string
+          required: true
+        - in: path
+          name: sessionId
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema: {}
+  /v1/sessions:
+    get:
+      tags:
+        - session
+      operationId: getSessionListSessions
+      parameters:
+        - in: query
+          name: appId
+          schema:
+            type: string
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: deviceId
+          schema:
+            type: string
+        - in: query
+          name: from
+          schema:
+            type: string
+        - in: query
+          name: to
+          schema:
+            type: string
+        - in: query
+          name: hasChat
+          schema:
+            type: boolean
+        - in: query
+          name: limit
+          schema:
+            type: number
+        - in: query
+          name: offset
+          schema:
+            type: number
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ISession"
+  /v1/sessions/autocomplete/appIds:
+    get:
+      tags:
+        - session
+      operationId: getSessionAutocompleteAppIds
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /v1/sessions/autocomplete/deviceIds:
+    get:
+      tags:
+        - session
+      operationId: getSessionAutocompleteDeviceIds
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /v1/sessions/autocomplete/users:
+    get:
+      tags:
+        - session
+      operationId: getSessionAutocompleteUsers
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    userId:
+                      type: string
+                    userName:
+                      type: string
+                    userEmail:
+                      type: string
+                  required:
+                    - userId
+  /v1/sessions/{id}:
+    get:
+      tags:
+        - session
+      operationId: getSessionGetSession
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ISession"
+    delete:
+      tags:
+        - session
+      operationId: deleteSessionDeleteSession
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                required:
+                  - ok
+  /v1/sessions/{id}/events:
+    get:
+      tags:
+        - session
+      operationId: getSessionGetSessionEvents
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IRrwebEvent"
+  /v1/sessions/{id}/logs:
+    get:
+      tags:
+        - session
+      operationId: getSessionGetSessionLogs
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: since
+          schema:
+            type: number
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ILogEntry"
+  /v1/sessions/{id}/chat:
+    get:
+      tags:
+        - session
+      operationId: getSessionGetSessionChat
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IChatMessage"
+  /v1/sessions/{id}/share:
+    post:
+      tags:
+        - session
+      operationId: postSessionCreateShareLink
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  expiresAt:
+                    type: string
+                  id:
+                    type: string
+                required:
+                  - token
+                  - expiresAt
+                  - id
+    delete:
+      tags:
+        - session
+      operationId: deleteSessionRevokeShareLink
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+    get:
+      tags:
+        - session
+      operationId: getSessionGetShareLink
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                  token:
+                    type: string
+                  expiresAt:
+                    type: string
+                  createdAt:
+                    type: string
+                required:
+                  - active
+  /v1/shared/{token}:
+    get:
+      tags:
+        - share
+      operationId: getShareGetSession
+      parameters:
+        - in: path
+          name: token
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IShareSession"
+  /v1/shared/{token}/events:
+    get:
+      tags:
+        - share
+      operationId: getShareGetSessionEvents
+      parameters:
+        - in: path
+          name: token
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+  /v1/shared/{token}/logs:
+    get:
+      tags:
+        - share
+      operationId: getShareGetSessionLogs
+      parameters:
+        - in: path
+          name: token
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: since
+          schema:
+            type: number
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+  /v1/shared/{token}/chat:
+    get:
+      tags:
+        - share
+      operationId: getShareGetSessionChat
+      parameters:
+        - in: path
+          name: token
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+  /v1/api-keys:
+    post:
+      tags:
+        - apiKey
+      operationId: postApiKeyCreateKey
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiKeyBody"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  keyPrefix:
+                    type: string
+                  scope:
+                    type: string
+                  appIds:
+                    type: array
+                    items:
+                      type: string
+                  isActive:
+                    type: boolean
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
+                  key:
+                    type: string
+                required:
+                  - id
+                  - name
+                  - keyPrefix
+                  - scope
+                  - appIds
+                  - isActive
+                  - createdAt
+                  - updatedAt
+                  - key
+    get:
+      tags:
+        - apiKey
+      operationId: getApiKeyListKeys
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiKeyResponse"
+  /v1/api-keys/{id}:
+    get:
+      tags:
+        - apiKey
+      operationId: getApiKeyGetKey
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyResponse"
+    patch:
+      tags:
+        - apiKey
+      operationId: patchApiKeyUpdateKey
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateApiKeyBody"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyResponse"
+    delete:
+      tags:
+        - apiKey
+      operationId: deleteApiKeyRevokeKey
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+  /v1/api-keys/sign:
+    post:
+      tags:
+        - apiKey
+      operationId: postApiKeySignToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignTokenBody"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                required:
+                  - token
+  /healthz:
+    get:
+      tags:
+        - healthcheck
+      operationId: getHealthcheckIndex
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                required:
+                  - version
+components:
+  schemas:
+    AppResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        origins:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - origins
+        - isActive
+        - createdAt
+        - updatedAt
+    CreateAppBody:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        origins:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - origins
+    UpdateAppBody:
+      type: object
+      properties:
+        name:
+          type: string
+        origins:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        isAdmin:
+          type: boolean
+        lastLoginAt:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - email
+        - isAdmin
+        - lastLoginAt
+        - createdAt
+    UpdateUserBody:
+      type: object
+      properties:
+        isAdmin:
+          type: boolean
+      required:
+        - isAdmin
+    OidcConfig:
+      type: object
+      properties:
+        issuerUrl:
+          type: string
+        clientId:
+          type: string
+        scopes:
+          type: string
+      required:
+        - issuerUrl
+        - clientId
+        - scopes
+    GrafanaConfig:
+      type: object
+      properties:
+        baseUrl:
+          type: string
+        datasource:
+          type: string
+      required:
+        - baseUrl
+        - datasource
+    AuthConfigResponse:
+      type: object
+      properties:
+        oidc:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/OidcConfig"
+        grafana:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/GrafanaConfig"
+      required:
+        - oidc
+        - grafana
+    MeResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        userName:
+          type: string
+        userEmail:
+          type: string
+        scope:
+          type: string
+        isAdmin:
+          type: boolean
+      required:
+        - scope
+        - isAdmin
+    RrwebEvent:
+      type: object
+      properties:
+        type:
+          type: number
+        data: {}
+        timestamp:
+          type: number
+        delay:
+          type: number
+      required:
+        - type
+        - data
+        - timestamp
+    IngestLogEntry:
+      type: object
+      properties:
+        t:
+          type: number
+        v:
+          type: number
+        c:
+          type: string
+        m:
+          type: string
+        d: {}
+      required:
+        - t
+        - v
+        - c
+        - m
+    IngestDataPayload:
+      type: object
+      properties:
+        identity:
+          type: object
+          properties:
+            deviceId:
+              type: string
+            userId:
+              type: string
+            userName:
+              type: string
+            userEmail:
+              type: string
+        meta:
+          type: object
+          properties:
+            version:
+              type: string
+            environment:
+              type: string
+            userAgent:
+              type: string
+        launchTs:
+          type: number
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/RrwebEvent"
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/IngestLogEntry"
+      required:
+        - identity
+        - meta
+        - launchTs
+    SessionQueryParams:
+      type: object
+      properties:
+        appId:
+          type: string
+        userId:
+          type: string
+        deviceId:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        hasChat:
+          type: boolean
+        limit:
+          type: number
+        offset:
+          type: number
+    ISession:
+      type: object
+      properties:
+        id:
+          type: string
+        appId:
+          type: string
+        deviceId:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+        userEmail:
+          type: string
+        version:
+          type: string
+        environment:
+          type: string
+        userAgent:
+          type: string
+        ipAddress:
+          type: string
+        startedAt:
+          type: string
+        lastActivityAt:
+          type: string
+        eventChunkCount:
+          type: number
+        eventBytesStored:
+          type: number
+        hasChatMessages:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        allUserIds:
+          type: array
+          items:
+            type: string
+        isLive:
+          type: boolean
+      required:
+        - id
+        - appId
+        - deviceId
+        - startedAt
+        - lastActivityAt
+        - eventChunkCount
+        - eventBytesStored
+        - hasChatMessages
+        - createdAt
+        - updatedAt
+        - allUserIds
+        - isLive
+    IRrwebEvent:
+      type: object
+      properties:
+        type:
+          type: number
+        data: {}
+        timestamp:
+          type: number
+        delay:
+          type: number
+      required:
+        - type
+        - data
+        - timestamp
+    ILogEntry:
+      type: object
+      properties:
+        t:
+          type: number
+        v:
+          type: number
+        c:
+          type: string
+        m:
+          type: string
+        d: {}
+        appId:
+          type: string
+        deviceId:
+          type: string
+        userId:
+          type: string
+        sessionId:
+          type: string
+      required:
+        - t
+        - v
+        - c
+        - m
+        - appId
+        - deviceId
+        - sessionId
+    IChatMessage:
+      type: object
+      properties:
+        message:
+          type: string
+        from:
+          type: string
+        timestamp:
+          type: number
+      required:
+        - message
+        - from
+        - timestamp
+    IShareSession:
+      type: object
+      properties:
+        id:
+          type: string
+        appId:
+          type: string
+        deviceId:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+        userEmail:
+          type: string
+        version:
+          type: string
+        environment:
+          type: string
+        userAgent:
+          type: string
+        ipAddress:
+          type: string
+        startedAt:
+          type: string
+        lastActivityAt:
+          type: string
+        eventChunkCount:
+          type: number
+        eventBytesStored:
+          type: number
+        hasChatMessages:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        allUserIds:
+          type: array
+          items:
+            type: string
+        isLive:
+          type: boolean
+      required:
+        - id
+        - appId
+        - deviceId
+        - startedAt
+        - lastActivityAt
+        - eventChunkCount
+        - eventBytesStored
+        - hasChatMessages
+        - createdAt
+        - updatedAt
+        - allUserIds
+        - isLive
+    CreateApiKeyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        scope:
+          type: string
+          enum:
+            - readonly
+            - interactive
+        appIds:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - scope
+        - appIds
+    ApiKeyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        keyPrefix:
+          type: string
+        scope:
+          type: string
+        appIds:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - keyPrefix
+        - scope
+        - appIds
+        - isActive
+        - createdAt
+        - updatedAt
+    UpdateApiKeyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        scope:
+          type: string
+          enum:
+            - readonly
+            - interactive
+        appIds:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+    SignTokenBody:
+      type: object
+      properties:
+        exp:
+          type: number
+        scope:
+          type: string
+          enum:
+            - readonly
+            - interactive
+        apps:
+          type: array
+          items:
+            type: string
+        sid:
+          type: string
+      required:
+        - exp
+        - scope
+        - apps

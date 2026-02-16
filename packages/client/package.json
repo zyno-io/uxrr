@@ -1,0 +1,43 @@
+{
+    "name": "@zyno-io/uxrr-client",
+    "version": "0.0.0",
+    "license": "SEE LICENSE IN LICENSE",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "scripts": {
+        "clean": "rm -rf dist",
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && prettier --config ../../.prettierrc.json --ignore-path ../../.gitignore --write ."
+    },
+    "dependencies": {
+        "@opentelemetry/api": "^1.9.0",
+        "@opentelemetry/context-zone": "^2.5.1",
+        "@opentelemetry/exporter-trace-otlp-http": "^0.212.0",
+        "@opentelemetry/instrumentation": "^0.212.0",
+        "@opentelemetry/instrumentation-fetch": "^0.212.0",
+        "@opentelemetry/instrumentation-xml-http-request": "^0.212.0",
+        "@opentelemetry/resources": "^2.5.1",
+        "@opentelemetry/sdk-trace-base": "^2.5.1",
+        "@opentelemetry/sdk-trace-web": "^2.5.1",
+        "@opentelemetry/semantic-conventions": "^1.39.0",
+        "@rrweb/rrweb-plugin-console-record": "^2.0.0-alpha.20",
+        "@rrweb/types": "^2.0.0-alpha.20",
+        "rrweb": "^2.0.0-alpha.20"
+    },
+    "devDependencies": {
+        "happy-dom": "^20.6.1",
+        "tsup": "^8.5.1",
+        "typescript": "~5.9",
+        "vitest": "^4.0.18"
+    }
+}

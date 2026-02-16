@@ -1,0 +1,12 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": ".",
+        "lib": ["ES2021"],
+        "jsx": "react-jsx",
+        "jsxImportSource": "@deepkit/template"
+    },
+    "include": ["src/**/*"],
+    "reflection": true
+}

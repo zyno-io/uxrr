@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "sourceMap": true,
+        "declaration": false,
+        "experimentalDecorators": true,
+        "moduleResolution": "nodenext",
+        "target": "ESNext",
+        "module": "NodeNext",
+        "preserveSymlinks": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "incremental": false,
+        "forceConsistentCasingInFileNames": true
+    }
+}

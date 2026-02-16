@@ -1,0 +1,40 @@
+{
+    "name": "@zyno-io/uxrr-ui",
+    "version": "0.0.0",
+    "license": "SEE LICENSE IN LICENSE",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "clean": "rm -rf dist",
+        "gen": "generate-openapi-client",
+        "typecheck": "vue-tsc --noEmit",
+        "build": "npm run typecheck && vite build",
+        "dev": "vite",
+        "preview": "vite preview",
+        "test:e2e": "playwright test",
+        "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && prettier --config ../../.prettierrc.json --ignore-path ../../.gitignore --write ."
+    },
+    "dependencies": {
+        "@rrweb/types": "^2.0.0-alpha.20",
+        "@zyno-io/openapi-client-codegen": "^2.7.0",
+        "@zyno-io/vue-foundation": "^4.33.0",
+        "date-fns": "^4.1.0",
+        "lodash": "^4.17.23",
+        "oidc-client-ts": "^3.4.1",
+        "rrweb-player": "^2.0.0-alpha.20",
+        "vue": "^3.5.28",
+        "vue-router": "^5.0.2"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.58.2",
+        "@vitejs/plugin-vue": "^6.0.4",
+        "@vue/test-utils": "^2.4.6",
+        "@vue/tsconfig": "^0.8.1",
+        "happy-dom": "^20.6.1",
+        "sass": "^1.97.3",
+        "typescript": "~5.9",
+        "vite": "^7.3.1",
+        "vitest": "^4.0.18",
+        "vue-tsc": "^3.2.4"
+    }
+}

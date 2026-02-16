@@ -1,0 +1,285 @@
+default:
+  interruptible: true
+  before_script:
+    - |
+      BUILD_VERSION=${CI_PIPELINE_CREATED_AT:2:2}.${CI_PIPELINE_CREATED_AT:5:2}${CI_PIPELINE_CREATED_AT:8:2}.${CI_PIPELINE_CREATED_AT:11:2}${CI_PIPELINE_CREATED_AT:14:2}
+      BUILD_VERSION=$(echo -n ${BUILD_VERSION} | sed -E 's/\.0+/./g')
+      echo "Build version: ${BUILD_VERSION}"
+
+stages:
+  - test
+  - build
+  - deploy
+  - mirror
+
+# ---------- Templates ----------
+.test-base:
+  stage: test
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_TITLE =~ /^v\d+\.\d+\.\d+$/
+      when: never
+    - if: $CI_COMMIT_MESSAGE =~ /\[skip test\]/
+      when: never
+    - when: always
+  before_script:
+    - corepack enable
+    - yarn config set --home 'npmScopes.zyno-io.npmRegistryServer' "https://${PRIVATE_NPM_HOST}/"
+    - yarn config set --home 'npmScopes.zyno-io.npmAuthToken' "${PRIVATE_NPM_TOKEN}"
+    - yarn --immutable
+
+.test-services:
+  extends: .test-base
+  image: mcr.microsoft.com/playwright:v1.58.2-jammy
+  services:
+    - name: postgres:17
+      variables:
+        POSTGRES_DB: uxrr_test
+        POSTGRES_USER: uxrr
+        POSTGRES_PASSWORD: test
+    - name: redis:alpine
+    - name: localstack/localstack:latest
+      alias: localstack
+  variables:
+    APP_ENV: test
+    PG_HOST: postgres
+    PG_PORT: 5432
+    PG_USER: uxrr
+    PG_PASSWORD_SECRET: test
+    PG_DATABASE: uxrr_test
+    REDIS_HOST: redis
+    S3_ENDPOINT: http://localstack:4566
+    S3_ACCESS_KEY_SECRET: test
+    S3_SECRET_KEY_SECRET: test
+    S3_BUCKET: uxrr-events
+    UXRR_DEV_MODE: 'true'
+    UXRR_SHARE_SECRET: 'test-share-secret-must-be-32-chars!!'
+
+# ---------- Unit tests (no external services) ----------
+unit test:
+  extends: .test-base
+  image: node:24
+  script: |
+    set -e
+
+    echo "--- Client unit tests ---"
+    pushd packages/client
+    npx vitest run
+    popd
+
+    echo "--- UI unit tests ---"
+    pushd packages/ui
+    yarn gen
+    npx vitest run
+    popd
+
+    echo "--- API unit tests ---"
+    pushd packages/api
+    # Run only non-integration tests (dksf-dev test accepts file arguments)
+    npx dksf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)
+    popd
+
+# ---------- Integration + E2E + VRT screenshots ----------
+test:
+  extends: .test-services
+  script: |
+    set -e
+
+    echo "--- Waiting for LocalStack S3 ---"
+    for i in $(seq 1 30); do
+      if curl -sf http://localstack:4566/_localstack/health > /dev/null 2>&1; then
+        echo "LocalStack ready (attempt $i)"
+        break
+      fi
+      if [ $i -eq 30 ]; then echo "WARNING: LocalStack not ready after 30s"; fi
+      sleep 1
+    done
+    curl -sf -X PUT http://localstack:4566/uxrr-events > /dev/null
+    echo "Created S3 bucket: uxrr-events"
+
+    # --- API integration tests ---
+    pushd packages/api
+    npx dksf-dev test tests/integration/
+    popd
+
+    # --- Build client SDK (needed for E2E fixture page) ---
+    echo "--- Building client SDK ---"
+    pushd packages/client
+    yarn build
+    popd
+
+    # --- Build server & run migrations ---
+    echo "--- Building server ---"
+    pushd packages/api
+    yarn build
+    echo "--- Running migrations ---"
+    node . migration:run
+    echo "--- Migrations complete ---"
+    echo "--- Starting server ---"
+    node . server:start &
+    SERVER_PID=$!
+    echo "Server PID: $SERVER_PID"
+
+    # Wait for server to be ready
+    echo "--- Waiting for server to be ready ---"
+    for i in $(seq 1 30); do
+      if curl -sf http://localhost:8977/v1/auth/config > /dev/null 2>&1; then
+        echo "Server ready (attempt $i)"
+        break
+      fi
+      if [ $i -eq 30 ]; then
+        echo "WARNING: Server did not become ready after 30s"
+      fi
+      sleep 1
+    done
+    popd
+
+    echo "--- Seeding test data ---"
+    node packages/ui/tests/scripts/seed-e2e.mjs
+
+    # --- Build UI & run E2E ---
+    echo "--- Building UI ---"
+    pushd packages/ui
+    yarn gen
+    yarn build
+    echo "--- Running Playwright tests ---"
+    npx playwright test
+    echo "--- Playwright tests complete ---"
+    popd
+
+    echo "--- Killing server (PID: $SERVER_PID) ---"
+    kill $SERVER_PID
+    wait $SERVER_PID 2>/dev/null || true
+    echo "--- Done ---"
+  artifacts:
+    when: always
+    paths:
+      - packages/ui/screenshots
+      - packages/ui/playwright-report
+      - packages/ui/test-results
+    expire_in: 1 week
+
+# ---------- Visual regression ----------
+visual regression test:
+  needs:
+    - job: test
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_TITLE =~ /^v\d+\.\d+\.\d+$/
+      when: never
+    - if: $CI_COMMIT_MESSAGE =~ /\[skip test\]/
+      when: never
+    - if: $CI_COMMIT_MESSAGE =~ /\[skip vrt\]/
+      when: never
+    - when: on_success
+  stage: test
+  image:
+    name: ${CI_REGISTRY}/signal24/products/pixelci/cli:canary
+    entrypoint: ['']
+  variables:
+    PIXELCI_IMAGES_PATH: packages/ui/screenshots
+  script: pixelci
+
+# ---------- Build & publish client SDK canary ----------
+publish client canary:
+  dependencies: []
+  only:
+    refs:
+      - main
+  stage: build
+  image: node:24
+  before_script:
+    - |
+      BUILD_VERSION=${CI_PIPELINE_CREATED_AT:2:2}.${CI_PIPELINE_CREATED_AT:5:2}${CI_PIPELINE_CREATED_AT:8:2}.${CI_PIPELINE_CREATED_AT:11:2}${CI_PIPELINE_CREATED_AT:14:2}
+      BUILD_VERSION=$(echo -n ${BUILD_VERSION} | sed -E 's/\.0+/./g')
+    - corepack enable
+    - |
+      yarn config set --home 'npmScopes.zyno-io.npmRegistryServer' "https://${PRIVATE_NPM_HOST}/"
+      yarn config set --home 'npmScopes.zyno-io.npmPublishRegistry' "https://${PRIVATE_NPM_HOST}/"
+      yarn config set --home 'npmScopes.zyno-io.npmAuthToken' "${PRIVATE_NPM_PUBLISHER_TOKEN}"
+      yarn --immutable
+  script: |
+    set -e
+
+    cd packages/client
+    yarn build
+
+    PKG_VERSION=${BUILD_VERSION}-canary.${CI_COMMIT_SHORT_SHA}
+    echo "Publishing client SDK canary version ${PKG_VERSION} to npm..."
+    npm pkg set version=${PKG_VERSION}
+    yarn npm publish --tag canary
+
+# ---------- Build canary container ----------
+build:
+  dependencies: []
+  only:
+    refs:
+      - main
+  stage: build
+  image: quay.io/containers/buildah
+  script: |
+    export BUILDAH_ISOLATION=chroot
+    export STORAGE_DRIVER=vfs
+
+    buildah login \
+      --username=${CI_REGISTRY_USER} \
+      --password=${CI_REGISTRY_PASSWORD} \
+      ${CI_REGISTRY}
+
+    STATUS=$(buildah manifest inspect ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA} 2>&1 || true)
+    if [[ "$STATUS" =~ "schemaVersion" ]] || [[ "$STATUS" =~ "Error: manifest is of type application/vnd.oci.image.manifest.v1+json" ]]; then
+      echo "Image already exists, skipping build"
+      exit 0
+    fi
+
+    buildah bud \
+      --build-arg=BUILD_VERSION=${BUILD_VERSION} \
+      --build-arg=PRIVATE_NPM_HOST=${PRIVATE_NPM_HOST} \
+      --build-arg=PRIVATE_NPM_TOKEN=${PRIVATE_NPM_TOKEN} \
+      -t ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA} \
+      .
+
+    buildah push ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}
+    buildah tag ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:canary
+    buildah push ${CI_REGISTRY_IMAGE}:canary
+
+    echo "Published ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA} (canary)"
+
+# ---------- Deploy ----------
+deploy:
+  stage: deploy
+  before_script: []
+  only:
+    refs:
+      - main
+  tags:
+    - clusterwide
+    - s24-ova-devops-k3s-0
+  image:
+    name: bitnami/kubectl:latest
+  script: |
+    kubectl -n uxrr rollout restart deployment uxrr
+    kubectl -n uxrr rollout status deployment uxrr
+    kubectl -n uxrr exec deployment/uxrr -- node . migration:run
+
+# ---------- Mirror to GitHub ----------
+mirror to github:
+  stage: mirror
+  before_script: []
+  only:
+    refs:
+      - main
+  image:
+    name: alpine/git
+    entrypoint: ['']
+  script: |
+    export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
+    mkdir ~/.ssh
+    echo $GITHUB_SSH_KEY_B64 | base64 -d > ~/.ssh/id_ed25519
+    chmod 600 ~/.ssh/id_ed25519
+    git remote add github git@github.com:zyno-io/uxrr.git
+    git push -u github HEAD:refs/heads/main --force
+    git push github --tags --force

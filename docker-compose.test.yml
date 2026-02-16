@@ -1,0 +1,42 @@
+# Test infrastructure for developers without local Postgres/Redis/LocalStack.
+# Usage:  docker compose -f docker-compose.test.yml up -d
+# Stop:   docker compose -f docker-compose.test.yml down -v
+#
+# If you already run these services locally, you don't need this file.
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: uxrr_test
+      POSTGRES_USER: uxrr
+      POSTGRES_PASSWORD: test
+    ports:
+      - '5432:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U uxrr -d uxrr_test']
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - '4566:4566'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:4566/_localstack/health || exit 1']
+      interval: 2s
+      timeout: 5s
+      retries: 10

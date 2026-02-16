@@ -1,0 +1,12 @@
+{
+    "search.exclude": {
+        "**/dist/**": true,
+        "packages/ui/src/openapi-client-generated": true,
+        "packages/api/static/assets": true,
+        "docs/.vitepress/dist": true,
+        "docs/.vitepress/cache": true,
+        "packages/ui/playwright-report": true
+    },
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+}

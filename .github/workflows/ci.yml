@@ -1,0 +1,303 @@
+name: CI
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PG_HOST: localhost
+  PG_PORT: 5432
+  PG_USER: uxrr
+  PG_PASSWORD_SECRET: test
+  PG_DATABASE: uxrr_test
+  REDIS_HOST: localhost
+  S3_ENDPOINT: http://localhost:4566
+  S3_ACCESS_KEY_SECRET: test
+  S3_SECRET_KEY_SECRET: test
+  S3_BUCKET: uxrr-events
+  APP_ENV: test
+  UXRR_DEV_MODE: 'true'
+  UXRR_SHARE_SECRET: 'test-share-secret-must-be-32-chars!!'
+
+jobs:
+  test-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: corepack enable
+      - run: yarn --immutable
+
+      - name: Client unit tests
+        run: npx vitest run
+        working-directory: packages/client
+
+      - name: UI unit tests
+        working-directory: packages/ui
+        run: |
+          yarn gen
+          npx vitest run
+
+      - name: API unit tests
+        working-directory: packages/api
+        run: npx dksf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)
+
+  test-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: uxrr_test
+          POSTGRES_USER: uxrr
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U uxrr -d uxrr_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: corepack enable
+      - run: yarn --immutable
+
+      - name: Start LocalStack
+        run: |
+          docker run -d --name localstack \
+            -p 4566:4566 \
+            localstack/localstack:latest
+          echo "Waiting for LocalStack..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4566/_localstack/health > /dev/null 2>&1; then
+              echo "LocalStack ready"
+              break
+            fi
+            sleep 1
+          done
+          curl -sf -X PUT http://localhost:4566/uxrr-events > /dev/null
+          echo "Created S3 bucket: uxrr-events"
+
+      - name: API integration tests
+        working-directory: packages/api
+        run: npx dksf-dev test tests/integration/
+
+  test-e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: uxrr_test
+          POSTGRES_USER: uxrr
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U uxrr -d uxrr_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: corepack enable
+      - run: yarn --immutable
+
+      - name: Start LocalStack
+        run: |
+          docker run -d --name localstack \
+            -p 4566:4566 \
+            localstack/localstack:latest
+          echo "Waiting for LocalStack..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4566/_localstack/health > /dev/null 2>&1; then
+              echo "LocalStack ready"
+              break
+            fi
+            sleep 1
+          done
+          curl -sf -X PUT http://localhost:4566/uxrr-events > /dev/null
+          echo "Created S3 bucket: uxrr-events"
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build server
+        working-directory: packages/api
+        run: yarn build
+
+      - name: Run migrations
+        working-directory: packages/api
+        run: node . migration:run
+
+      - name: Start server
+        working-directory: packages/api
+        run: node . server:start &
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8977/v1/auth/config > /dev/null 2>&1; then
+              echo "Server ready (attempt $i)"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "WARNING: Server did not become ready after 30s"
+            fi
+            sleep 1
+          done
+
+      - name: Seed test data
+        run: node packages/ui/tests/scripts/seed-e2e.mjs
+
+      - name: Build UI
+        working-directory: packages/ui
+        run: |
+          yarn gen
+          yarn build
+
+      - name: Run Playwright tests
+        working-directory: packages/ui
+        run: npx playwright test
+        env:
+          CI: 'true'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            packages/ui/screenshots
+            packages/ui/playwright-report
+            packages/ui/test-results
+          retention-days: 7
+
+  publish-client:
+    needs: [test-unit, test-integration, test-e2e]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - run: corepack enable
+      - run: yarn --immutable
+
+      - name: Build & publish client SDK
+        working-directory: packages/client
+        run: |
+          yarn build
+          npm version ${{ steps.version.outputs.VERSION }} --git-tag-version=false
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+
+  build-release:
+    needs: [test-unit, test-integration, test-e2e]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: BUILD_VERSION=${{ steps.version.outputs.VERSION }}
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.VERSION }}
+            ghcr.io/${{ github.repository }}:latest
+
+  release:
+    needs: [build-release, publish-client]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if ! grep -q "^## ${tag}$" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no entry for ${tag}"
+            exit 1
+          fi
+          # Extract the section for the current tag between its heading and the next ## heading
+          notes=$(awk "/^## ${tag}$/,/^## /{if(/^## / && !/^## ${tag}$/) exit; print}" CHANGELOG.md | tail -n +2)
+          {
+            echo "notes<<NOTES_EOF"
+            echo "$notes"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "${{ steps.notes.outputs.notes }}"
