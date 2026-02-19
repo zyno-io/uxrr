@@ -1,6 +1,6 @@
 {
     "name": "@zyno-io/uxrr-client",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "license": "SEE LICENSE IN LICENSE",
     "type": "module",
     "main": "./dist/index.cjs",
