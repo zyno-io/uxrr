@@ -160,6 +160,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Build client SDK
+        working-directory: packages/client
+        run: yarn build
+
       - name: Build server
         working-directory: packages/api
         run: yarn build
