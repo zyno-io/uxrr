@@ -2,6 +2,14 @@
     "name": "@zyno-io/uxrr-client",
     "version": "0.1.0",
     "license": "SEE LICENSE IN LICENSE",
+    "repository": {
+        "url": "https://github.com/zyno-io/uxrr"
+    },
+    "author": {
+        "name": "Signal24 LLC dba Zyno Consulting",
+        "email": "support@zyno.io",
+        "url": "https://zyno.io"
+    },
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.js",

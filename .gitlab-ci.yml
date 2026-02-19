@@ -269,9 +269,10 @@ deploy:
 mirror to github:
   stage: mirror
   before_script: []
-  only:
-    refs:
-      - main
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /\[skip mirror\]/
+      when: never
+    - if: $CI_COMMIT_BRANCH == "main"
   image:
     name: alpine/git
     entrypoint: ['']
