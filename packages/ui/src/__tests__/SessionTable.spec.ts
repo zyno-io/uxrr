@@ -159,16 +159,7 @@ describe('SessionTable', () => {
             props: { sessions: [], loading: false, error: null }
         });
         const headers = wrapper.findAll('th');
-        expect(headers.map(h => h.text())).toEqual([
-            'Session',
-            'Time',
-            'Duration',
-            'User',
-            'Device',
-            'App',
-            'Version',
-            'Env'
-        ]);
+        expect(headers.map(h => h.text())).toEqual(['Session', 'Time', 'Duration', 'User', 'Device', 'App', 'Version', 'Env']);
     });
 
     it('displays version and environment', () => {

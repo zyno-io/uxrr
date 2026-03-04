@@ -27,10 +27,7 @@ describe('useLivePlayerController', () => {
         it('buffers events and mounts after client connects', async () => {
             const { controller, mountSpy } = createController();
 
-            controller.onEvents([
-                { type: 4, data: { width: 1024, height: 768 } },
-                { type: 2 }
-            ]);
+            controller.onEvents([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }]);
             expect(mountSpy).not.toHaveBeenCalled();
             expect(controller.ready.value).toBe(false);
 
@@ -48,10 +45,7 @@ describe('useLivePlayerController', () => {
             controller.onClientConnected();
             expect(controller.state.value).toBe('syncing');
 
-            controller.onEvents([
-                { type: 4, data: { width: 1024, height: 768 } },
-                { type: 2 }
-            ]);
+            controller.onEvents([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }]);
             expect(mountSpy).toHaveBeenCalledTimes(1);
             await flushMicrotasks();
             expect(controller.ready.value).toBe(true);
@@ -80,10 +74,7 @@ describe('useLivePlayerController', () => {
             const { controller, mountSpy, addEventSpy } = createController();
 
             controller.onClientConnected();
-            controller.onEvents([
-                { type: 4, data: { width: 800, height: 600 } },
-                { type: 2 }
-            ]);
+            controller.onEvents([{ type: 4, data: { width: 800, height: 600 } }, { type: 2 }]);
             expect(mountSpy).toHaveBeenCalledTimes(1);
 
             // Events arrive while mount is still async (ready is false)
@@ -100,17 +91,13 @@ describe('useLivePlayerController', () => {
         });
 
         it('filters FullSnapshot and Meta from drain buffer', async () => {
-            const { controller, mountSpy, addEventSpy } = createController();
+            const { controller, addEventSpy } = createController();
 
             controller.onClientConnected();
             controller.onEvents([{ type: 4, data: { width: 800, height: 600 } }, { type: 2 }]);
 
             // Snapshot burst arrives during async mount
-            controller.onEvents([
-                { type: 4, data: { width: 1024, height: 768 } },
-                { type: 2 },
-                { type: 3, data: { source: 5 } }
-            ]);
+            controller.onEvents([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }, { type: 3, data: { source: 5 } }]);
 
             await flushMicrotasks();
             // Only incremental should be forwarded
@@ -125,10 +112,7 @@ describe('useLivePlayerController', () => {
 
             // Bootstrap to live state
             controller.onClientConnected();
-            controller.onEvents([
-                { type: 4, data: { width: 800, height: 600 } },
-                { type: 2 }
-            ]);
+            controller.onEvents([{ type: 4, data: { width: 800, height: 600 } }, { type: 2 }]);
             await flushMicrotasks();
             expect(mountSpy).toHaveBeenCalledTimes(1);
             expect(controller.state.value).toBe('live');
@@ -136,11 +120,7 @@ describe('useLivePlayerController', () => {
             // Simulate snapshot burst from request_snapshot (triggered by share viewer joining).
             // rrweb's Replayer.addEvent() cannot handle FullSnapshot — it tears down
             // the iframe DOM but fails to rebuild, producing a black screen.
-            controller.onEvents([
-                { type: 4, data: { width: 1024, height: 768 } },
-                { type: 2 },
-                { type: 3, data: { source: 0 } }
-            ]);
+            controller.onEvents([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }, { type: 3, data: { source: 0 } }]);
 
             // Only incremental event should reach addEvent
             expect(addEventSpy).toHaveBeenCalledTimes(1);

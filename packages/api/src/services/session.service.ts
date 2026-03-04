@@ -39,10 +39,9 @@ export class SessionService {
             query = query.filter({ appId: { $in: uuids } });
         }
         if (filters.userId) {
-            const rows = await this.db.rawFindUnsafe<{ sessionId: string }>(
-                `SELECT "sessionId" FROM "session_user_ids" WHERE "userId" = ?`,
-                [filters.userId]
-            );
+            const rows = await this.db.rawFindUnsafe<{ sessionId: string }>(`SELECT "sessionId" FROM "session_user_ids" WHERE "userId" = ?`, [
+                filters.userId
+            ]);
             const ids = rows.map(r => r.sessionId);
             if (ids.length === 0) return [];
             query = query.filter({ id: { $in: ids } });
@@ -127,14 +126,9 @@ export class SessionService {
         }
 
         const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-        const rows = await this.db.rawFindUnsafe<{ appId: string }>(
-            `SELECT DISTINCT "appId" FROM "sessions" ${where} LIMIT 200`,
-            params
-        );
+        const rows = await this.db.rawFindUnsafe<{ appId: string }>(`SELECT DISTINCT "appId" FROM "sessions" ${where} LIMIT 200`, params);
 
-        let appKeyResults = rows
-            .map(r => this.appResolver.resolveAppKey(r.appId))
-            .filter(Boolean) as string[];
+        let appKeyResults = rows.map(r => this.appResolver.resolveAppKey(r.appId)).filter(Boolean) as string[];
 
         if (prefix) {
             const lower = prefix.toLowerCase();
@@ -173,10 +167,7 @@ export class SessionService {
         return rows.map(r => r.deviceId);
     }
 
-    async distinctUsers(
-        prefix?: string,
-        appKeys?: string[]
-    ): Promise<{ userId: string; userName?: string; userEmail?: string }[]> {
+    async distinctUsers(prefix?: string, appKeys?: string[]): Promise<{ userId: string; userName?: string; userEmail?: string }[]> {
         const conditions: string[] = [`"userId" IS NOT NULL`];
         const params: unknown[] = [];
 

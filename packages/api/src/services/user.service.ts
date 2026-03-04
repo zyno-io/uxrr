@@ -22,10 +22,8 @@ export class UserService {
             throw new Error('OIDC token missing required sub claim');
         }
 
-        const email =
-            (payload.email as string) || (payload.preferred_username as string) || (payload.upn as string) || '';
-        const name =
-            (payload.name as string) ?? (payload.nickname as string) ?? (payload.given_name as string) ?? undefined;
+        const email = (payload.email as string) || (payload.preferred_username as string) || (payload.upn as string) || '';
+        const name = (payload.name as string) ?? (payload.nickname as string) ?? (payload.given_name as string) ?? undefined;
 
         // Look up by oidcSub (only strategy — no email fallback for security)
         let user = await this.db.query(UserEntity).filter({ oidcSub }).findOneOrUndefined();
@@ -72,9 +70,7 @@ export class UserService {
             throw err;
         }
 
-        this.logger.info(
-            `Created user ${user.id} (email: ${email}, admin: ${user.isAdmin}${isFirstUser ? ', first user' : ''})`
-        );
+        this.logger.info(`Created user ${user.id} (email: ${email}, admin: ${user.isAdmin}${isFirstUser ? ', first user' : ''})`);
         return user;
     }
 

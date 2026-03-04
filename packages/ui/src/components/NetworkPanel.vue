@@ -171,9 +171,7 @@ function formatHeaders(headers: Record<string, string>): string {
                             <td v-if="grafana" class="col-trace">
                                 <a
                                     v-if="net(entry).traceId"
-                                    :href="
-                                        buildGrafanaTraceUrl(grafana.baseUrl, grafana.datasource, net(entry).traceId!)
-                                    "
+                                    :href="buildGrafanaTraceUrl(grafana.baseUrl, grafana.datasource, net(entry).traceId!)"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     class="trace-link"

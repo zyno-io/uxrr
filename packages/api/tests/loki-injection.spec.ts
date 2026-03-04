@@ -32,10 +32,7 @@ describe('LokiService — LogQL injection prevention', () => {
             const call = fetchMock.mock.calls[0];
             const url = call.arguments[0] as string;
             // backslash should be escaped to double backslash
-            assert.ok(
-                url.includes('dev%5C%5Cice') || url.includes('dev\\\\ice'),
-                `URL should contain escaped backslash: ${url}`
-            );
+            assert.ok(url.includes('dev%5C%5Cice') || url.includes('dev\\\\ice'), `URL should contain escaped backslash: ${url}`);
         });
 
         it('escapes double quotes in deviceId', async () => {
@@ -45,10 +42,7 @@ describe('LokiService — LogQL injection prevention', () => {
             const call = fetchMock.mock.calls[0];
             const url = call.arguments[0] as string;
             // double quote should be escaped
-            assert.ok(
-                !url.includes('dev"ice') || url.includes('dev\\"ice'),
-                `URL should contain escaped double quote: ${url}`
-            );
+            assert.ok(!url.includes('dev"ice') || url.includes('dev\\"ice'), `URL should contain escaped double quote: ${url}`);
         });
 
         it('escapes backticks in sessionId', async () => {
@@ -58,10 +52,7 @@ describe('LokiService — LogQL injection prevention', () => {
             const call = fetchMock.mock.calls[0];
             const url = call.arguments[0] as string;
             // backtick should be escaped in the pipeline filter
-            assert.ok(
-                !url.includes('sess`1') || url.includes('sess\\`1'),
-                `URL should contain escaped backtick: ${url}`
-            );
+            assert.ok(!url.includes('sess`1') || url.includes('sess\\`1'), `URL should contain escaped backtick: ${url}`);
         });
 
         it('malicious deviceId with double quote produces safe query', async () => {

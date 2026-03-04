@@ -39,14 +39,7 @@ export function initEmbed(): boolean {
         embedState.scope = payload.scope ?? 'readonly';
         embedState.appKeys = payload.apps ?? [];
         embedState.sessionId = payload.sid ?? null;
-        log.log(
-            'embed initialized, scope:',
-            embedState.scope,
-            'appKeys:',
-            embedState.appKeys,
-            'sessionId:',
-            embedState.sessionId
-        );
+        log.log('embed initialized, scope:', embedState.scope, 'appKeys:', embedState.appKeys, 'sessionId:', embedState.sessionId);
 
         // Strip token from URL to prevent leakage via history/referrer/logs
         const url = new URL(window.location.href);

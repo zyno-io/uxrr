@@ -40,19 +40,13 @@ function copy(value: string) {
             </div>
             <div v-if="userEmail" class="user-popover-row">
                 <span class="user-popover-label">Email</span>
-                <span class="user-popover-value user-popover-copyable" @click.stop="copy(userEmail!)">{{
-                    userEmail
-                }}</span>
+                <span class="user-popover-value user-popover-copyable" @click.stop="copy(userEmail!)">{{ userEmail }}</span>
             </div>
             <div v-if="userId" class="user-popover-row">
                 <span class="user-popover-label">ID</span>
-                <span class="user-popover-value user-popover-mono user-popover-copyable" @click.stop="copy(userId!)">{{
-                    userId
-                }}</span>
+                <span class="user-popover-value user-popover-mono user-popover-copyable" @click.stop="copy(userId!)">{{ userId }}</span>
             </div>
-            <button v-if="userId" class="user-popover-btn" @click.stop="emit('filter', userId)">
-                View all sessions
-            </button>
+            <button v-if="userId" class="user-popover-btn" @click.stop="emit('filter', userId)">View all sessions</button>
         </div>
     </span>
 </template>

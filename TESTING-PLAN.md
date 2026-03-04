@@ -153,10 +153,7 @@ const sessionFixtures = defineEntityFixtures(SessionEntity, {
 });
 
 describe('IngestService', () => {
-    const tf = TestingHelpers.createTestingFacade(
-        { providers: [IngestService /* mock providers */] },
-        { enableDatabase: false }
-    );
+    const tf = TestingHelpers.createTestingFacade({ providers: [IngestService /* mock providers */] }, { enableDatabase: false });
     TestingHelpers.installStandardHooks(tf);
     const sql = new SqlTestingHelper();
 
@@ -215,12 +212,12 @@ HTTP-level tests using dk-server-foundation's mock request helper.
 
 ### `IngestController` — via `makeMockRequest()`
 
-| Test                                                        | What it verifies |
-| ----------------------------------------------------------- | ---------------- |
-| `POST /v1/ng/:appId/:sessionId/data` with valid payload | Happy path       |
-| Rejects invalid appId                                       | Validation       |
-| Rejects oversized body (>MAX_BODY_SIZE)                     | Size guard       |
-| Returns 429 when rate limit exceeded (60 req/min per IP)    | Rate limiting    |
+| Test                                                     | What it verifies |
+| -------------------------------------------------------- | ---------------- |
+| `POST /v1/ng/:appId/:sessionId/data` with valid payload  | Happy path       |
+| Rejects invalid appId                                    | Validation       |
+| Rejects oversized body (>MAX_BODY_SIZE)                  | Size guard       |
+| Returns 429 when rate limit exceeded (60 req/min per IP) | Rate limiting    |
 
 ### `WebSocketService`
 

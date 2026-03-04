@@ -46,10 +46,7 @@ function openSetup(app: AppResponse) {
 async function toggleActive(app: AppResponse) {
     try {
         if (app.isActive) {
-            const ok = await showConfirmDestroy(
-                'Deactivate App',
-                `Deactivate "${app.name}"? It will stop accepting ingest data.`
-            );
+            const ok = await showConfirmDestroy('Deactivate App', `Deactivate "${app.name}"? It will stop accepting ingest data.`);
             if (!ok) return;
             dataFrom(await AdminApi.deleteAdminDeactivateApp({ path: { appKey: app.appKey } }));
         } else {
@@ -101,11 +98,7 @@ onMounted(load);
                     <td class="actions">
                         <button class="uxrr-btn-small" @click="openSetup(app)">Setup</button>
                         <button class="uxrr-btn-small" @click="openEdit(app)">Edit</button>
-                        <button
-                            class="uxrr-btn-small"
-                            :class="app.isActive ? 'danger' : 'success'"
-                            @click="toggleActive(app)"
-                        >
+                        <button class="uxrr-btn-small" :class="app.isActive ? 'danger' : 'success'" @click="toggleActive(app)">
                             {{ app.isActive ? 'Deactivate' : 'Activate' }}
                         </button>
                     </td>

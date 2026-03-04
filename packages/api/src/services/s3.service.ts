@@ -1,10 +1,4 @@
-import {
-    DeleteObjectsCommand,
-    GetObjectCommand,
-    ListObjectsV2Command,
-    PutObjectCommand,
-    S3Client
-} from '@aws-sdk/client-s3';
+import { DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { gunzip, gzip } from 'node:zlib';
 import { promisify } from 'node:util';
 
@@ -152,13 +146,7 @@ export class S3Service {
         );
     }
 
-    private async getChunksByRange(
-        appId: string,
-        sessionId: string,
-        type: string,
-        startChunk: number,
-        endChunk: number
-    ): Promise<unknown[]> {
+    private async getChunksByRange(appId: string, sessionId: string, type: string, startChunk: number, endChunk: number): Promise<unknown[]> {
         const keys: string[] = [];
         for (let i = startChunk; i <= endChunk; i++) {
             keys.push(this.buildKey(appId, sessionId, type, i));

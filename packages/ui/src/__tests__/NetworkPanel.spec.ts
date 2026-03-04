@@ -77,11 +77,7 @@ describe('NetworkPanel', () => {
         });
 
         it('displays request count in toolbar', () => {
-            const entries = [
-                makeEntry(),
-                makeEntry({ t: SESSION_START + 2000 }),
-                makeEntry({ t: SESSION_START + 3000 })
-            ];
+            const entries = [makeEntry(), makeEntry({ t: SESSION_START + 2000 }), makeEntry({ t: SESSION_START + 3000 })];
             const wrapper = mount(NetworkPanel, {
                 props: { entries, ...defaultProps }
             });

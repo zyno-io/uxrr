@@ -1,14 +1,5 @@
 import { test, expect } from '@playwright/test';
-import {
-    sessions,
-    rrwebEvents,
-    consoleLogs,
-    networkLogs,
-    chatMessages,
-    authConfig,
-    meResponse,
-    VRT_NOW
-} from './fixtures';
+import { sessions, rrwebEvents, consoleLogs, networkLogs, chatMessages, authConfig, meResponse, VRT_NOW } from './fixtures';
 import { setupBaseMocks, mockSessionListRoutes, mockSessionDetailRoutes, expectMinScreenshotSize } from './helpers';
 
 const SCREENSHOTS_DIR = 'screenshots';

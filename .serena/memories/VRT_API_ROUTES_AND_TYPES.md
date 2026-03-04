@@ -7,6 +7,7 @@ Complete reference for building Visual Regression Testing (VRT) mock fixtures fo
 ## UI Routes
 
 ### Main Routes (Vue Router)
+
 - `/` → SessionList (sessions page)
 - `/sessions/:id` → SessionDetail (session replay page)
 - `/share/:token` → SharedSessionDetail (public shared session)
@@ -18,6 +19,7 @@ Complete reference for building Visual Regression Testing (VRT) mock fixtures fo
 - `/auth/callback` → Auth callback handler
 
 ### Admin Routes
+
 Protected by `meta: { admin: true }` — redirects to `/` if not admin.
 
 ---
@@ -29,16 +31,19 @@ All endpoints are in OpenAPI format at `packages/api/openapi.yaml`.
 ### Admin Endpoints
 
 #### Apps Management
+
 - **GET /v1/admin/apps** → `AppResponse[]`
 - **POST /v1/admin/apps** → `AppResponse` (body: `CreateAppBody`)
 - **PATCH /v1/admin/apps/{id}** → `AppResponse` (body: `UpdateAppBody`)
 - **DELETE /v1/admin/apps/{id}** → `{ ok: boolean }`
 
 #### Users Management
+
 - **GET /v1/admin/users** → `UserResponse[]`
 - **PATCH /v1/admin/users/{id}** → `UserResponse` (body: `UpdateUserBody`)
 
 #### API Keys Management
+
 - **GET /v1/api-keys** → `ApiKeyResponse[]`
 - **POST /v1/api-keys** → `CreateApiKeyResponse` (body: `CreateApiKeyBody`)
 - **GET /v1/api-keys/{id}** → `ApiKeyResponse`
@@ -54,22 +59,26 @@ All endpoints are in OpenAPI format at `packages/api/openapi.yaml`.
 ### Session Endpoints
 
 #### Session List & Query
+
 - **GET /v1/sessions** → `ISession[]`
-  - Query params: `appId`, `userId`, `deviceId`, `from`, `to`, `hasChat`, `limit`, `offset`
+    - Query params: `appId`, `userId`, `deviceId`, `from`, `to`, `hasChat`, `limit`, `offset`
 - **GET /v1/sessions/autocomplete/appIds** → `string[]`
 - **GET /v1/sessions/autocomplete/deviceIds** → `string[]`
 - **GET /v1/sessions/autocomplete/users** → `{ userId: string; userName?: string; userEmail?: string }[]`
 
 #### Session Detail
+
 - **GET /v1/sessions/{id}** → `ISession`
 - **DELETE /v1/sessions/{id}** → `{ ok: boolean }`
 
 #### Session Data
+
 - **GET /v1/sessions/{id}/events** → `IRrwebEvent[]`
 - **GET /v1/sessions/{id}/logs** → `ILogEntry[]`
 - **GET /v1/sessions/{id}/chat** → `IChatMessage[]`
 
 #### Share Links
+
 - **GET /v1/sessions/{id}/share** → `{ active: boolean; token?: string; expiresAt?: string; createdAt?: string }`
 - **POST /v1/sessions/{id}/share** → `{ token: string; expiresAt: string; id: string }`
 - **DELETE /v1/sessions/{id}/share** → `{ ok: boolean }`
@@ -99,6 +108,7 @@ All types are auto-generated from OpenAPI. Source: `packages/ui/src/openapi-clie
 ### Core Types
 
 #### AppResponse
+
 ```typescript
 type AppResponse = {
     id: string;
@@ -111,6 +121,7 @@ type AppResponse = {
 ```
 
 #### CreateAppBody
+
 ```typescript
 type CreateAppBody = {
     id?: string;
@@ -120,6 +131,7 @@ type CreateAppBody = {
 ```
 
 #### UpdateAppBody
+
 ```typescript
 type UpdateAppBody = {
     name?: string;
@@ -129,6 +141,7 @@ type UpdateAppBody = {
 ```
 
 #### UserResponse
+
 ```typescript
 type UserResponse = {
     id: string;
@@ -141,6 +154,7 @@ type UserResponse = {
 ```
 
 #### UpdateUserBody
+
 ```typescript
 type UpdateUserBody = {
     isAdmin: boolean;
@@ -148,6 +162,7 @@ type UpdateUserBody = {
 ```
 
 #### MeResponse
+
 ```typescript
 type MeResponse = {
     userId?: string;
@@ -159,6 +174,7 @@ type MeResponse = {
 ```
 
 #### AuthConfigResponse
+
 ```typescript
 type AuthConfigResponse = {
     oidc: OidcConfig | null;
@@ -167,6 +183,7 @@ type AuthConfigResponse = {
 ```
 
 #### OidcConfig
+
 ```typescript
 type OidcConfig = {
     issuerUrl: string;
@@ -176,6 +193,7 @@ type OidcConfig = {
 ```
 
 #### GrafanaConfig
+
 ```typescript
 type GrafanaConfig = {
     baseUrl: string;
@@ -186,6 +204,7 @@ type GrafanaConfig = {
 ### Session Types
 
 #### ISession
+
 ```typescript
 type ISession = {
     id: string;
@@ -210,6 +229,7 @@ type ISession = {
 ```
 
 #### IShareSession
+
 ```typescript
 type IShareSession = {
     id: string;
@@ -236,6 +256,7 @@ type IShareSession = {
 ### Event & Log Types
 
 #### IRrwebEvent
+
 ```typescript
 type IRrwebEvent = {
     type: number;
@@ -246,6 +267,7 @@ type IRrwebEvent = {
 ```
 
 #### RrwebEvent (ingest format)
+
 ```typescript
 type RrwebEvent = {
     type: number;
@@ -256,13 +278,14 @@ type RrwebEvent = {
 ```
 
 #### ILogEntry (retrieved format)
+
 ```typescript
 type ILogEntry = {
-    t: number;        // timestamp (unix ms)
-    v: number;        // level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)
-    c: string;        // scope/category (e.g., 'uxrr:net')
-    m: string;        // message
-    d?: unknown;      // data (optional)
+    t: number; // timestamp (unix ms)
+    v: number; // level (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR)
+    c: string; // scope/category (e.g., 'uxrr:net')
+    m: string; // message
+    d?: unknown; // data (optional)
     appId: string;
     deviceId: string;
     userId?: string;
@@ -271,6 +294,7 @@ type ILogEntry = {
 ```
 
 #### IngestLogEntry (ingest format)
+
 ```typescript
 type IngestLogEntry = {
     t: number;
@@ -282,10 +306,11 @@ type IngestLogEntry = {
 ```
 
 #### IChatMessage
+
 ```typescript
 type IChatMessage = {
     message: string;
-    from: string;     // 'user', 'agent', or '__separator'
+    from: string; // 'user', 'agent', or '__separator'
     timestamp: number;
 };
 ```
@@ -293,6 +318,7 @@ type IChatMessage = {
 ### API Key Types
 
 #### ApiKeyResponse
+
 ```typescript
 type ApiKeyResponse = {
     id: string;
@@ -307,6 +333,7 @@ type ApiKeyResponse = {
 ```
 
 #### CreateApiKeyBody
+
 ```typescript
 type CreateApiKeyBody = {
     name: string;
@@ -316,6 +343,7 @@ type CreateApiKeyBody = {
 ```
 
 #### UpdateApiKeyBody
+
 ```typescript
 type UpdateApiKeyBody = {
     name?: string;
@@ -326,6 +354,7 @@ type UpdateApiKeyBody = {
 ```
 
 #### SignTokenBody
+
 ```typescript
 type SignTokenBody = {
     exp: number;
@@ -338,6 +367,7 @@ type SignTokenBody = {
 ### Ingest Types
 
 #### IngestDataPayload
+
 ```typescript
 type IngestDataPayload = {
     identity: {
@@ -368,25 +398,43 @@ WebSocket connections are used for real-time updates. All messages are JSON.
 **URL:** `ws://localhost:8978/v1/sessions/watch?token=...&appId=...&userId=...&deviceId=...&from=...&to=...`
 
 **Client → Server:**
+
 ```typescript
-{ type: 'set_filters'; filters: SessionListFilters }
+{
+    type: 'set_filters';
+    filters: SessionListFilters;
+}
 ```
 
 **Server → Client:**
 
 #### Session Created
+
 ```typescript
-{ type: 'session_created'; session: ISession }
+{
+    type: 'session_created';
+    session: ISession;
+}
 ```
 
 #### Session Updated
+
 ```typescript
-{ type: 'session_updated'; session: ISession }
+{
+    type: 'session_updated';
+    session: ISession;
+}
 ```
 
 #### Session Live Status
+
 ```typescript
-{ type: 'session_live_status'; sessionId: string; isLive: boolean; lastActivityAt: string }
+{
+    type: 'session_live_status';
+    sessionId: string;
+    isLive: boolean;
+    lastActivityAt: string;
+}
 ```
 
 ### Live Session Stream
@@ -394,88 +442,162 @@ WebSocket connections are used for real-time updates. All messages are JSON.
 **URL:** `ws://localhost:8978/v1/sessions/{sessionId}/live?token=...`
 
 **Client → Server:**
+
 ```typescript
 // Cursor/pointer control
-{ type: 'cursor'; x: number; y: number }
-{ type: 'remote_click'; x: number; y: number }
-{ type: 'cursor_hide' }
+{
+    type: 'cursor';
+    x: number;
+    y: number;
+}
+{
+    type: 'remote_click';
+    x: number;
+    y: number;
+}
+{
+    type: 'cursor_hide';
+}
 
 // Highlighting
-{ type: 'highlight'; x: number; y: number }
+{
+    type: 'highlight';
+    x: number;
+    y: number;
+}
 
 // Pen tool
-{ type: 'pen_start'; x: number; y: number }
-{ type: 'pen_move'; x: number; y: number }
-{ type: 'pen_end' }
+{
+    type: 'pen_start';
+    x: number;
+    y: number;
+}
+{
+    type: 'pen_move';
+    x: number;
+    y: number;
+}
+{
+    type: 'pen_end';
+}
 
 // Control
-{ type: 'take_control' }
+{
+    type: 'take_control';
+}
 
 // Chat
-{ type: 'start_chat' }
-{ type: 'chat'; message: string }
-{ type: 'end_chat' }
-{ type: 'typing' }
+{
+    type: 'start_chat';
+}
+{
+    type: 'chat';
+    message: string;
+}
+{
+    type: 'end_chat';
+}
+{
+    type: 'typing';
+}
 ```
 
 **Server → Client:**
 
 #### Events
+
 ```typescript
 { type: 'events'; data: unknown[] }
 ```
 
 #### Logs
+
 ```typescript
 { type: 'logs'; data: ILogEntry[] }
 ```
 
 #### Chat Message
+
 ```typescript
 { type: 'chat'; message: string; from?: string }
 ```
 
 #### Typing Indicator
+
 ```typescript
-{ type: 'typing' }
+{
+    type: 'typing';
+}
 ```
 
 #### Focus Change
+
 ```typescript
-{ type: 'focus'; focused: boolean }
+{
+    type: 'focus';
+    focused: boolean;
+}
 ```
 
 #### Client Connection Status
+
 ```typescript
-{ type: 'client_connected' }
-{ type: 'client_disconnected' }
+{
+    type: 'client_connected';
+}
+{
+    type: 'client_disconnected';
+}
 ```
 
 #### Control Grant/Revoke
+
 ```typescript
-{ type: 'control_granted' }
-{ type: 'control_revoked' }
+{
+    type: 'control_granted';
+}
+{
+    type: 'control_revoked';
+}
 ```
 
 #### Agents List
+
 ```typescript
 { type: 'agents_updated'; agents: AgentInfo[] }
 ```
 
 #### Chat Status
+
 ```typescript
-{ type: 'start_chat' }
-{ type: 'end_chat' }
+{
+    type: 'start_chat';
+}
+{
+    type: 'end_chat';
+}
 ```
 
 #### Pen Events from Client
+
 ```typescript
-{ type: 'pen_start'; x: number; y: number }
-{ type: 'pen_move'; x: number; y: number }
-{ type: 'pen_end' }
+{
+    type: 'pen_start';
+    x: number;
+    y: number;
+}
+{
+    type: 'pen_move';
+    x: number;
+    y: number;
+}
+{
+    type: 'pen_end';
+}
 ```
 
 ### AgentInfo Type
+
 ```typescript
 interface AgentInfo {
     id: string;
@@ -490,6 +612,7 @@ interface AgentInfo {
 ## Console Panel Log Entry Structure
 
 **Log Level Values:**
+
 ```typescript
 const LOG_LEVELS: Record<number, { label: string; cssClass: string }> = {
     0: { label: 'DEBUG', cssClass: 'level-debug' },
@@ -500,6 +623,7 @@ const LOG_LEVELS: Record<number, { label: string; cssClass: string }> = {
 ```
 
 **Network Entry Format (in log `d` field):**
+
 ```typescript
 interface NetworkData {
     method: string;
@@ -599,6 +723,7 @@ interface SessionDetailReturn {
 ## Component Props & Events
 
 ### ConsolePanel
+
 ```typescript
 defineProps<{
     logs: ILogEntry[];
@@ -613,6 +738,7 @@ defineEmits<{
 ```
 
 ### NetworkPanel
+
 ```typescript
 defineProps<{
     entries: ILogEntry[];
@@ -639,6 +765,7 @@ interface NetworkData {
 ```
 
 ### ChatPanel
+
 ```typescript
 interface ChatMessage {
     message: string;
@@ -668,6 +795,7 @@ defineEmits<{
 ## Page Component API Usage
 
 ### AdminApps.vue
+
 - **Load:** `AdminApi.getAdminListApps()` → `AppResponse[]`
 - **Create:** `AdminApi.postAdminCreateApp({ body: CreateAppBody })` → `AppResponse`
 - **Edit:** `AdminApi.patchAdminUpdateApp({ path: { id }, body: UpdateAppBody })` → `AppResponse`
@@ -675,20 +803,24 @@ defineEmits<{
 - **Activate:** `AdminApi.patchAdminUpdateApp({ path: { id }, body: { isActive: true } })` → `AppResponse`
 
 ### AdminUsers.vue
+
 - **Load:** `AdminApi.getAdminListUsers()` → `UserResponse[]`
 - **Update:** `AdminApi.patchAdminUpdateUser({ path: { id }, body: UpdateUserBody })` → `UserResponse`
 
 ### AdminApiKeys.vue
+
 - **Load Keys:** `ApiKeyApi.getApiKeyListKeys()` → `ApiKeyResponse[]`
 - **Load Apps:** `AdminApi.getAdminListApps()` → `AppResponse[]`
 - **Create Key:** `ApiKeyApi.postApiKeyCreateKey({ body: CreateApiKeyBody })` → `{ id, name, keyPrefix, scope, appIds, isActive, createdAt, updatedAt, key }`
 - **Revoke Key:** `ApiKeyApi.deleteApiKeyRevokeKey({ path: { id } })` → `{ ok: boolean }`
 
 ### SessionList.vue
+
 - **Load Sessions:** `SessionApi.getSessionListSessions({ query: filters })` → `ISession[]`
 - **WebSocket:** `connectSessionListStream(filters, callbacks)` for real-time updates
 
 ### SessionDetail.vue
+
 - **Load Session:** `SessionApi.getSessionGetSession({ path: { id } })` → `ISession`
 - **Load Events:** `SessionApi.getSessionGetSessionEvents({ path: { id } })` → `IRrwebEvent[]`
 - **Load Logs:** `SessionApi.getSessionGetSessionLogs({ path: { id } })` → `ILogEntry[]`
@@ -711,6 +843,7 @@ defineEmits<{
 ## Filter & Query Parameters
 
 ### Session List Filters
+
 ```typescript
 interface SessionListFilters {
     appId?: string;
@@ -722,13 +855,14 @@ interface SessionListFilters {
 ```
 
 ### Session Query Params
+
 ```typescript
 interface SessionQueryParams {
     appId?: string;
     userId?: string;
     deviceId?: string;
-    from?: string;     // ISO date string
-    to?: string;       // ISO date string
+    from?: string; // ISO date string
+    to?: string; // ISO date string
     hasChat?: boolean;
     limit?: number;
     offset?: number;
@@ -740,9 +874,9 @@ interface SessionQueryParams {
 ## Important Details for VRT Fixtures
 
 1. **Date/Time Formatting:**
-   - Sessions use ISO 8601 strings: `new Date(session.startedAt).toISOString()`
-   - Log timestamps are unix ms: `Date.now()`
-   - Dates displayed: `date-fns` format (e.g., `format(new Date(...), 'MMM d, yyyy HH:mm:ss')`)
+    - Sessions use ISO 8601 strings: `new Date(session.startedAt).toISOString()`
+    - Log timestamps are unix ms: `Date.now()`
+    - Dates displayed: `date-fns` format (e.g., `format(new Date(...), 'MMM d, yyyy HH:mm:ss')`)
 
 2. **Log Levels** are numeric: 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR
 
@@ -755,13 +889,12 @@ interface SessionQueryParams {
 6. **Chat Separator** messages have `from === '__separator'`
 
 7. **Color Status Codes:**
-   - 200-299: Green (success)
-   - 300-399: Yellow (redirect)
-   - Other: Red (error)
+    - 200-299: Green (success)
+    - 300-399: Yellow (redirect)
+    - Other: Red (error)
 
 8. **Grafana Integration:** Links are built by `buildGrafanaTraceUrl(baseUrl, datasource, traceId)`
 
 9. **Interactive Mode:** Live sessions with `hasControl === true` can send cursor, highlight, pen, and chat messages
 
 10. **Event Chunks:** Sessions track `eventChunkCount` for segmented event storage
-

@@ -13,33 +13,18 @@ function makeLogger(): Logger {
     return { warn: mock.fn(), error: mock.fn(), info: mock.fn() } as unknown as Logger;
 }
 
-function makeDb(
-    overrides: { apps?: unknown[]; findOneApp?: unknown; adminCount?: number; findOneUser?: unknown } = {}
-) {
+function makeDb(overrides: { apps?: unknown[]; findOneApp?: unknown; adminCount?: number } = {}) {
     const persistFn = mock.fn(async () => {});
-    const findOneFn = mock.fn(
-        async () =>
-            overrides.findOneApp ?? {
-                id: 'uuid-app-1',
-                appKey: 'app-1',
-                name: 'Test',
-                origins: [],
-                isActive: true,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            }
-    );
+    const findOneOrUndefinedFn = mock.fn(async () => overrides.findOneApp);
     const findFn = mock.fn(async () => overrides.apps ?? []);
     const countFn = mock.fn(async () => overrides.adminCount ?? 2);
-    const findOneUserFn = mock.fn(async () => overrides.findOneUser ?? { id: 'user-target', isAdmin: true });
     return {
         db: {
             query: mock.fn(() => ({
                 filter: mock.fn(() => ({
-                    findOne: findOneFn,
+                    findOneOrUndefined: findOneOrUndefinedFn,
                     find: findFn,
-                    count: countFn,
-                    findOneOrUndefined: mock.fn(async () => overrides.findOneUser)
+                    count: countFn
                 })),
                 find: findFn,
                 count: countFn
@@ -47,9 +32,8 @@ function makeDb(
             persist: persistFn
         } as unknown as UxrrDatabase,
         persistFn,
-        findOneFn,
-        countFn,
-        findOneUserFn
+        findOneOrUndefinedFn,
+        countFn
     };
 }
 
@@ -179,9 +163,7 @@ describe('AdminController', () => {
             const { db, persistFn } = makeDb({ findOneApp: app });
             const resolver = makeAppResolver();
             const ctrl = new AdminController(db, makeUserSvc(), resolver, makeLogger());
-            const result = await ctrl.updateApp('a1', { name: 'New' } as unknown as Parameters<
-                typeof ctrl.updateApp
-            >[1]);
+            const result = await ctrl.updateApp('a1', { name: 'New' } as unknown as Parameters<typeof ctrl.updateApp>[1]);
             assert.equal(result.name, 'New');
             assert.deepEqual(result.origins, ['https://old.com']); // unchanged
             assert.equal(persistFn.mock.callCount(), 1);
@@ -238,9 +220,7 @@ describe('AdminController', () => {
             const { db } = makeDb({ adminCount: 2 });
             const ctrl = new AdminController(db, userSvc, makeAppResolver(), makeLogger());
             const req = makeRequest('user-requester');
-            const result = await ctrl.updateUser('user-target', req, { isAdmin: true } as unknown as Parameters<
-                typeof ctrl.updateUser
-            >[2]);
+            const result = await ctrl.updateUser('user-target', req, { isAdmin: true } as unknown as Parameters<typeof ctrl.updateUser>[2]);
             assert.equal(result.isAdmin, true);
         });
 
@@ -250,10 +230,7 @@ describe('AdminController', () => {
             const ctrl = new AdminController(db, userSvc, makeAppResolver(), makeLogger());
             const req = makeRequest('user-self');
             await assert.rejects(
-                () =>
-                    ctrl.updateUser('user-self', req, { isAdmin: false } as unknown as Parameters<
-                        typeof ctrl.updateUser
-                    >[2]),
+                () => ctrl.updateUser('user-self', req, { isAdmin: false } as unknown as Parameters<typeof ctrl.updateUser>[2]),
                 (err: Error) => {
                     assert.match(err.message, /Cannot demote yourself/);
                     return true;
@@ -268,10 +245,7 @@ describe('AdminController', () => {
             const ctrl = new AdminController(db, userSvc, makeAppResolver(), makeLogger());
             const req = makeRequest('user-requester');
             await assert.rejects(
-                () =>
-                    ctrl.updateUser('user-target', req, { isAdmin: false } as unknown as Parameters<
-                        typeof ctrl.updateUser
-                    >[2]),
+                () => ctrl.updateUser('user-target', req, { isAdmin: false } as unknown as Parameters<typeof ctrl.updateUser>[2]),
                 (err: Error) => {
                     assert.match(err.message, /last admin/);
                     return true;

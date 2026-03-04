@@ -100,9 +100,7 @@ function formatSender(from: string): string {
         <template v-else-if="!chatStarted">
             <div class="chat-start">
                 <p class="chat-start-desc">Open a chat widget on the user's screen</p>
-                <button class="chat-start-btn" :disabled="!clientConnected" @click="emit('start-chat')">
-                    Start Chat
-                </button>
+                <button class="chat-start-btn" :disabled="!clientConnected" @click="emit('start-chat')">Start Chat</button>
             </div>
         </template>
         <template v-else>

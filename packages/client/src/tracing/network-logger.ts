@@ -116,18 +116,7 @@ export class NetworkLogger {
             response = await this.originalFetch(input, init);
         } catch (err) {
             const duration = Date.now() - startMs;
-            this.pushLog(
-                method,
-                url,
-                0,
-                duration,
-                traceId,
-                capturedRequestHeaders,
-                capturedRequestBody,
-                undefined,
-                undefined,
-                true
-            );
+            this.pushLog(method, url, 0, duration, traceId, capturedRequestHeaders, capturedRequestBody, undefined, undefined, true);
             throw err;
         }
 
@@ -138,55 +127,20 @@ export class NetworkLogger {
         // Conditionally include request data based on capture mode + error status
         const requestHeaders = shouldCapture(this.includeRequestHeaders, isError) ? capturedRequestHeaders : undefined;
         const requestBody = shouldCapture(this.includeRequestBody, isError) ? capturedRequestBody : undefined;
-        const responseHeaders = shouldCapture(this.includeResponseHeaders, isError)
-            ? this.captureResponseHeaders(response)
-            : undefined;
+        const responseHeaders = shouldCapture(this.includeResponseHeaders, isError) ? this.captureResponseHeaders(response) : undefined;
 
         // Response body: clone + read asynchronously to avoid blocking
         if (shouldCapture(this.includeResponseBody, isError)) {
             try {
                 const clone = response.clone();
                 this.readBodySafe(clone).then(responseBody => {
-                    this.pushLog(
-                        method,
-                        url,
-                        status,
-                        duration,
-                        traceId,
-                        requestHeaders,
-                        requestBody,
-                        responseHeaders,
-                        responseBody,
-                        isError
-                    );
+                    this.pushLog(method, url, status, duration, traceId, requestHeaders, requestBody, responseHeaders, responseBody, isError);
                 });
             } catch {
-                this.pushLog(
-                    method,
-                    url,
-                    status,
-                    duration,
-                    traceId,
-                    requestHeaders,
-                    requestBody,
-                    responseHeaders,
-                    undefined,
-                    isError
-                );
+                this.pushLog(method, url, status, duration, traceId, requestHeaders, requestBody, responseHeaders, undefined, isError);
             }
         } else {
-            this.pushLog(
-                method,
-                url,
-                status,
-                duration,
-                traceId,
-                requestHeaders,
-                requestBody,
-                responseHeaders,
-                undefined,
-                isError
-            );
+            this.pushLog(method, url, status, duration, traceId, requestHeaders, requestBody, responseHeaders, undefined, isError);
         }
 
         return response;

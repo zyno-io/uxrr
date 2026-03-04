@@ -110,9 +110,7 @@ async function loadMore() {
         const last = sessions.value[sessions.value.length - 1];
         if (!last) return;
         const filters = filterBarRef.value?.getFilters() ?? currentFilters;
-        const more = dataFrom(
-            await SessionApi.getSessionListSessions({ query: { ...filters, limit: PAGE_SIZE, before: last.id } })
-        );
+        const more = dataFrom(await SessionApi.getSessionListSessions({ query: { ...filters, limit: PAGE_SIZE, before: last.id } }));
         if (more.length < PAGE_SIZE) hasMore.value = false;
         const existingIds = new Set(sessions.value.map(s => s.id));
         const unique = more.filter(s => !existingIds.has(s.id));

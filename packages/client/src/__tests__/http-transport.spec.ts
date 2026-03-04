@@ -91,8 +91,6 @@ describe('HttpTransport', () => {
     it('encodes appKey with special characters in URL', () => {
         const transport = new HttpTransport('http://localhost:3100', '@zyno-io/zynosuite-spa', 'sess-1');
 
-        expect(transport.getIngestUrl('data')).toBe(
-            'http://localhost:3100/v1/ng/%40zyno-io%2Fzynosuite-spa/sess-1/data'
-        );
+        expect(transport.getIngestUrl('data')).toBe('http://localhost:3100/v1/ng/%40zyno-io%2Fzynosuite-spa/sess-1/data');
     });
 });

@@ -234,12 +234,7 @@ export class WebSocketService {
         }
     }
 
-    private async handleWatchUpgrade(
-        wss: WebSocket.Server,
-        request: IncomingMessage,
-        socket: Duplex,
-        head: Buffer
-    ): Promise<void> {
+    private async handleWatchUpgrade(wss: WebSocket.Server, request: IncomingMessage, socket: Duplex, head: Buffer): Promise<void> {
         try {
             const url = new URL(request.url ?? '', `http://${request.headers.host}`);
             let authenticated = false;

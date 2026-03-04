@@ -82,15 +82,10 @@ async function waitForSessionCreated(page: Page, sessionId: string): Promise<voi
     page.on('response', onResponse);
 
     try {
-        await page.waitForResponse(
-            r => r.request().method() === 'POST' && r.url().includes(ingestPath) && r.ok(),
-            { timeout: 70_000 }
-        );
+        await page.waitForResponse(r => r.request().method() === 'POST' && r.url().includes(ingestPath) && r.ok(), { timeout: 70_000 });
     } catch {
         const statusSummary = seenIngestStatuses.length > 0 ? seenIngestStatuses.join(', ') : 'none';
-        throw new Error(
-            `Session ${sessionId} was not ingested in time (statuses seen: ${statusSummary})`
-        );
+        throw new Error(`Session ${sessionId} was not ingested in time (statuses seen: ${statusSummary})`);
     } finally {
         page.off('response', onResponse);
     }
@@ -146,10 +141,7 @@ async function waitForReplayFixtureVisible(page: Page, timeout = 15000): Promise
 }
 
 /** Wait for the replay fixture to stay visually stable for a period (no flicker/teardown). */
-async function waitForReplayFixtureStable(
-    page: Page,
-    options: { timeout?: number; stableForMs?: number; pollMs?: number } = {}
-): Promise<void> {
+async function waitForReplayFixtureStable(page: Page, options: { timeout?: number; stableForMs?: number; pollMs?: number } = {}): Promise<void> {
     const timeout = options.timeout ?? 20000;
     const stableForMs = options.stableForMs ?? 1500;
     const pollMs = options.pollMs ?? 120;
@@ -211,24 +203,18 @@ async function captureStableScreenshot(
         const size = getScreenshotSize(path);
         if (size >= minBytes) {
             if (attempt > 1) {
-                console.log(
-                    `${options.label}: captured non-black frame on retry ${attempt} (size=${size} bytes, min=${minBytes})`
-                );
+                console.log(`${options.label}: captured non-black frame on retry ${attempt} (size=${size} bytes, min=${minBytes})`);
             }
             return;
         }
 
         if (attempt < maxAttempts) {
-            console.log(
-                `${options.label}: screenshot looked blank (size=${size} bytes, min=${minBytes}), retrying (${attempt}/${maxAttempts})`
-            );
+            console.log(`${options.label}: screenshot looked blank (size=${size} bytes, min=${minBytes}), retrying (${attempt}/${maxAttempts})`);
             await page.waitForTimeout(retryDelayMs);
         }
     }
 
-    throw new Error(
-        `${options.label}: screenshot remained blank after ${maxAttempts} attempts (size=${getScreenshotSize(path)} bytes)`
-    );
+    throw new Error(`${options.label}: screenshot remained blank after ${maxAttempts} attempts (size=${getScreenshotSize(path)} bytes)`);
 }
 
 async function getReplayCounter(page: Page): Promise<number | null> {
@@ -240,21 +226,6 @@ async function getReplayCounter(page: Page): Promise<number | null> {
         const parsed = Number.parseInt(counterText, 10);
         return Number.isFinite(parsed) ? parsed : null;
     });
-}
-
-async function waitForReplayCounterValue(page: Page, expected: number, timeout = 15000): Promise<void> {
-    await page.waitForFunction(
-        value => {
-            const iframe = document.querySelector('.replayer-wrapper iframe') as HTMLIFrameElement | null;
-            if (!iframe?.contentDocument) return false;
-            const counterText = iframe.contentDocument.querySelector('#counter')?.textContent?.trim();
-            if (!counterText) return false;
-            const parsed = Number.parseInt(counterText, 10);
-            return Number.isFinite(parsed) && parsed === value;
-        },
-        expected,
-        { timeout }
-    );
 }
 
 async function waitForReplayCounterGreaterThan(page: Page, baseline: number, timeout = 15000): Promise<void> {
@@ -275,9 +246,7 @@ async function waitForReplayCounterGreaterThan(page: Page, baseline: number, tim
 async function countCounterLogs(page: Page): Promise<number> {
     return page.evaluate(() => {
         const entries = document.querySelectorAll('.console-panel .entry-msg');
-        return [...entries]
-            .map(entry => entry.textContent?.trim())
-            .filter((text): text is string => !!text && text.startsWith('Counter:')).length;
+        return [...entries].map(entry => entry.textContent?.trim()).filter((text): text is string => !!text && text.startsWith('Counter:')).length;
     });
 }
 
@@ -285,9 +254,7 @@ async function waitForCounterLogsToIncrease(page: Page, baseline: number, timeou
     await page.waitForFunction(
         minCount => {
             const entries = document.querySelectorAll('.console-panel .entry-msg');
-            const count = [...entries]
-                .map(entry => entry.textContent?.trim())
-                .filter(text => !!text && text.startsWith('Counter:')).length;
+            const count = [...entries].map(entry => entry.textContent?.trim()).filter(text => !!text && text.startsWith('Counter:')).length;
             return count > minCount;
         },
         baseline,
@@ -532,9 +499,7 @@ test.describe('Live Session Share & Post-Live Replay (E2E)', () => {
                         stableSince = Date.now();
                     }
 
-                    const snapshotCount = events.filter(
-                        (e: any) => e && typeof e === 'object' && e.type === 2
-                    ).length;
+                    const snapshotCount = events.filter((e: any) => e && typeof e === 'object' && e.type === 2).length;
                     const isStable = Date.now() - stableSince >= 5000 && events.length > 0;
 
                     // Need at least 10 events and 2 FullSnapshots (pre + post refresh)
@@ -615,9 +580,7 @@ test.describe('Live Session Share & Post-Live Replay (E2E)', () => {
                     const rect = controller.getBoundingClientRect();
                     const clickX = rect.left + rect.width * 0.85;
                     const clickY = rect.top + rect.height / 2;
-                    controller.dispatchEvent(
-                        new MouseEvent('click', { clientX: clickX, clientY: clickY, bubbles: true })
-                    );
+                    controller.dispatchEvent(new MouseEvent('click', { clientX: clickX, clientY: clickY, bubbles: true }));
                 }
             });
             await agentPage.waitForTimeout(2000);

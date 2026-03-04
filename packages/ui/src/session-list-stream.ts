@@ -30,10 +30,7 @@ export interface SessionListStreamHandle {
     disconnect: () => void;
 }
 
-export function connectSessionListStream(
-    filters: SessionListFilters,
-    callbacks: SessionListStreamCallbacks
-): SessionListStreamHandle {
+export function connectSessionListStream(filters: SessionListFilters, callbacks: SessionListStreamCallbacks): SessionListStreamHandle {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     let currentFilters = { ...filters };
     let ws: WebSocket;
@@ -85,11 +82,7 @@ export function connectSessionListStream(
         ws.onmessage = event => {
             try {
                 const msg = JSON.parse(event.data as string);
-                log.log(
-                    'session list message:',
-                    msg.type,
-                    msg.type === 'session_live_status' ? `session=${msg.sessionId} live=${msg.isLive}` : ''
-                );
+                log.log('session list message:', msg.type, msg.type === 'session_live_status' ? `session=${msg.sessionId} live=${msg.isLive}` : '');
                 switch (msg.type) {
                     case 'session_created':
                         callbacks.onSessionCreated(msg.session);
@@ -145,10 +138,7 @@ export function connectSessionListStream(
     };
 }
 
-export function connectEmbedSessionListStream(
-    filters: SessionListFilters,
-    callbacks: SessionListStreamCallbacks
-): SessionListStreamHandle {
+export function connectEmbedSessionListStream(filters: SessionListFilters, callbacks: SessionListStreamCallbacks): SessionListStreamHandle {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     let currentFilters = { ...filters };
     let ws: WebSocket;

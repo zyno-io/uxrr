@@ -169,20 +169,11 @@ function setFilter(level: number | null) {
         <div ref="containerRef" class="console-entries">
             <div v-if="visibleLogs.length === 0" class="console-empty">No log entries yet</div>
             <template v-for="(entry, i) in visibleLogs" :key="i">
-                <div
-                    v-if="isNetworkEntry(entry)"
-                    :class="['console-entry', 'level-debug', 'net-entry', { future: isFuture(entry) }]"
-                >
-                    <span class="entry-time entry-time--clickable" @click="seekToEntry(entry)">{{
-                        formatTime(entry.t)
-                    }}</span>
+                <div v-if="isNetworkEntry(entry)" :class="['console-entry', 'level-debug', 'net-entry', { future: isFuture(entry) }]">
+                    <span class="entry-time entry-time--clickable" @click="seekToEntry(entry)">{{ formatTime(entry.t) }}</span>
                     <span class="entry-net-icon" title="Network request">&#8644;</span>
-                    <span :class="['entry-method', statusClass(formatNetworkEntry(entry).status)]">{{
-                        formatNetworkEntry(entry).method
-                    }}</span>
-                    <span class="entry-url" :title="formatNetworkEntry(entry).url">{{
-                        truncateUrl(formatNetworkEntry(entry).url)
-                    }}</span>
+                    <span :class="['entry-method', statusClass(formatNetworkEntry(entry).status)]">{{ formatNetworkEntry(entry).method }}</span>
+                    <span class="entry-url" :title="formatNetworkEntry(entry).url">{{ truncateUrl(formatNetworkEntry(entry).url) }}</span>
                     <span :class="['entry-status', statusClass(formatNetworkEntry(entry).status)]">{{
                         formatNetworkEntry(entry).status || '-'
                     }}</span>
@@ -198,9 +189,7 @@ function setFilter(level: number | null) {
                     >
                 </div>
                 <div v-else :class="['console-entry', getLevelInfo(entry.v).cssClass, { future: isFuture(entry) }]">
-                    <span class="entry-time entry-time--clickable" @click="seekToEntry(entry)">{{
-                        formatTime(entry.t)
-                    }}</span>
+                    <span class="entry-time entry-time--clickable" @click="seekToEntry(entry)">{{ formatTime(entry.t) }}</span>
                     <span class="entry-level">{{ getLevelInfo(entry.v).label }}</span>
                     <span class="entry-scope">{{ entry.c }}</span>
                     <span class="entry-msg">{{ entry.m }}</span>

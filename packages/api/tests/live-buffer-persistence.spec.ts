@@ -148,9 +148,7 @@ describe('LiveBufferPersistence', () => {
             const m = createMocks();
             const persistence = new LiveBufferPersistence(makeLogger(), m.s3, m.db, m.loki, m.notify);
 
-            await persistence.persistChat('sess-1', [
-                { message: 'hello', from: 'user', timestamp: Date.now() }
-            ], false);
+            await persistence.persistChat('sess-1', [{ message: 'hello', from: 'user', timestamp: Date.now() }], false);
 
             assert.equal(m.putChatFn.mock.callCount(), 1);
         });
@@ -159,9 +157,7 @@ describe('LiveBufferPersistence', () => {
             const m = createMocks();
             const persistence = new LiveBufferPersistence(makeLogger(), m.s3, m.db, m.loki, m.notify);
 
-            await persistence.persistChat('sess-1', [
-                { message: 'hello', from: 'user', timestamp: Date.now() }
-            ], true);
+            await persistence.persistChat('sess-1', [{ message: 'hello', from: 'user', timestamp: Date.now() }], true);
 
             assert.equal(m.persistFn.mock.callCount(), 1);
             assert.equal(m.notifyUpdatedFn.mock.callCount(), 1);
@@ -171,9 +167,7 @@ describe('LiveBufferPersistence', () => {
             const m = createMocks();
             const persistence = new LiveBufferPersistence(makeLogger(), m.s3, m.db, m.loki, m.notify);
 
-            await persistence.persistChat('sess-1', [
-                { message: 'hello', from: 'user', timestamp: Date.now() }
-            ], false);
+            await persistence.persistChat('sess-1', [{ message: 'hello', from: 'user', timestamp: Date.now() }], false);
 
             assert.equal(m.persistFn.mock.callCount(), 0);
         });

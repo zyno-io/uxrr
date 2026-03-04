@@ -43,10 +43,10 @@ Tests use `node:test` with manual mocks. Test files live in `packages/api/tests/
 
 E2E tests use [Playwright](https://playwright.dev/) and live in `packages/ui/tests/e2e/`. There are two categories:
 
-| Category | What it tests | Server needed? |
-|----------|--------------|----------------|
-| **VRT** | UI rendering with mocked API (session list, admin, session detail) | No |
-| **Live** | Real WebSocket flows — live session, reconnection, shared viewers | Yes |
+| Category | What it tests                                                      | Server needed? |
+| -------- | ------------------------------------------------------------------ | -------------- |
+| **VRT**  | UI rendering with mocked API (session list, admin, session detail) | No             |
+| **Live** | Real WebSocket flows — live session, reconnection, shared viewers  | Yes            |
 
 #### Running E2E tests
 

@@ -34,14 +34,7 @@ const app = createApp({
     config: UxrrConfig,
     frameworkConfig: { port: 8977 },
     db: UxrrDatabase,
-    controllers: [
-        AdminController,
-        AuthController,
-        IngestController,
-        SessionController,
-        ShareController,
-        ApiKeyController
-    ],
+    controllers: [AdminController, AuthController, IngestController, SessionController, ShareController, ApiKeyController],
     providers: [
         RedisService,
         PodPresenceService,

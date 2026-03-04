@@ -127,8 +127,10 @@ const {
 } = useSessionDetail({
     loggerScope: 'session-detail',
     loadSession: () => SessionApi.getSessionGetSession({ path: { id: sessionId } }).then(r => dataFrom(r) as unknown as ISession),
-    loadEvents: (startChunk?: number, endChunk?: number) => SessionApi.getSessionGetSessionEvents({ path: { id: sessionId }, query: { startChunk, endChunk } }).then(r => dataFrom(r)),
-    loadLogs: (since?: number) => SessionApi.getSessionGetSessionLogs({ path: { id: sessionId }, query: { since } }).then(r => dataFrom(r) as ILogEntry[]),
+    loadEvents: (startChunk?: number, endChunk?: number) =>
+        SessionApi.getSessionGetSessionEvents({ path: { id: sessionId }, query: { startChunk, endChunk } }).then(r => dataFrom(r)),
+    loadLogs: (since?: number) =>
+        SessionApi.getSessionGetSessionLogs({ path: { id: sessionId }, query: { since } }).then(r => dataFrom(r) as ILogEntry[]),
     loadChat: async () => {
         const c = await SessionApi.getSessionGetSessionChat({ path: { id: sessionId } });
         const messages = dataFrom(c) as IChatMessage[];
@@ -368,11 +370,7 @@ function filterByUser(userId: string) {
             <template v-if="session">
                 <div class="detail-meta">
                     <span v-if="liveStatus === 'live'" class="live-badge">LIVE</span>
-                    <span
-                        v-else-if="liveStatus === 'waiting' || liveStatus === 'syncing'"
-                        class="live-badge live-badge--connecting"
-                        >CONNECTING</span
-                    >
+                    <span v-else-if="liveStatus === 'waiting' || liveStatus === 'syncing'" class="live-badge live-badge--connecting">CONNECTING</span>
                     <span class="meta-id">{{ session.id.slice(0, 8) }}</span>
                     <span class="meta-sep">/</span>
                     <span>{{ formatMeta(session) }}</span>
@@ -386,30 +384,19 @@ function filterByUser(userId: string) {
                         :user-email="session.userEmail"
                         @filter="filterByUser"
                     >
-                        <span class="detail-user"
-                            >User: {{ session.userName || session.userEmail || session.userId }}</span
-                        >
+                        <span class="detail-user">User: {{ session.userName || session.userEmail || session.userId }}</span>
                     </UserInfoPopover>
                 </div>
                 <div class="detail-indicators">
                     <span v-if="liveStatus === 'waiting'" class="client-indicator client-indicator--off"
-                        >Waiting for client to connect...
-                        <button class="skip-live-link" @click="skipLive">Skip</button></span
+                        >Waiting for client to connect... <button class="skip-live-link" @click="skipLive">Skip</button></span
                     >
-                    <span v-else-if="liveStatus === 'syncing'" class="client-indicator client-indicator--off"
-                        >Syncing...</span
-                    >
-                    <span v-else-if="liveStatus === 'live' && clientFocused" class="client-indicator"
-                        >Client connected</span
-                    >
-                    <span
-                        v-else-if="liveStatus === 'live' && !clientFocused"
-                        class="client-indicator client-indicator--unfocused"
+                    <span v-else-if="liveStatus === 'syncing'" class="client-indicator client-indicator--off">Syncing...</span>
+                    <span v-else-if="liveStatus === 'live' && clientFocused" class="client-indicator">Client connected</span>
+                    <span v-else-if="liveStatus === 'live' && !clientFocused" class="client-indicator client-indicator--unfocused"
                         >Window hidden</span
                     >
-                    <span v-else-if="liveStatus === 'ended'" class="client-indicator client-indicator--off"
-                        >Session ended</span
-                    >
+                    <span v-else-if="liveStatus === 'ended'" class="client-indicator client-indicator--off">Session ended</span>
                     <span v-if="liveStatus === 'live' && connectedAgents.length > 1" class="agents-count">
                         {{ connectedAgents.length }} viewing
                     </span>
@@ -435,42 +422,25 @@ function filterByUser(userId: string) {
                         >
                             &#9673;
                         </button>
-                        <button
-                            :class="['tool-btn', { active: interactionMode === 'pen' }]"
-                            @click="interactionMode = 'pen'"
-                            v-tooltip="'Pen'"
-                        >
+                        <button :class="['tool-btn', { active: interactionMode === 'pen' }]" @click="interactionMode = 'pen'" v-tooltip="'Pen'">
                             &#9998;
                         </button>
                     </div>
-                    <button v-if="liveStatus === 'live' && !hasControl" class="take-control-btn" @click="takeControl">
-                        Take Control
-                    </button>
+                    <button v-if="liveStatus === 'live' && !hasControl" class="take-control-btn" @click="takeControl">Take Control</button>
                     <div ref="shareWrapperRef" class="share-wrapper" @click.stop>
                         <button class="share-btn" @click="openShareDialog">Share</button>
                         <div v-if="showShareDialog" class="share-dialog">
                             <div v-if="shareLoading" class="share-dialog-loading">Loading...</div>
                             <template v-else-if="shareToken">
-                                <input
-                                    readonly
-                                    :value="shareUrl"
-                                    class="share-url-input"
-                                    @focus="($event.target as HTMLInputElement).select()"
-                                />
+                                <input readonly :value="shareUrl" class="share-url-input" @focus="($event.target as HTMLInputElement).select()" />
                                 <div class="share-dialog-actions">
                                     <button class="share-copy-btn" @click="copyShareUrl">Copy</button>
-                                    <button
-                                        class="share-rotate-btn"
-                                        @click="createShare"
-                                        title="Generate a new link and revoke the current one"
-                                    >
+                                    <button class="share-rotate-btn" @click="createShare" title="Generate a new link and revoke the current one">
                                         Rotate
                                     </button>
                                     <button class="share-revoke-btn" @click="revokeShare">Disable</button>
                                 </div>
-                                <div v-if="shareExpiresAt" class="share-expiry">
-                                    Expires {{ formatTimeRemaining(shareExpiresAt) }}
-                                </div>
+                                <div v-if="shareExpiresAt" class="share-expiry">Expires {{ formatTimeRemaining(shareExpiresAt) }}</div>
                             </template>
                             <template v-else>
                                 <button class="share-generate-btn" @click="createShare">Generate Share Link</button>
@@ -486,12 +456,7 @@ function filterByUser(userId: string) {
             <template v-else>Loading session...</template>
         </div>
         <div v-else-if="error" class="detail-error">{{ error }}</div>
-        <div
-            v-else
-            ref="contentRef"
-            :class="['detail-content', `layout-${layout}`]"
-            :style="isResizing ? { userSelect: 'none' } : undefined"
-        >
+        <div v-else ref="contentRef" :class="['detail-content', `layout-${layout}`]" :style="isResizing ? { userSelect: 'none' } : undefined">
             <div class="replay-pane">
                 <div v-if="liveStatus === 'waiting'" class="replay-status">
                     <div class="replay-status-content">
@@ -506,13 +471,7 @@ function filterByUser(userId: string) {
                         <button class="skip-live-btn" @click="skipLive">Watch Replay</button>
                     </div>
                 </div>
-                <ReplayPlayer
-                    ref="playerRef"
-                    :live-mode="isLive"
-                    @time-update="onTimeUpdate"
-                    @interact="onInteract"
-                    @interact-end="onInteractEnd"
-                />
+                <ReplayPlayer ref="playerRef" :live-mode="isLive" @time-update="onTimeUpdate" @interact="onInteract" @interact-end="onInteractEnd" />
                 <div v-if="isLive" ref="highlightContainerRef" class="click-overlay" />
                 <svg v-if="isLive" ref="penSvgRef" class="pen-overlay" width="100%" height="100%" />
                 <div v-if="playbackTime" class="playback-time-bar">
@@ -524,30 +483,15 @@ function filterByUser(userId: string) {
                 </div>
             </div>
             <div :class="['resize-handle', `resize-handle--${layout}`]" @mousedown="startResize" />
-            <div
-                class="side-pane"
-                :style="layout === 'right' ? { width: sidePaneSize + 'px' } : { height: sidePaneSize + 'px' }"
-            >
+            <div class="side-pane" :style="layout === 'right' ? { width: sidePaneSize + 'px' } : { height: sidePaneSize + 'px' }">
                 <div class="tab-bar">
-                    <button :class="['tab', { active: activeTab === 'console' }]" @click="activeTab = 'console'">
-                        Console
-                    </button>
-                    <button :class="['tab', { active: activeTab === 'network' }]" @click="activeTab = 'network'">
-                        Network
-                    </button>
-                    <button
-                        v-if="showChatTab"
-                        :class="['tab', { active: activeTab === 'chat' }]"
-                        @click="activeTab = 'chat'"
-                    >
+                    <button :class="['tab', { active: activeTab === 'console' }]" @click="activeTab = 'console'">Console</button>
+                    <button :class="['tab', { active: activeTab === 'network' }]" @click="activeTab = 'network'">Network</button>
+                    <button v-if="showChatTab" :class="['tab', { active: activeTab === 'chat' }]" @click="activeTab = 'chat'">
                         Chat
                         <span v-if="chatMessages.length > 0" class="tab-badge">{{ chatMessages.length }}</span>
                     </button>
-                    <button
-                        class="layout-toggle"
-                        @click="toggleLayout"
-                        :title="layout === 'right' ? 'Move panel to bottom' : 'Move panel to right'"
-                    >
+                    <button class="layout-toggle" @click="toggleLayout" :title="layout === 'right' ? 'Move panel to bottom' : 'Move panel to right'">
                         {{ layout === 'right' ? '⬓' : '⬔' }}
                     </button>
                 </div>

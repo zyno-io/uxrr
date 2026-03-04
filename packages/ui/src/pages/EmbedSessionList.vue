@@ -86,9 +86,7 @@ async function load() {
     error.value = null;
     hasMore.value = true;
     try {
-        const result = dataFrom(
-            await SessionApi.getSessionListSessions({ query: { ...currentFilters, limit: PAGE_SIZE } })
-        );
+        const result = dataFrom(await SessionApi.getSessionListSessions({ query: { ...currentFilters, limit: PAGE_SIZE } }));
         sessions.value = result;
         hasMore.value = result.length >= PAGE_SIZE;
         log.log('loaded', result.length, 'sessions');
@@ -125,9 +123,7 @@ async function loadMore() {
         const last = sessions.value[sessions.value.length - 1];
         if (!last) return;
         const filters = buildFilters();
-        const more = dataFrom(
-            await SessionApi.getSessionListSessions({ query: { ...filters, limit: PAGE_SIZE, before: last.id } })
-        );
+        const more = dataFrom(await SessionApi.getSessionListSessions({ query: { ...filters, limit: PAGE_SIZE, before: last.id } }));
         if (more.length < PAGE_SIZE) hasMore.value = false;
         const existingIds = new Set(sessions.value.map(s => s.id));
         const unique = more.filter(s => !existingIds.has(s.id));

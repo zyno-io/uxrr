@@ -103,7 +103,7 @@ describe('LiveSessionService reconnect handling', () => {
         const sawRequestSnapshotOnNewClient = client2Sent.some(raw => JSON.parse(raw).type === 'request_snapshot');
         assert.equal(sawRequestSnapshotOnNewClient, true);
 
-        const conn = ((svc as unknown as { sessions: Map<string, { clientWs?: WebSocket }> }).sessions.get('sess-1'));
+        const conn = (svc as unknown as { sessions: Map<string, { clientWs?: WebSocket }> }).sessions.get('sess-1');
         assert.equal(conn?.clientWs, clientWs2);
 
         // Cleanup timers/listeners.

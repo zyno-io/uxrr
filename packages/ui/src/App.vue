@@ -44,16 +44,9 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside));
                     <span v-if="authState.oidcEnabled && authState.user" class="uxrr-user-name">
                         {{ authState.user.profile?.name || authState.user.profile?.preferred_username || 'User' }}
                     </span>
-                    <button v-if="authState.oidcEnabled && authState.user" class="uxrr-logout-btn" @click="logout">
-                        Sign out
-                    </button>
+                    <button v-if="authState.oidcEnabled && authState.user" class="uxrr-logout-btn" @click="logout">Sign out</button>
                     <div v-if="isAdmin" ref="adminMenuRef" class="uxrr-admin-menu">
-                        <button
-                            class="uxrr-admin-cog"
-                            :class="{ active: adminMenuOpen }"
-                            @click.stop="toggleAdminMenu"
-                            title="Admin"
-                        >
+                        <button class="uxrr-admin-cog" :class="{ active: adminMenuOpen }" @click.stop="toggleAdminMenu" title="Admin">
                             <svg
                                 width="18"
                                 height="18"

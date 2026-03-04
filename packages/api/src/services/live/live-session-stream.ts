@@ -158,9 +158,7 @@ export class LiveSessionStream {
 
         // Record client chat messages
         if (msg.type === 'chat') {
-            const timestamp = typeof msg.timestamp === 'number' && Number.isFinite(msg.timestamp)
-                ? msg.timestamp
-                : Date.now();
+            const timestamp = typeof msg.timestamp === 'number' && Number.isFinite(msg.timestamp) ? msg.timestamp : Date.now();
             msg.timestamp = timestamp;
             this.recordChatMessage(sessionId, state, {
                 message: msg.message as string,
@@ -178,7 +176,11 @@ export class LiveSessionStream {
 
     // ── Agent lifecycle ─────────────────────────────────────────────────
 
-    onAgentConnected(sessionId: string, agentId: string, info: AgentInfo): {
+    onAgentConnected(
+        sessionId: string,
+        agentId: string,
+        info: AgentInfo
+    ): {
         isController: boolean;
         isFirstAgentAnywhere: boolean;
     } {
@@ -294,9 +296,7 @@ export class LiveSessionStream {
         // Tag agent chat messages with identity and persist
         if (msg.type === 'chat') {
             const agent = state.localAgents.get(agentId);
-            const timestamp = typeof msg.timestamp === 'number' && Number.isFinite(msg.timestamp)
-                ? msg.timestamp
-                : Date.now();
+            const timestamp = typeof msg.timestamp === 'number' && Number.isFinite(msg.timestamp) ? msg.timestamp : Date.now();
             msg.from = agent?.name ?? agent?.email ?? 'agent';
             msg.timestamp = timestamp;
             this.recordChatMessage(sessionId, state, {
@@ -309,9 +309,17 @@ export class LiveSessionStream {
 
         // Forward to client
         const forwardTypes = [
-            'highlight', 'cursor', 'cursor_hide', 'remote_click',
-            'pen_start', 'pen_move', 'pen_end',
-            'chat', 'start_chat', 'end_chat', 'typing',
+            'highlight',
+            'cursor',
+            'cursor_hide',
+            'remote_click',
+            'pen_start',
+            'pen_move',
+            'pen_end',
+            'chat',
+            'start_chat',
+            'end_chat',
+            'typing',
             'request_snapshot'
         ];
         if (forwardTypes.includes(msg.type)) {
@@ -350,12 +358,7 @@ export class LiveSessionStream {
         }
     }
 
-    onRemoteControllerUpdate(
-        sessionId: string,
-        agentId: string | undefined,
-        podId: string | undefined,
-        email: string | undefined
-    ): void {
+    onRemoteControllerUpdate(sessionId: string, agentId: string | undefined, podId: string | undefined, email: string | undefined): void {
         const state = this.sessions.get(sessionId);
         if (!state) return;
 
@@ -391,12 +394,7 @@ export class LiveSessionStream {
                 const message = msg.message;
                 const from = msg.from;
                 const timestamp = msg.timestamp;
-                if (
-                    typeof message === 'string' &&
-                    typeof from === 'string' &&
-                    typeof timestamp === 'number' &&
-                    Number.isFinite(timestamp)
-                ) {
+                if (typeof message === 'string' && typeof from === 'string' && typeof timestamp === 'number' && Number.isFinite(timestamp)) {
                     this.recordChatMessage(sessionId, state, { message, from, timestamp });
                 }
             }
@@ -417,12 +415,7 @@ export class LiveSessionStream {
                 const message = msg.message;
                 const from = msg.from;
                 const timestamp = msg.timestamp;
-                if (
-                    typeof message === 'string' &&
-                    typeof from === 'string' &&
-                    typeof timestamp === 'number' &&
-                    Number.isFinite(timestamp)
-                ) {
+                if (typeof message === 'string' && typeof from === 'string' && typeof timestamp === 'number' && Number.isFinite(timestamp)) {
                     this.recordChatMessage(sessionId, state, { message, from, timestamp });
                 }
             }
@@ -484,12 +477,7 @@ export class LiveSessionStream {
         return agentId === state.controllerId && state.controllerIsLocal;
     }
 
-    private setController(
-        sessionId: string,
-        state: StreamSessionState,
-        agentId: string | undefined,
-        email: string | undefined
-    ): void {
+    private setController(sessionId: string, state: StreamSessionState, agentId: string | undefined, email: string | undefined): void {
         state.controllerId = agentId;
         state.controllerEmail = email;
         state.controllerIsLocal = agentId !== undefined;

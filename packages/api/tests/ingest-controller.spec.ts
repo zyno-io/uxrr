@@ -48,12 +48,7 @@ describe('IngestController', () => {
             const request = makeRequest('app-1');
             const body = { events: [{ type: 2, data: {}, timestamp: 1000 }] };
 
-            await controller.ingestData(
-                'app-1',
-                'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-                request,
-                body as unknown as IngestDataPayload
-            );
+            await controller.ingestData('app-1', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', request, body as unknown as IngestDataPayload);
             assert.equal(ingestDataFn.mock.callCount(), 1);
             assert.equal(ingestDataFn.mock.calls[0].arguments[0], 'uuid-app-1');
             assert.equal(ingestDataFn.mock.calls[0].arguments[1], 'app-1');
@@ -64,12 +59,7 @@ describe('IngestController', () => {
             const controller = new IngestController(makeConfig(), ingestSvc, liveSvc, mockLogger);
             const request = makeRequest('app-1');
 
-            const result = await controller.ingestData(
-                'app-1',
-                'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-                request,
-                {} as unknown as IngestDataPayload
-            );
+            const result = await controller.ingestData('app-1', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', request, {} as unknown as IngestDataPayload);
             assert.deepEqual(result, { ok: true });
         });
 
@@ -79,12 +69,7 @@ describe('IngestController', () => {
             const controller = new IngestController(makeConfig(), ingestSvc, liveSvc, mockLogger);
             const request = makeRequest('app-1');
 
-            const result = await controller.ingestData(
-                'app-1',
-                'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-                request,
-                {} as unknown as IngestDataPayload
-            );
+            const result = await controller.ingestData('app-1', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', request, {} as unknown as IngestDataPayload);
             assert.deepEqual(result, { ok: true, ws: true });
         });
 
@@ -106,13 +91,7 @@ describe('IngestController', () => {
             const request = makeRequest('app-1');
 
             await assert.rejects(
-                () =>
-                    controller.ingestData(
-                        'app-OTHER',
-                        'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-                        request,
-                        {} as unknown as IngestDataPayload
-                    ),
+                () => controller.ingestData('app-OTHER', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', request, {} as unknown as IngestDataPayload),
                 (err: unknown) => {
                     assert.match((err as Error).message, /App key mismatch/);
                     return true;
@@ -141,13 +120,7 @@ describe('IngestController', () => {
             const request = makeRequest('app-1', bigBody);
 
             await assert.rejects(
-                () =>
-                    controller.ingestData(
-                        'app-1',
-                        'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-                        request,
-                        {} as unknown as IngestDataPayload
-                    ),
+                () => controller.ingestData('app-1', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', request, {} as unknown as IngestDataPayload),
                 (err: unknown) => {
                     assert.match((err as Error).message, /Payload too large/);
                     return true;
@@ -157,12 +130,7 @@ describe('IngestController', () => {
 
         it('throws when events exceed max batch size', async () => {
             const { ingestSvc, liveSvc } = createMocks();
-            const controller = new IngestController(
-                makeConfig({ UXRR_MAX_EVENT_BATCH_SIZE: 10 }),
-                ingestSvc,
-                liveSvc,
-                mockLogger
-            );
+            const controller = new IngestController(makeConfig({ UXRR_MAX_EVENT_BATCH_SIZE: 10 }), ingestSvc, liveSvc, mockLogger);
             const request = makeRequest('app-1');
             const events = Array.from({ length: 11 }, (_, i) => ({ type: 3, data: {}, timestamp: i }));
 
@@ -180,12 +148,7 @@ describe('IngestController', () => {
 
         it('throws when logs exceed max batch size', async () => {
             const { ingestSvc, liveSvc } = createMocks();
-            const controller = new IngestController(
-                makeConfig({ UXRR_MAX_LOG_BATCH_SIZE: 5 }),
-                ingestSvc,
-                liveSvc,
-                mockLogger
-            );
+            const controller = new IngestController(makeConfig({ UXRR_MAX_LOG_BATCH_SIZE: 5 }), ingestSvc, liveSvc, mockLogger);
             const request = makeRequest('app-1');
             const logs = Array.from({ length: 6 }, (_, i) => ({ t: i, v: 1, c: 'test', m: `msg-${i}` }));
 
@@ -209,12 +172,7 @@ describe('IngestController', () => {
             const request = makeRequest('app-1');
 
             // Should not throw
-            const result = await controller.ingestData(
-                'app-1',
-                'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-                request,
-                {} as unknown as IngestDataPayload
-            );
+            const result = await controller.ingestData('app-1', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', request, {} as unknown as IngestDataPayload);
             assert.ok(result.ok);
         });
 
@@ -224,8 +182,7 @@ describe('IngestController', () => {
             const request = makeRequest('app-1');
 
             await assert.rejects(
-                () =>
-                    controller.ingestData('app-1', '../../../etc/passwd', request, {} as unknown as IngestDataPayload),
+                () => controller.ingestData('app-1', '../../../etc/passwd', request, {} as unknown as IngestDataPayload),
                 (err: unknown) => {
                     assert.match((err as Error).message, /Invalid session ID/);
                     return true;

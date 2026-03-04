@@ -265,13 +265,13 @@ export function startStaticServer(opts: StaticServerOptions): { server: Server; 
 export async function getClientSessionId(page: Page): Promise<string> {
     await page.waitForFunction(
         () => {
-            const state = (window as any).uxrrState;
+            const state = (window as unknown as { uxrrState: { ready: boolean; sessionId: string } }).uxrrState;
             return state && state.ready && state.sessionId;
         },
         { timeout: 10000 }
     );
 
-    return page.evaluate(() => (window as any).uxrrState.sessionId);
+    return page.evaluate(() => (window as unknown as { uxrrState: { sessionId: string } }).uxrrState.sessionId);
 }
 
 /**
@@ -300,7 +300,7 @@ export async function waitForPlayerIframe(page: Page, options: { timeout?: numbe
                 // Check for the rrweb replay container
                 const replayRoot = body.querySelector('.replayer-mouse, [data-rrweb-id]');
                 return !!replayRoot;
-            } catch (e) {
+            } catch {
                 // Cross-origin or not ready yet
                 return false;
             }

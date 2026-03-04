@@ -37,11 +37,7 @@ export class ApiKeyService {
 
     // ── Management ──────────────────────────────────────────────
 
-    async create(
-        name: string,
-        scope: 'readonly' | 'interactive',
-        appKeys: string[]
-    ): Promise<{ key: ApiKeyEntity; rawKey: string }> {
+    async create(name: string, scope: 'readonly' | 'interactive', appKeys: string[]): Promise<{ key: ApiKeyEntity; rawKey: string }> {
         const rawSecret = randomBytes(32).toString('base64url');
         const rawKey = rawSecret;
         const keyPrefix = rawSecret.slice(0, 8);
@@ -71,10 +67,7 @@ export class ApiKeyService {
         return key;
     }
 
-    async update(
-        id: string,
-        updates: { name?: string; scope?: string; appKeys?: string[]; isActive?: boolean }
-    ): Promise<ApiKeyEntity> {
+    async update(id: string, updates: { name?: string; scope?: string; appKeys?: string[]; isActive?: boolean }): Promise<ApiKeyEntity> {
         const key = await this.get(id);
         if (updates.name !== undefined) key.name = updates.name;
         if (updates.scope !== undefined) {

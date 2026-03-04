@@ -252,10 +252,7 @@ describe('IngestBuffer', () => {
         // events should be re-queued; flush again to verify
         buffer.flush();
         expect(transport.postJSON).toHaveBeenCalledTimes(2);
-        const secondPayload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.calls[1][1] as Record<
-            string,
-            unknown
-        >;
+        const secondPayload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.calls[1][1] as Record<string, unknown>;
         expect((secondPayload.events as eventWithTime[]).length).toBeGreaterThanOrEqual(1);
     });
 
@@ -294,10 +291,7 @@ describe('IngestBuffer', () => {
         // logs should be re-queued; flush again to verify
         buffer.flush();
         expect(transport.postJSON).toHaveBeenCalledTimes(2);
-        const secondPayload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.calls[1][1] as Record<
-            string,
-            unknown
-        >;
+        const secondPayload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.calls[1][1] as Record<string, unknown>;
         expect((secondPayload.logs as LogEntry[]).length).toBeGreaterThanOrEqual(1);
     });
 
@@ -334,10 +328,7 @@ describe('IngestBuffer', () => {
 
         // Should still re-queue (only 1 failure since counter reset)
         buffer.flush();
-        const lastPayload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.lastCall![1] as Record<
-            string,
-            unknown
-        >;
+        const lastPayload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.lastCall![1] as Record<string, unknown>;
         expect(lastPayload.events).toBeDefined();
     });
 

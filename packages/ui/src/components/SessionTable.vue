@@ -28,7 +28,7 @@ function setupObserver() {
     if (!sentinelRef.value) return;
     const wrap = sentinelRef.value.closest('.session-table-wrap');
     observer = new IntersectionObserver(
-        (entries) => {
+        entries => {
             if (entries[0]?.isIntersecting && props.hasMore !== false && !props.loadingMore) {
                 emit('loadMore');
             }
@@ -113,9 +113,7 @@ function formatRelative(iso: string): string {
                         <span v-else>-</span>
                     </td>
                     <td class="cell-mono">
-                        <span class="clickable-filter" @click.stop="emit('filterByDevice', s.deviceId)">{{
-                            s.deviceId.slice(0, 8)
-                        }}</span>
+                        <span class="clickable-filter" @click.stop="emit('filterByDevice', s.deviceId)">{{ s.deviceId.slice(0, 8) }}</span>
                     </td>
                     <td>
                         <span class="clickable-filter" @click.stop="emit('filterByApp', s.appId)">{{ s.appId }}</span>

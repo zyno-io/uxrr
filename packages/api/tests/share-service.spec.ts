@@ -112,9 +112,7 @@ describe('ShareService — token security', () => {
                     jti: 'link-1'
                 })
             ).toString('base64url');
-            const wrongSig = createHmac('sha256', Buffer.from(wrongSecret, 'utf-8'))
-                .update(payloadB64)
-                .digest('base64url');
+            const wrongSig = createHmac('sha256', Buffer.from(wrongSecret, 'utf-8')).update(payloadB64).digest('base64url');
 
             const svc = new ShareService(makeConfig(), makeDb());
 

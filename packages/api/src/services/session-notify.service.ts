@@ -184,12 +184,7 @@ export class SessionNotifyService {
         }
     }
 
-    private sendToLocalWatchers(
-        type: string,
-        payload: ISessionPayload,
-        appKey: string,
-        allUserIds: string[]
-    ): void {
+    private sendToLocalWatchers(type: string, payload: ISessionPayload, appKey: string, allUserIds: string[]): void {
         for (const watcher of this.watchers) {
             if (watcher.ws.readyState !== 1) continue;
             if (watcher.allowedAppKeys && !watcher.allowedAppKeys.includes(appKey)) continue;

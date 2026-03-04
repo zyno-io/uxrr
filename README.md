@@ -16,22 +16,22 @@ uxrr records everything that happens in your web application and lets your team 
 
 uxrr is a Yarn monorepo with three packages:
 
-| Package        | Description                                               |
-| -------------- | --------------------------------------------------------- |
+| Package                | Description                                               |
+| ---------------------- | --------------------------------------------------------- |
 | `@zyno-io/uxrr-client` | Browser SDK — drop into your web app to start recording   |
 | `@zyno-io/uxrr-api`    | Backend — ingests data, stores sessions, serves the API   |
 | `@zyno-io/uxrr-ui`     | Admin dashboard — session list, replay player, live tools |
 
 **Infrastructure dependencies:**
 
-| Service        | Purpose                      | Required          |
-| -------------- | ---------------------------- | ----------------- |
-| PostgreSQL     | Session metadata             | Yes               |
-| S3-compatible  | Event storage                | Yes               |
-| Loki           | Log storage and search       | Optional          |
-| Tempo          | Distributed trace storage    | Optional          |
-| Redis          | Horizontal scaling (pub/sub) | Optional          |
-| OIDC Provider  | Authentication               | Yes (or dev mode) |
+| Service       | Purpose                      | Required          |
+| ------------- | ---------------------------- | ----------------- |
+| PostgreSQL    | Session metadata             | Yes               |
+| S3-compatible | Event storage                | Yes               |
+| Loki          | Log storage and search       | Optional          |
+| Tempo         | Distributed trace storage    | Optional          |
+| Redis         | Horizontal scaling (pub/sub) | Optional          |
+| OIDC Provider | Authentication               | Yes (or dev mode) |
 
 ## Quick Start
 

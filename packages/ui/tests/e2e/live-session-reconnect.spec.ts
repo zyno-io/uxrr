@@ -48,9 +48,7 @@ function elapsed(start: number): string {
 async function countCounterLogs(page: Page): Promise<number> {
     return page.evaluate(() => {
         const entries = document.querySelectorAll('.console-panel .entry-msg');
-        return [...entries]
-            .map(entry => entry.textContent?.trim())
-            .filter((text): text is string => !!text && text.startsWith('Counter:')).length;
+        return [...entries].map(entry => entry.textContent?.trim()).filter((text): text is string => !!text && text.startsWith('Counter:')).length;
     });
 }
 
@@ -58,9 +56,7 @@ async function waitForCounterLogsToIncrease(page: Page, baseline: number, timeou
     await page.waitForFunction(
         minCount => {
             const entries = document.querySelectorAll('.console-panel .entry-msg');
-            const count = [...entries]
-                .map(entry => entry.textContent?.trim())
-                .filter(text => !!text && text.startsWith('Counter:')).length;
+            const count = [...entries].map(entry => entry.textContent?.trim()).filter(text => !!text && text.startsWith('Counter:')).length;
             return count > minCount;
         },
         baseline,
@@ -82,10 +78,7 @@ async function waitForReplayFixtureVisible(page: Page, timeout = 15000): Promise
     );
 }
 
-async function waitForReplayFixtureStable(
-    page: Page,
-    options: { timeout?: number; stableForMs?: number; pollMs?: number } = {}
-): Promise<void> {
+async function waitForReplayFixtureStable(page: Page, options: { timeout?: number; stableForMs?: number; pollMs?: number } = {}): Promise<void> {
     const timeout = options.timeout ?? 20000;
     const stableForMs = options.stableForMs ?? 1500;
     const pollMs = options.pollMs ?? 120;
@@ -151,24 +144,18 @@ async function captureStableScreenshot(
         const size = getScreenshotSize(path);
         if (size >= minBytes) {
             if (attempt > 1) {
-                console.log(
-                    `${options.label}: captured non-black frame on retry ${attempt} (size=${size} bytes, min=${minBytes})`
-                );
+                console.log(`${options.label}: captured non-black frame on retry ${attempt} (size=${size} bytes, min=${minBytes})`);
             }
             return;
         }
 
         if (attempt < maxAttempts) {
-            console.log(
-                `${options.label}: screenshot looked blank (size=${size} bytes, min=${minBytes}), retrying (${attempt}/${maxAttempts})`
-            );
+            console.log(`${options.label}: screenshot looked blank (size=${size} bytes, min=${minBytes}), retrying (${attempt}/${maxAttempts})`);
             await page.waitForTimeout(retryDelayMs);
         }
     }
 
-    throw new Error(
-        `${options.label}: screenshot remained blank after ${maxAttempts} attempts (size=${getScreenshotSize(path)} bytes)`
-    );
+    throw new Error(`${options.label}: screenshot remained blank after ${maxAttempts} attempts (size=${getScreenshotSize(path)} bytes)`);
 }
 
 /**
@@ -257,7 +244,7 @@ test.describe('Live Session Reconnect (E2E)', () => {
                         console.log(`[${elapsed(t0)}] Session created (poll attempt ${i})`);
                         break;
                     }
-                } catch (e) {
+                } catch {
                     // Ignore errors and keep polling
                 }
                 await clientPage.waitForTimeout(500);
@@ -419,11 +406,9 @@ test.describe('Live Session Reconnect (E2E)', () => {
             const expectedCounterMessages = ['Counter: 2', 'Counter: 3', 'Counter: 4', 'Counter: 5', 'Counter: 1', 'Counter: 2'];
             console.log(`[${elapsed(t0)}] Waiting for ${expectedCounterMessages.length} Counter entries...`);
             await agentPage.waitForFunction(
-                (expected) => {
+                expected => {
                     const entries = document.querySelectorAll('.console-panel .entry-msg');
-                    const counterMessages = [...entries]
-                        .map(e => e.textContent?.trim())
-                        .filter(t => t?.startsWith('Counter:'));
+                    const counterMessages = [...entries].map(e => e.textContent?.trim()).filter(t => t?.startsWith('Counter:'));
                     return counterMessages.length >= expected;
                 },
                 expectedCounterMessages.length,
@@ -432,9 +417,7 @@ test.describe('Live Session Reconnect (E2E)', () => {
 
             const actualCounterMessages = await agentPage.evaluate(() => {
                 const entries = document.querySelectorAll('.console-panel .entry-msg');
-                return [...entries]
-                    .map(e => e.textContent?.trim())
-                    .filter((t): t is string => !!t?.startsWith('Counter:'));
+                return [...entries].map(e => e.textContent?.trim()).filter((t): t is string => !!t?.startsWith('Counter:'));
             });
             expect(actualCounterMessages).toEqual(expectedCounterMessages);
             console.log(`[${elapsed(t0)}] ✓ Console counter entries match: [${actualCounterMessages.join(', ')}]`);
@@ -443,7 +426,7 @@ test.describe('Live Session Reconnect (E2E)', () => {
             await expect(errorMessage).not.toBeVisible();
 
             // Verify replay player still has content after reconnection (not black)
-            const hasContentAfterReconnect = await playerIframe.locator('body').evaluate((body) => {
+            const hasContentAfterReconnect = await playerIframe.locator('body').evaluate(body => {
                 return body.children.length > 0 && body.innerHTML.length > 100;
             });
             if (!hasContentAfterReconnect) {
@@ -483,10 +466,9 @@ test.describe('Live Session Reconnect (E2E)', () => {
             await agentPage.close();
 
             // Clean up session from database to avoid buildup
-            await fetch(`http://localhost:8977/v1/sessions/${sessionId}`, { method: 'DELETE' })
-                .catch(() => {
-                    // Ignore errors if cleanup fails
-                });
+            await fetch(`http://localhost:8977/v1/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {
+                // Ignore errors if cleanup fails
+            });
         } finally {
             await clientContext.close();
             await agentContext.close();

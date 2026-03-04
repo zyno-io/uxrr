@@ -76,9 +76,7 @@ function createService(
     } = {}
 ) {
     const connectClientFn = mock.fn((_sessId: string, _appKey: string, _ws: unknown) => {});
-    const connectAgentFn = mock.fn(
-        (_sessId: string, _ws: unknown, _email?: string, _name?: string, _userId?: string) => {}
-    );
+    const connectAgentFn = mock.fn((_sessId: string, _ws: unknown, _email?: string, _name?: string, _userId?: string) => {});
     const connectSharedViewerFn = mock.fn((_sessId: string, _ws: unknown) => {});
     const addWatcherFn = mock.fn((_ws: unknown, _filters: unknown, _allowedAppKeys?: string[]) => {});
 
@@ -134,13 +132,7 @@ describe('WebSocket auth — handleClientUpgrade', () => {
         const socket = makeSocket();
         const wss = makeWss();
 
-        await (svc as TestableWsSvc).handleClientUpgrade(
-            wss,
-            'sess-1',
-            makeRequest('/v1/ng/app-1/ws'),
-            socket,
-            Buffer.alloc(0)
-        );
+        await (svc as TestableWsSvc).handleClientUpgrade(wss, 'sess-1', makeRequest('/v1/ng/app-1/ws'), socket, Buffer.alloc(0));
         assert.equal(socket.write.mock.callCount(), 1);
         assert.ok((socket.write.mock.calls[0].arguments[0] as string).includes('403'));
         assert.equal(socket.destroy.mock.callCount(), 1);
@@ -229,13 +221,7 @@ describe('WebSocket auth — handleAgentUpgrade', () => {
         const socket = makeSocket();
         const wss = makeWss();
 
-        await (svc as TestableWsSvc).handleAgentUpgrade(
-            wss,
-            'sess-1',
-            makeRequest('/v1/sessions/sess-1/live'),
-            socket,
-            Buffer.alloc(0)
-        );
+        await (svc as TestableWsSvc).handleAgentUpgrade(wss, 'sess-1', makeRequest('/v1/sessions/sess-1/live'), socket, Buffer.alloc(0));
         assert.equal(socket.write.mock.callCount(), 1);
         assert.ok((socket.write.mock.calls[0].arguments[0] as string).includes('401'));
     });
@@ -376,13 +362,7 @@ describe('WebSocket auth — handleAgentUpgrade', () => {
         const socket = makeSocket();
         const wss = makeWss();
 
-        await (svc as TestableWsSvc).handleAgentUpgrade(
-            wss,
-            'sess-1',
-            makeRequest('/v1/sessions/sess-1/live'),
-            socket,
-            Buffer.alloc(0)
-        );
+        await (svc as TestableWsSvc).handleAgentUpgrade(wss, 'sess-1', makeRequest('/v1/sessions/sess-1/live'), socket, Buffer.alloc(0));
         assert.equal(connectAgentFn.mock.callCount(), 1);
     });
 });
@@ -434,12 +414,7 @@ describe('WebSocket auth — handleWatchUpgrade', () => {
         const socket = makeSocket();
         const wss = makeWss();
 
-        await (svc as TestableWsSvc).handleWatchUpgrade(
-            wss,
-            makeRequest('/v1/sessions/watch'),
-            socket,
-            Buffer.alloc(0)
-        );
+        await (svc as TestableWsSvc).handleWatchUpgrade(wss, makeRequest('/v1/sessions/watch'), socket, Buffer.alloc(0));
         assert.equal(socket.write.mock.callCount(), 1);
         assert.ok((socket.write.mock.calls[0].arguments[0] as string).includes('401'));
     });
@@ -491,12 +466,7 @@ describe('WebSocket auth — handleWatchUpgrade', () => {
         const socket = makeSocket();
         const wss = makeWss();
 
-        await (svc as TestableWsSvc).handleWatchUpgrade(
-            wss,
-            makeRequest('/v1/sessions/watch?embed_token=tok'),
-            socket,
-            Buffer.alloc(0)
-        );
+        await (svc as TestableWsSvc).handleWatchUpgrade(wss, makeRequest('/v1/sessions/watch?embed_token=tok'), socket, Buffer.alloc(0));
         assert.equal(addWatcherFn.mock.callCount(), 1);
         const allowedAppKeys = addWatcherFn.mock.calls[0].arguments[2];
         assert.deepEqual(allowedAppKeys, ['app-1', 'app-2']);
@@ -510,12 +480,7 @@ describe('WebSocket auth — handleWatchUpgrade', () => {
         const socket = makeSocket();
         const wss = makeWss();
 
-        await (svc as TestableWsSvc).handleWatchUpgrade(
-            wss,
-            makeRequest('/v1/sessions/watch'),
-            socket,
-            Buffer.alloc(0)
-        );
+        await (svc as TestableWsSvc).handleWatchUpgrade(wss, makeRequest('/v1/sessions/watch'), socket, Buffer.alloc(0));
         assert.equal(addWatcherFn.mock.callCount(), 1);
     });
 });

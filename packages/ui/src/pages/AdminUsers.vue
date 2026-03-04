@@ -66,16 +66,8 @@ onMounted(load);
                     <td>{{ user.email }}</td>
                     <td>{{ user.name || '-' }}</td>
                     <td>
-                        <label
-                            class="toggle-switch"
-                            :title="user.id === authState.me?.userId ? 'Cannot change own admin status' : ''"
-                        >
-                            <input
-                                type="checkbox"
-                                :checked="user.isAdmin"
-                                :disabled="user.id === authState.me?.userId"
-                                @change="toggleAdmin(user)"
-                            />
+                        <label class="toggle-switch" :title="user.id === authState.me?.userId ? 'Cannot change own admin status' : ''">
+                            <input type="checkbox" :checked="user.isAdmin" :disabled="user.id === authState.me?.userId" @change="toggleAdmin(user)" />
                             <span class="toggle-slider" />
                         </label>
                     </td>

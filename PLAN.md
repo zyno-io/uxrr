@@ -9,6 +9,7 @@ After tracing every line of code from `rrweb record()` through the client SDK, s
 **Root cause: `goto()` in live mode disrupts rrweb's event processing timer.**
 
 In `ReplayPlayer.vue:135-141`, after mounting the player in live mode, the code calls:
+
 ```typescript
 player.goto(latestOffsetMs, true);
 ```
@@ -26,16 +27,19 @@ Mouse movements continue to render because rrweb's mouse trail uses a separate c
 **Root cause: Shared viewers can't recover from missing snapshots.**
 
 When a shared viewer connects, the flow is:
+
 1. Server sends `client_connected` to shared viewer
 2. Server sends `request_snapshot` to client
 3. Client generates snapshot → server relays to all agents (including shared viewer)
 
 But in `useSessionDetail.ts:357`, `onClientConnected()` computes:
+
 ```typescript
 const wasDisconnected = !clientConnected.value || !isLive.value;
 ```
 
 On first connect, `clientConnected` is `false`, so `wasDisconnected = true`. This triggers the "reconnection" path which sets `deferLiveMountUntilNextTick = true`. After `nextTick()`, if the snapshot hasn't arrived yet:
+
 ```typescript
 liveStream?.send({ type: 'request_snapshot' });
 ```
@@ -60,8 +64,9 @@ async function mount(events) {
 ```
 
 Between `destroyPlayer()` (player = null) and the player being reconstructed, `livePlayerReady` is already `true` (set in `tryMountBufferedLiveEvents:159`). New events arriving from the WebSocket go to:
+
 ```typescript
-playerRef.value?.addEvent(event);  // ← player is null → silently returns
+playerRef.value?.addEvent(event); // ← player is null → silently returns
 ```
 
 Events are silently dropped during this window. The initial snapshot renders because it was passed to the `mount()` call directly. But every subsequent incremental event that arrives during the ~1-2 frame async gap is lost. Since DOM mutations build on each other (each mutation references nodes from previous mutations), losing even one mutation can break all subsequent mutations — the replayer's internal DOM diverges from the recorded DOM and never recovers.
@@ -241,6 +246,7 @@ class LiveSessionStream {
 ```
 
 **Key behavior change: Snapshot caching.** When the client sends events containing a full snapshot (type 2), the server extracts and caches it (along with the preceding Meta event). When a new agent or shared viewer connects, the server immediately sends the cached snapshot — no need to request a fresh one from the client. This:
+
 - Eliminates the round-trip latency for new viewers
 - Ensures shared viewers always get a snapshot (no dependency on `send()`)
 - Removes the race condition between `client_connected` and snapshot delivery
@@ -322,6 +328,7 @@ Replace the five boolean flags with an explicit state machine:
 ```
 
 Each state has:
+
 - **Entry actions**: What happens when entering this state
 - **Event handlers**: Which events are valid in this state and what they do
 - **Exit actions**: Cleanup when leaving this state
@@ -371,7 +378,7 @@ class LivePlayerController {
                 events: snapshotEvents,
                 liveMode: true,
                 autoPlay: true,
-                showController: false,
+                showController: false
                 // Let rrweb buffer events for ~500ms to smooth jitter
                 // without timestamp hacks
             }
@@ -396,6 +403,7 @@ class LivePlayerController {
 ```
 
 **Key differences from current code:**
+
 1. **No `goto()`** — events are applied by rrweb's native live mode timer
 2. **No timestamp compression** — events keep their original timestamps
 3. **No silent drops** — events queue during mount and drain after
@@ -418,8 +426,7 @@ function useSessionDetail(options) {
         if (snapshotIndex !== -1 && state.value === 'syncing') {
             // First snapshot — mount the player
             const snapshotEvents = extractSnapshotWithMeta(events, snapshotIndex);
-            const postSnapshotEvents = events.slice(snapshotIndex + 1)
-                .filter(e => e?.type !== 2 && e?.type !== 4);
+            const postSnapshotEvents = events.slice(snapshotIndex + 1).filter(e => e?.type !== 2 && e?.type !== 4);
 
             playerController.mount(snapshotEvents, container).then(() => {
                 state.value = 'live';
@@ -437,8 +444,7 @@ function useSessionDetail(options) {
             const snapshotEvents = extractSnapshotWithMeta(events, snapshotIndex);
             playerController.mount(snapshotEvents, container);
 
-            const postSnapshotEvents = events.slice(snapshotIndex + 1)
-                .filter(e => e?.type !== 2 && e?.type !== 4);
+            const postSnapshotEvents = events.slice(snapshotIndex + 1).filter(e => e?.type !== 2 && e?.type !== 4);
             for (const event of postSnapshotEvents) {
                 playerController.addEvent(event);
             }
@@ -467,6 +473,7 @@ function useSessionDetail(options) {
 ```
 
 **What's eliminated:**
+
 - `livePlayerReady` boolean → replaced by state machine (syncing → live)
 - `playerHasTimeline` boolean → player controller handles mount/remount internally
 - `deferLiveMountUntilNextTick` → unnecessary because event queue prevents drops
@@ -479,12 +486,14 @@ function useSessionDetail(options) {
 The current code strips full snapshots from live event streams. This is wrong. Instead:
 
 **Server-side: Cache and forward.**
+
 - When client sends events containing a FullSnapshot (type 2), extract the Meta (type 4) + FullSnapshot + any immediately following events as the "cached snapshot"
 - Store this as `session.cachedSnapshot`
 - When a new viewer connects, immediately send the cached snapshot
 - Continue forwarding ALL events (including snapshots) to all agents
 
 **Client-side: Embrace snapshots.**
+
 - When the player receives a full snapshot while already live, remount the player with the new snapshot
 - The `LivePlayerController.mount()` handles this cleanly — events queue during mount, nothing is dropped
 - This keeps the replayer's DOM perfectly in sync with the recorder
@@ -497,6 +506,7 @@ The current code strips full snapshots from live event streams. This is wrong. I
 rrweb's live mode is designed to handle real-time event streams. The replayer's internal timer processes events based on their timestamp offset from the first event. If events arrive with timestamps close to "now" (which they do, since they're generated in real-time), the replayer applies them in real-time.
 
 The current timestamp compression was added to make the initial snapshot "appear instantly." Instead:
+
 - rrweb-player will apply the initial snapshot events during construction (they're passed as `events` to the constructor)
 - The snapshot is rendered immediately as part of construction
 - No `goto()` needed — the player starts in the right state
@@ -512,41 +522,54 @@ If there's a concern about the replayer "replaying" the initial snapshot in real
 These are targeted fixes to the existing code to resolve the three bugs immediately, without the full refactor.
 
 #### 1a. Remove `goto()` in live mode
+
 **File:** `packages/ui/src/components/ReplayPlayer.vue`
+
 - Remove lines 133-142 (the `goto()` call)
 - The initial events are already applied during player construction
 - rrweb-player renders the initial snapshot without needing `goto()`
 
 #### 1b. Add event queuing during mount
+
 **File:** `packages/ui/src/components/ReplayPlayer.vue`
+
 - Add a `pendingEvents: eventWithTime[]` array
 - In `addEvent()`: if `player` is null (mount in progress), push to `pendingEvents`
 - At end of `mount()`: drain `pendingEvents` into the new player
 - This eliminates the race condition
 
 #### 1c. Cache snapshot on server
+
 **File:** `packages/api/src/services/live/live-message-relay.ts`
+
 - In `handleClientMessage()`, when processing `events` messages, scan for type 2 (FullSnapshot)
 - If found, extract Meta + FullSnapshot and store on `conn.cachedSnapshot`
 
 **File:** `packages/api/src/services/live-session.service.ts`
+
 - In `connectAgent()` and `connectSharedViewer()`: if `conn.cachedSnapshot` exists, immediately send it to the new viewer instead of requesting a fresh snapshot from the client
 - Only send `request_snapshot` to the client if no cached snapshot exists
 
 #### 1d. Stop stripping full snapshots
+
 **File:** `packages/ui/src/composables/useSessionDetail.ts`
+
 - Remove lines 313-318 (the snapshot stripping filter)
 - Instead, when a full snapshot arrives while `livePlayerReady` is true, trigger a clean remount via `tryMountBufferedLiveEvents()` (with `playerHasTimeline` handling the remount)
 
 ### Phase 2: Server Refactor — Pod-Agnostic Core
 
 #### 2a. Define `IMessageSink` interface
+
 **New file:** `packages/api/src/services/live/interfaces.ts`
+
 - Define `IMessageSink` with `sendToClient`, `sendToAgent`, `broadcastToAgents`
 - Define `IBufferPersistence` with `flushEvents`, `flushLogs`, `recordChat`
 
 #### 2b. Extract `LiveSessionStream`
+
 **New file:** `packages/api/src/services/live/live-session-stream.ts`
+
 - Move all routing logic from `LiveMessageRelay.handleClientMessage()` and `handleAgentMessage()` into this class
 - Move controller election calls into this class
 - Move buffer management (pendingEvents, pendingLogs, flush thresholds) into this class
@@ -555,7 +578,9 @@ These are targeted fixes to the existing code to resolve the three bugs immediat
 - **No WebSocket, no Redis, no network code whatsoever**
 
 #### 2c. Implement `PodAwareTransport`
+
 **Refactor:** `packages/api/src/services/live/live-message-relay.ts` → becomes `PodAwareTransport`
+
 - Implements `IMessageSink`
 - Retains all Redis pub/sub logic
 - Retains all local WebSocket send logic
@@ -564,7 +589,9 @@ These are targeted fixes to the existing code to resolve the three bugs immediat
 - **No message routing logic** — just delivery
 
 #### 2d. Simplify `LiveSessionService`
+
 **Refactor:** `packages/api/src/services/live-session.service.ts`
+
 - Becomes a thin `LiveConnectionManager`
 - Manages WebSocket connection lifecycle (open/close/error/ping/pong)
 - Maps connections to `LiveSessionStream` calls
@@ -573,21 +600,27 @@ These are targeted fixes to the existing code to resolve the three bugs immediat
 ### Phase 3: Client Refactor — Clean Player Lifecycle
 
 #### 3a. Extract `LivePlayerController`
+
 **New file:** `packages/ui/src/live-player-controller.ts`
+
 - Encapsulates rrweb-player instance management
 - Internal event queue with guaranteed delivery
 - `mount()` / `addEvent()` / `destroy()` API
 - No timestamp manipulation, no `goto()`
 
 #### 3b. Implement state machine in `useSessionDetail`
+
 **Refactor:** `packages/ui/src/composables/useSessionDetail.ts`
+
 - Replace the five boolean flags with `state: Ref<LiveState>`
 - Each state transition has explicit entry/exit actions
 - `onEvents`, `onClientConnected`, `onClientDisconnected` dispatch based on current state
 - The state machine is simple, testable, and debuggable
 
 #### 3c. Remove timestamp compression from ReplayPlayer
+
 **File:** `packages/ui/src/components/ReplayPlayer.vue`
+
 - Remove lines 84-95 (timestamp compression)
 - Remove `goto()` call
 - The `mount()` function simply passes events to rrweb-player as-is
@@ -601,11 +634,11 @@ These are targeted fixes to the existing code to resolve the three bugs immediat
 
 The project has three layers of live session tests:
 
-| Layer | Files | What it tests | Depends on internals? |
-|-------|-------|---------------|-----------------------|
-| Unit | `useSessionDetail.spec.ts` | Composable state machine via mock callbacks | **Yes** — mocks `playerRef.mount`/`addEvent`, asserts on `livePlayerReady` etc. |
-| VRT | `session-detail-live.spec.ts` | UI rendering via mocked WebSocket (`mockLiveWebSocket`) | **No** — protocol-level mocks, screenshot comparison |
-| E2E | `live-session-reconnect.spec.ts`, `live-session-shared-reconnect.spec.ts` | Full stack: real SDK → real server → real WS → real replay | **No** — asserts on DOM content in rrweb iframe, console panel text |
+| Layer | Files                                                                     | What it tests                                              | Depends on internals?                                                           |
+| ----- | ------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Unit  | `useSessionDetail.spec.ts`                                                | Composable state machine via mock callbacks                | **Yes** — mocks `playerRef.mount`/`addEvent`, asserts on `livePlayerReady` etc. |
+| VRT   | `session-detail-live.spec.ts`                                             | UI rendering via mocked WebSocket (`mockLiveWebSocket`)    | **No** — protocol-level mocks, screenshot comparison                            |
+| E2E   | `live-session-reconnect.spec.ts`, `live-session-shared-reconnect.spec.ts` | Full stack: real SDK → real server → real WS → real replay | **No** — asserts on DOM content in rrweb iframe, console panel text             |
 
 ### E2E Tests Are the Acceptance Criteria
 
@@ -628,6 +661,7 @@ Two unit tests in `useSessionDetail.spec.ts` explicitly assert the snapshot-stri
 2. **"ignores duplicate full snapshot bursts while already live" (line 296)** — same pattern. Update to assert remount occurs.
 
 The remaining unit tests are correct and survive with minor API adjustments:
+
 - "restarts live mode when client reconnects" — tests state transitions, still valid
 - "becomes live again after full snapshot arrives post-reconnect" — tests snapshot gating, still valid
 - "re-mounts from latest meta + first full snapshot" — tests buffer extraction, still valid
@@ -637,6 +671,7 @@ The remaining unit tests are correct and survive with minor API adjustments:
 ### New Tests to Add
 
 #### Server: `LiveSessionStream` unit tests
+
 Since `LiveSessionStream` takes `IMessageSink` and `IBufferPersistence` as interfaces, it can be tested with pure mocks — no WebSocket, no Redis, no network:
 
 - **Message routing**: client events → `sink.broadcastToAgents()` called
@@ -649,12 +684,14 @@ Since `LiveSessionStream` takes `IMessageSink` and `IBufferPersistence` as inter
 These tests validate all routing logic that currently lives scattered across `LiveMessageRelay` and `LiveSessionService`, now centralized and testable.
 
 #### Client: `LivePlayerController` unit tests
+
 - **Event queuing during mount**: call `mount()` (async), then `addEvent()` during await → events drain after mount completes
 - **No silent drops**: verify event count in + event count out always match
 - **Remount**: call `mount()` again while live → old player destroyed, new player created, queued events applied
 - **Destroy**: call `destroy()` → player null, queue cleared
 
 #### Client: State machine tests
+
 - **Explicit transitions**: verify every valid transition (`waiting → syncing → live → reconnecting → syncing → live → ended`)
 - **Invalid transitions**: verify no unexpected state changes (e.g., can't go from `ended` to `live` without reconnect)
 

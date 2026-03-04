@@ -34,12 +34,7 @@ export class IngestController {
     }
 
     @http.POST(':appKey/:sessionId/data')
-    async ingestData(
-        appKey: string,
-        sessionId: string,
-        request: HttpRequest,
-        body: HttpBody<IngestDataPayload>
-    ): Promise<{ ok: true; ws?: true }> {
+    async ingestData(appKey: string, sessionId: string, request: HttpRequest, body: HttpBody<IngestDataPayload>): Promise<{ ok: true; ws?: true }> {
         const { appKey: resolvedAppKey, appUuid } = this.validateAppKey(request, appKey);
         validateSessionId(sessionId);
 
@@ -67,12 +62,7 @@ export class IngestController {
     }
 
     @http.POST(':appKey/:sessionId/t')
-    async ingestOtlpTraces(
-        appKey: string,
-        sessionId: string,
-        request: HttpRequest,
-        response: HttpResponse
-    ): Promise<void> {
+    async ingestOtlpTraces(appKey: string, sessionId: string, request: HttpRequest, response: HttpResponse): Promise<void> {
         const { appKey: resolvedAppKey } = this.validateAppKey(request, appKey);
         validateSessionId(sessionId);
 

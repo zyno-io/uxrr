@@ -1,13 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { sessions, rrwebEvents, liveChatMessages, authConfig, meResponse, VRT_NOW } from './fixtures';
-import {
-    mockAuthRoutes,
-    mockSessionListRoutes,
-    mockSessionDetailRoutes,
-    mockWebSocket,
-    mockLiveWebSocket,
-    expectMinScreenshotSize
-} from './helpers';
+import { mockAuthRoutes, mockSessionListRoutes, mockSessionDetailRoutes, mockWebSocket, mockLiveWebSocket, expectMinScreenshotSize } from './helpers';
 
 const SCREENSHOTS_DIR = 'screenshots';
 const liveSession = sessions[1]!; // live session, no events

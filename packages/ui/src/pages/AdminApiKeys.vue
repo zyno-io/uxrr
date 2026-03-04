@@ -22,10 +22,7 @@ async function load() {
     loading.value = true;
     error.value = null;
     try {
-        const [keysResult, appsResult] = await Promise.all([
-            ApiKeyApi.getApiKeyListKeys(),
-            AdminApi.getAdminListApps()
-        ]);
+        const [keysResult, appsResult] = await Promise.all([ApiKeyApi.getApiKeyListKeys(), AdminApi.getAdminListApps()]);
         keys.value = dataFrom(keysResult);
         apps.value = dataFrom(appsResult).filter(a => a.isActive);
     } catch (err: unknown) {
@@ -148,9 +145,7 @@ onMounted(load);
                     </td>
                     <td>{{ new Date(key.createdAt).toLocaleDateString() }}</td>
                     <td class="actions">
-                        <button v-if="key.isActive" class="uxrr-btn-small danger" @click="revokeKey(key)">
-                            Revoke
-                        </button>
+                        <button v-if="key.isActive" class="uxrr-btn-small danger" @click="revokeKey(key)">Revoke</button>
                     </td>
                 </tr>
             </tbody>
@@ -158,14 +153,7 @@ onMounted(load);
         <div v-else class="admin-empty">No API keys yet.</div>
 
         <teleport to="body">
-            <VfModal
-                v-if="showCreate"
-                ref="modalRef"
-                close-on-mask-click
-                close-x
-                @close="showCreate = false"
-                @form-submit="createKey"
-            >
+            <VfModal v-if="showCreate" ref="modalRef" close-on-mask-click close-x @close="showCreate = false" @form-submit="createKey">
                 <template #header>Create API Key</template>
 
                 <div v-if="modalError" class="modal-error">{{ modalError }}</div>
@@ -186,11 +174,7 @@ onMounted(load);
                         <span class="field-label">Apps <span class="label-hint">(none selected = all apps)</span></span>
                         <div class="app-checkboxes">
                             <label v-for="app in apps" :key="app.id" class="app-checkbox">
-                                <input
-                                    type="checkbox"
-                                    :checked="selectedAppKeys.has(app.id)"
-                                    @change="toggleApp(app.id)"
-                                />
+                                <input type="checkbox" :checked="selectedAppKeys.has(app.id)" @change="toggleApp(app.id)" />
                                 {{ app.name }}
                             </label>
                             <span v-if="!apps.length" class="label-hint">No active apps</span>

@@ -1,8 +1,9 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import type { Ref, ComputedRef } from 'vue';
+import type { eventWithTime } from '@rrweb/types';
 import type { ISession, ILogEntry } from '@/openapi-client-generated';
 import type { ChatMessage } from '@/components/ChatPanel.vue';
-import type { LiveStreamCallbacks, LiveStreamHandle } from '@/live-stream';
+import type { AgentInfo, LiveStreamCallbacks, LiveStreamHandle } from '@/live-stream';
 import ReplayPlayer from '@/components/ReplayPlayer.vue';
 import { createLogger } from '@/logger';
 import { useLivePlayerController } from './useLivePlayerController';
@@ -11,12 +12,12 @@ import type { LiveState } from './useLivePlayerController';
 export interface SessionDetailOptions {
     loggerScope: string;
     loadSession: () => Promise<ISession>;
-    loadEvents: (startChunk?: number, endChunk?: number) => Promise<any[]>;
+    loadEvents: (startChunk?: number, endChunk?: number) => Promise<unknown[]>;
     loadLogs: (since?: number) => Promise<ILogEntry[]>;
     loadChat?: () => Promise<ChatMessage[]>;
     connectLive: (callbacks: LiveStreamCallbacks) => LiveStreamHandle;
     interactive?: boolean;
-    onAgentsUpdated?: (agents: any[]) => void;
+    onAgentsUpdated?: (agents: AgentInfo[]) => void;
     onPenStart?: (x: number, y: number) => void;
     onPenMove?: (x: number, y: number) => void;
     onPenEnd?: () => void;
@@ -84,7 +85,7 @@ export function useSessionDetail(options: SessionDetailOptions): SessionDetailRe
 
     // ── State ─────────────────────────────────────────────────────
     const session = ref<ISession | null>(null);
-    let loadedEvents: any[] = [];
+    let loadedEvents: eventWithTime[] = [];
     const firstEventTs = ref(0);
     const logs = ref<ILogEntry[]>([]);
     const chatMessages = ref<ChatMessage[]>([]);
@@ -185,19 +186,19 @@ export function useSessionDetail(options: SessionDetailOptions): SessionDetailRe
     // ── Chunked event loading ─────────────────────────────────────
     const CHUNK_BATCH_SIZE = 10;
 
-    async function loadEventsChunked(): Promise<any[]> {
+    async function loadEventsChunked(): Promise<eventWithTime[]> {
         const chunkCount = session.value?.eventChunkCount ?? 0;
         if (chunkCount === 0) {
-            return options.loadEvents();
+            return options.loadEvents() as Promise<eventWithTime[]>;
         }
 
         const totalChunks = chunkCount;
         eventLoadProgress.value = { loaded: 0, total: totalChunks };
-        const allEvents: any[] = [];
+        const allEvents: eventWithTime[] = [];
 
         for (let start = 0; start < totalChunks; start += CHUNK_BATCH_SIZE) {
             const end = Math.min(start + CHUNK_BATCH_SIZE - 1, totalChunks - 1);
-            const chunk = await options.loadEvents(start, end);
+            const chunk = (await options.loadEvents(start, end)) as eventWithTime[];
             allEvents.push(...chunk);
             eventLoadProgress.value = { loaded: end + 1, total: totalChunks };
         }
@@ -206,7 +207,7 @@ export function useSessionDetail(options: SessionDetailOptions): SessionDetailRe
         return allEvents;
     }
 
-    function applyLoadedEvents(events: any[]) {
+    function applyLoadedEvents(events: eventWithTime[]) {
         loadedEvents = events;
         const firstEvent = loadedEvents.find(ev => ev && typeof ev.timestamp === 'number');
         if (firstEvent) {
@@ -293,12 +294,12 @@ export function useSessionDetail(options: SessionDetailOptions): SessionDetailRe
         // Bind the player handle via optional chaining so LPC can proceed with
         // state transitions even before the component renders (playerRef may be undefined).
         lpc.bindPlayer({
-            mount: (events: unknown[]) => playerRef.value?.mount(events as any[]) ?? Promise.resolve(),
-            addEvent: (event: unknown) => playerRef.value?.addEvent(event as any)
+            mount: (events: unknown[]) => playerRef.value?.mount(events as eventWithTime[]) ?? Promise.resolve(),
+            addEvent: (event: unknown) => playerRef.value?.addEvent(event as eventWithTime)
         });
 
         liveStream = options.connectLive({
-            onEvents(newEvents: any[]) {
+            onEvents(newEvents: unknown[]) {
                 lpc.onEvents(newEvents);
             },
             onLogs(newLogs) {

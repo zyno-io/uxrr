@@ -78,10 +78,7 @@ describe('OidcAuthMiddleware', () => {
             const req = makeRequest();
             await mw.handle(req, makeResponse());
 
-            const ctx = (req as unknown as Record<string | symbol, unknown>)[AUTH_CONTEXT_KEY] as Record<
-                string,
-                unknown
-            >;
+            const ctx = (req as unknown as Record<string | symbol, unknown>)[AUTH_CONTEXT_KEY] as Record<string, unknown>;
             assert.equal(ctx.type, 'oidc');
             assert.equal(ctx.scope, 'admin');
         } finally {

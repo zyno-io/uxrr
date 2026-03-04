@@ -109,23 +109,15 @@ export class ShareService {
     }
 
     async revokeActiveLink(sessionId: string): Promise<boolean> {
-        const active = await this.db
-            .query(ShareLinkEntity)
-            .filter({ sessionId, revokedAt: undefined })
-            .findOneOrUndefined();
+        const active = await this.db.query(ShareLinkEntity).filter({ sessionId, revokedAt: undefined }).findOneOrUndefined();
         if (!active) return false;
         active.revokedAt = new Date();
         await this.db.persist(active);
         return true;
     }
 
-    async getActiveLink(
-        sessionId: string
-    ): Promise<{ id: string; token: string; expiresAt: Date; createdAt: Date } | null> {
-        const link = await this.db
-            .query(ShareLinkEntity)
-            .filter({ sessionId, revokedAt: undefined })
-            .findOneOrUndefined();
+    async getActiveLink(sessionId: string): Promise<{ id: string; token: string; expiresAt: Date; createdAt: Date } | null> {
+        const link = await this.db.query(ShareLinkEntity).filter({ sessionId, revokedAt: undefined }).findOneOrUndefined();
         if (!link || link.expiresAt < new Date()) return null;
         const payload: ShareTokenPayload = {
             sid: sessionId,

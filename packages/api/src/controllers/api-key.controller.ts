@@ -126,9 +126,7 @@ export class ApiKeyController {
         }
         const maxExp = now + this.config.UXRR_MAX_EMBED_TOKEN_TTL;
         if (body.exp > maxExp) {
-            throw new HttpBadRequestError(
-                `Token expiry too far in future (max ${this.config.UXRR_MAX_EMBED_TOKEN_TTL}s)`
-            );
+            throw new HttpBadRequestError(`Token expiry too far in future (max ${this.config.UXRR_MAX_EMBED_TOKEN_TTL}s)`);
         }
 
         const key = await this.apiKeySvc.get(ctx.keyId);

@@ -68,9 +68,7 @@ export class LiveBufferPersistence implements IBufferPersistence {
             session.hasChatMessages = true;
             session.updatedAt = new Date();
             await this.db.persist(session);
-            const allUserIds = (await this.db.query(SessionUserIdEntity).filter({ sessionId }).find()).map(
-                r => r.userId
-            );
+            const allUserIds = (await this.db.query(SessionUserIdEntity).filter({ sessionId }).find()).map(r => r.userId);
             this.notify.notifySessionUpdated(session, allUserIds);
         }
 

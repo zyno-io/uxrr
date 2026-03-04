@@ -188,7 +188,7 @@ describe('UserService', () => {
             const db = {
                 query: mock.fn(() => ({
                     filter: mock.fn(() => ({
-                        findOne: mock.fn(async () => existingUser)
+                        findOneOrUndefined: mock.fn(async () => existingUser)
                     }))
                 })),
                 persist: persistFn

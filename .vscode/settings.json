@@ -9,5 +9,6 @@
         ".gitlab-ci-local": true
     },
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "oxc.fmt.configPath": ".oxfmtrc.json"
 }

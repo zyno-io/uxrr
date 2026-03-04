@@ -28,15 +28,7 @@ vi.mock('@/openapi-client-generated', () => ({
 vi.mock('@zyno-io/vue-foundation', () => ({
     VfSmartSelect: {
         name: 'VfSmartSelect',
-        props: [
-            'modelValue',
-            'loadOptions',
-            'formatter',
-            'valueExtractor',
-            'placeholder',
-            'nullTitle',
-            'subtitleFormatter'
-        ],
+        props: ['modelValue', 'loadOptions', 'formatter', 'valueExtractor', 'placeholder', 'nullTitle', 'subtitleFormatter'],
         emits: ['update:modelValue'],
         template: '<div class="vf-smart-select-stub"><slot /></div>'
     }

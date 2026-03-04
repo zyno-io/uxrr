@@ -49,7 +49,8 @@ function makeSessionEntity(overrides: Partial<SessionEntity> = {}): SessionEntit
         eventChunkCount: 1,
         eventBytesStored: 0,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+        ...overrides
     } as SessionEntity;
 }
 
@@ -158,9 +159,7 @@ describe('IngestService', () => {
             );
 
             assert.equal(m.rawFindUnsafeFn.mock.callCount(), 2);
-            const sqlCalls = (m.rawFindUnsafeFn.mock.calls as unknown as Array<{ arguments: unknown[] }>).map(c =>
-                String(c.arguments[0] ?? '')
-            );
+            const sqlCalls = (m.rawFindUnsafeFn.mock.calls as unknown as Array<{ arguments: unknown[] }>).map(c => String(c.arguments[0] ?? ''));
             assert.ok(
                 sqlCalls.some(
                     sql =>

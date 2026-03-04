@@ -113,12 +113,7 @@ describe('ConsolePanel', () => {
     });
 
     it('filters by level — Warn+ hides debug and info', async () => {
-        const logs = [
-            makeLog({ v: 0, m: 'debug' }),
-            makeLog({ v: 1, m: 'info' }),
-            makeLog({ v: 2, m: 'warning' }),
-            makeLog({ v: 3, m: 'error' })
-        ];
+        const logs = [makeLog({ v: 0, m: 'debug' }), makeLog({ v: 1, m: 'info' }), makeLog({ v: 2, m: 'warning' }), makeLog({ v: 3, m: 'error' })];
         const wrapper = mount(ConsolePanel, {
             props: { logs, ...defaultProps }
         });
@@ -138,11 +133,7 @@ describe('ConsolePanel', () => {
     });
 
     it('filters by level — Error shows only errors', async () => {
-        const logs = [
-            makeLog({ v: 1, m: 'info-msg' }),
-            makeLog({ v: 2, m: 'warn-msg' }),
-            makeLog({ v: 3, m: 'error-msg' })
-        ];
+        const logs = [makeLog({ v: 1, m: 'info-msg' }), makeLog({ v: 2, m: 'warn-msg' }), makeLog({ v: 3, m: 'error-msg' })];
         const wrapper = mount(ConsolePanel, {
             props: { logs, ...defaultProps }
         });
@@ -235,8 +226,7 @@ describe('ConsolePanel', () => {
             setup() {
                 return { logsRef, ...defaultProps };
             },
-            template:
-                '<ConsolePanel :logs="logsRef" :current-time-ms="currentTimeMs" :session-start-ms="sessionStartMs" />'
+            template: '<ConsolePanel :logs="logsRef" :current-time-ms="currentTimeMs" :session-start-ms="sessionStartMs" />'
         });
 
         const wrapper = mount(Host);

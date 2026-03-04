@@ -172,11 +172,7 @@ describe('useSessionDetail live reconnect', () => {
 
         expect(state.livePlayerReady.value).toBe(true);
         expect(mountSpy).toHaveBeenCalledTimes(1);
-        expect(mountSpy.mock.calls[0]![0]).toEqual([
-            { type: 4, data: { width: 1280, height: 720 } },
-            { type: 2 },
-            { type: 3, data: { source: 0 } }
-        ]);
+        expect(mountSpy.mock.calls[0]![0]).toEqual([{ type: 4, data: { width: 1280, height: 720 } }, { type: 2 }, { type: 3, data: { source: 0 } }]);
         expect(addEventSpy).not.toHaveBeenCalled();
 
         wrapper.unmount();
@@ -279,11 +275,7 @@ describe('useSessionDetail live reconnect', () => {
         // Snapshot refresh while still connected (e.g. another viewer joins
         // and server sends request_snapshot). rrweb's Replayer.addEvent()
         // cannot handle FullSnapshot/Meta in live mode — they must be filtered.
-        callbacks.onEvents([
-            { type: 4, data: { width: 1024, height: 768 } },
-            { type: 2 },
-            { type: 3, data: { source: 0 } }
-        ]);
+        callbacks.onEvents([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }, { type: 3, data: { source: 0 } }]);
         await flushPromises();
 
         expect(mountSpy).toHaveBeenCalledTimes(1);

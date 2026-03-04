@@ -59,9 +59,6 @@ export class Recorder {
 }
 
 export async function createRecorder(buffer: IngestBuffer, config: UxrrConfig): Promise<Recorder> {
-    const [{ record }, { getRecordConsolePlugin }] = await Promise.all([
-        import('rrweb'),
-        import('@rrweb/rrweb-plugin-console-record')
-    ]);
+    const [{ record }, { getRecordConsolePlugin }] = await Promise.all([import('rrweb'), import('@rrweb/rrweb-plugin-console-record')]);
     return new Recorder(record, getRecordConsolePlugin, buffer, config);
 }

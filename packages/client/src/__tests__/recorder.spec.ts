@@ -27,12 +27,7 @@ function makeConfig(overrides: Partial<UxrrConfig> = {}): UxrrConfig {
 }
 
 function makeRecorder(buffer?: IngestBuffer, config?: UxrrConfig): Recorder {
-    return new Recorder(
-        mockRecord as any,
-        mockGetRecordConsolePlugin as any,
-        buffer ?? makeBuffer(),
-        config ?? makeConfig()
-    );
+    return new Recorder(mockRecord as any, mockGetRecordConsolePlugin as any, buffer ?? makeBuffer(), config ?? makeConfig());
 }
 
 /** Extract the emit callback from the most recent mockRecord call */

@@ -121,12 +121,7 @@ export class SessionController {
         const session = await this.sessionSvc.getOrThrow(id);
         this.enforceAccess(request, session);
         const from = query.since ? new Date(query.since) : session.startedAt;
-        return this.lokiSvc.queryLogs(
-            session.deviceId,
-            id,
-            from,
-            new Date(session.lastActivityAt.getTime() + 60_000)
-        );
+        return this.lokiSvc.queryLogs(session.deviceId, id, from, new Date(session.lastActivityAt.getTime() + 60_000));
     }
 
     @http.GET(':id/chat')
@@ -159,10 +154,7 @@ export class SessionController {
     }
 
     @http.GET(':id/share')
-    async getShareLink(
-        request: HttpRequest,
-        id: string
-    ): Promise<{ active: boolean; token?: string; expiresAt?: string; createdAt?: string }> {
+    async getShareLink(request: HttpRequest, id: string): Promise<{ active: boolean; token?: string; expiresAt?: string; createdAt?: string }> {
         this.requireAdmin(request);
         const link = await this.shareSvc.getActiveLink(id);
         if (!link) return { active: false };

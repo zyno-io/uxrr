@@ -122,9 +122,7 @@ describe('UserInfoPopover', () => {
             });
 
             await wrapper.find('.user-popover-anchor').trigger('mouseenter');
-            const emailRow = wrapper
-                .findAll('.user-popover-row')
-                .find(r => r.find('.user-popover-label').text() === 'Email');
+            const emailRow = wrapper.findAll('.user-popover-row').find(r => r.find('.user-popover-label').text() === 'Email');
             await emailRow!.find('.user-popover-copyable').trigger('click');
 
             expect(writeTextMock).toHaveBeenCalledWith('alice@example.com');

@@ -189,13 +189,7 @@ describe('SessionAuthMiddleware', () => {
 
     describe('rejection', () => {
         it('rejects requests with no auth headers', async () => {
-            const mw = new SessionAuthMiddleware(
-                makeConfig(),
-                makeOidc(false),
-                makeApiKeySvc(),
-                makeUserSvc(),
-                makeLogger()
-            );
+            const mw = new SessionAuthMiddleware(makeConfig(), makeOidc(false), makeApiKeySvc(), makeUserSvc(), makeLogger());
 
             await assert.rejects(
                 () => mw.handle(makeRequest(), makeResponse()),

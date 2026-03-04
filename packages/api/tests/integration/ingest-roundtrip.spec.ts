@@ -217,12 +217,7 @@ describe('Ingest roundtrip (integration)', () => {
 describe('Session list (integration)', () => {
     it('returns sessions via dev mode auth', async () => {
         // SessionAuthMiddleware falls through to dev mode when OIDC disabled + UXRR_DEV_MODE
-        const res = await makeMockRequest(
-            tf as unknown as Parameters<typeof makeMockRequest>[0],
-            'GET',
-            '/v1/sessions',
-            {}
-        );
+        const res = await makeMockRequest(tf as unknown as Parameters<typeof makeMockRequest>[0], 'GET', '/v1/sessions', {});
         assert.equal(res.statusCode, 200);
         const sessions = JSON.parse(res.body.toString());
         assert.ok(Array.isArray(sessions));
@@ -268,12 +263,7 @@ describe('Session list (integration)', () => {
     });
 
     it('filters sessions by appKey', async () => {
-        const res = await makeMockRequest(
-            tf as unknown as Parameters<typeof makeMockRequest>[0],
-            'GET',
-            `/v1/sessions?appKey=${TEST_APP_KEY}`,
-            {}
-        );
+        const res = await makeMockRequest(tf as unknown as Parameters<typeof makeMockRequest>[0], 'GET', `/v1/sessions?appKey=${TEST_APP_KEY}`, {});
         assert.equal(res.statusCode, 200);
         const sessions = JSON.parse(res.body.toString());
         for (const s of sessions) {

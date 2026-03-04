@@ -10,9 +10,7 @@ const LOG_LEVEL_MAP: Record<number, string> = {
     3: 'error'
 };
 
-const LEVEL_REVERSE: Record<string, number> = Object.fromEntries(
-    Object.entries(LOG_LEVEL_MAP).map(([k, v]) => [v, Number(k)])
-);
+const LEVEL_REVERSE: Record<string, number> = Object.fromEntries(Object.entries(LOG_LEVEL_MAP).map(([k, v]) => [v, Number(k)]));
 
 /** Escape a value for use inside LogQL double-quoted label matchers or backtick pipeline filters. */
 function escapeLogQL(value: string): string {
@@ -30,11 +28,7 @@ export class LokiService {
         if (config.LOKI_URL) {
             this.url = `${config.LOKI_URL}/loki/api/v1/push`;
             if (config.LOKI_AUTH_USER) {
-                this.authHeader =
-                    'Basic ' +
-                    Buffer.from(`${config.LOKI_AUTH_USER}:${config.LOKI_AUTH_PASSWORD_SECRET ?? ''}`).toString(
-                        'base64'
-                    );
+                this.authHeader = 'Basic ' + Buffer.from(`${config.LOKI_AUTH_USER}:${config.LOKI_AUTH_PASSWORD_SECRET ?? ''}`).toString('base64');
             }
         }
     }

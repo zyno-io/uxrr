@@ -1,8 +1,8 @@
 {
     "name": "@zyno-io/uxrr-api",
     "version": "0.1.1",
-    "license": "SEE LICENSE IN LICENSE",
     "private": true,
+    "license": "SEE LICENSE IN LICENSE",
     "main": "dist/src/bootstrap.js",
     "scripts": {
         "clean": "dksf-dev clean",

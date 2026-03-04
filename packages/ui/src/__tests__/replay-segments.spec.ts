@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-    splitIntoSegments,
-    padSegmentEvents,
-    filterValidEvents,
-    findSegmentForTime
-} from '@/components/replay-segments';
+import { splitIntoSegments, padSegmentEvents, filterValidEvents, findSegmentForTime } from '@/components/replay-segments';
 import type { eventWithTime } from '@rrweb/types';
 
 function ev(type: number, timestamp: number, data?: unknown): eventWithTime {
@@ -14,12 +9,7 @@ function ev(type: number, timestamp: number, data?: unknown): eventWithTime {
 describe('replay-segments', () => {
     describe('splitIntoSegments', () => {
         it('returns single segment when no mid-stream FullSnapshot', () => {
-            const events = [
-                ev(4, 1000, { width: 800, height: 600 }),
-                ev(2, 1001),
-                ev(3, 1100, { source: 0 }),
-                ev(3, 1200, { source: 1 })
-            ];
+            const events = [ev(4, 1000, { width: 800, height: 600 }), ev(2, 1001), ev(3, 1100, { source: 0 }), ev(3, 1200, { source: 1 })];
             const segments = splitIntoSegments(events);
             expect(segments).toHaveLength(1);
             expect(segments[0]!.events).toHaveLength(4);
@@ -55,9 +45,15 @@ describe('replay-segments', () => {
 
         it('handles multiple refreshes', () => {
             const events = [
-                ev(4, 1000), ev(2, 1001), ev(3, 1500, { source: 0 }),
-                ev(4, 2000), ev(2, 2001), ev(3, 2500, { source: 0 }),
-                ev(4, 3000), ev(2, 3001), ev(3, 3500, { source: 0 })
+                ev(4, 1000),
+                ev(2, 1001),
+                ev(3, 1500, { source: 0 }),
+                ev(4, 2000),
+                ev(2, 2001),
+                ev(3, 2500, { source: 0 }),
+                ev(4, 3000),
+                ev(2, 3001),
+                ev(3, 3500, { source: 0 })
             ];
             const segments = splitIntoSegments(events);
             expect(segments).toHaveLength(3);
@@ -68,7 +64,9 @@ describe('replay-segments', () => {
 
         it('handles FullSnapshot without preceding Meta', () => {
             const events = [
-                ev(4, 1000), ev(2, 1001), ev(3, 1100, { source: 0 }),
+                ev(4, 1000),
+                ev(2, 1001),
+                ev(3, 1100, { source: 0 }),
                 // Refresh but FullSnapshot arrives without Meta
                 ev(2, 2001),
                 ev(3, 2100, { source: 0 })
@@ -131,11 +129,7 @@ describe('replay-segments', () => {
 
     describe('filterValidEvents', () => {
         it('keeps well-formed events', () => {
-            const events = [
-                ev(4, 1000, { width: 800 }),
-                ev(2, 1001),
-                ev(3, 1100, { source: 0 })
-            ];
+            const events = [ev(4, 1000, { width: 800 }), ev(2, 1001), ev(3, 1100, { source: 0 })];
             expect(filterValidEvents(events)).toHaveLength(3);
         });
 

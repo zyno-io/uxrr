@@ -29,9 +29,7 @@ function createMocks(apps: { id: string; appKey: string; origins: string[]; apiK
 describe('AppResolverService', () => {
     describe('resolveByOrigin', () => {
         it('maps known origin to appKey', async () => {
-            const { db } = createMocks([
-                { id: 'uuid-1', appKey: 'app-1', origins: ['https://example.com'], apiKey: undefined, isActive: true }
-            ]);
+            const { db } = createMocks([{ id: 'uuid-1', appKey: 'app-1', origins: ['https://example.com'], apiKey: undefined, isActive: true }]);
             const resolver = new AppResolverService(db, makeLogger());
 
             const result = await resolver.resolveByOrigin('https://example.com');
@@ -39,9 +37,7 @@ describe('AppResolverService', () => {
         });
 
         it('returns undefined for unknown origin', async () => {
-            const { db } = createMocks([
-                { id: 'uuid-1', appKey: 'app-1', origins: ['https://example.com'], apiKey: undefined, isActive: true }
-            ]);
+            const { db } = createMocks([{ id: 'uuid-1', appKey: 'app-1', origins: ['https://example.com'], apiKey: undefined, isActive: true }]);
             const resolver = new AppResolverService(db, makeLogger());
 
             const result = await resolver.resolveByOrigin('https://unknown.com');

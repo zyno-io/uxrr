@@ -36,8 +36,7 @@ export const sessions: ISession[] = [
         userEmail: 'jane@example.com',
         version: '2.1.0',
         environment: 'production',
-        userAgent:
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         ipAddress: '192.168.1.42',
         startedAt: ts(0),
         lastActivityAt: ts(120_000),
@@ -58,8 +57,7 @@ export const sessions: ISession[] = [
         userEmail: 'bob@example.com',
         version: '2.1.0',
         environment: 'staging',
-        userAgent:
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         ipAddress: '10.0.0.5',
         startedAt: ts(-60_000),
         lastActivityAt: ts(0),

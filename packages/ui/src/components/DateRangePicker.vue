@@ -194,7 +194,7 @@ function handlePaste(e: ClipboardEvent, field: 'from' | 'to') {
 // Sync to = from when from is set to a valid date
 watch(
     customFrom,
-    (newVal) => {
+    newVal => {
         if (suppressSync) return;
         if (newVal && textToDate(newVal)) {
             customTo.value = newVal;
@@ -269,13 +269,7 @@ defineExpose({ computeRange, initState, getState });
             </svg>
             <span class="drp-label">{{ displayText }}</span>
             <svg class="drp-chevron" :class="{ 'drp-chevron--open': open }" viewBox="0 0 10 6" fill="none">
-                <path
-                    d="M1 1l4 4 4-4"
-                    stroke="currentColor"
-                    stroke-width="1.3"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                />
+                <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
         </button>
 
@@ -312,13 +306,7 @@ defineExpose({ computeRange, initState, getState });
                 </label>
                 <label class="drp-field">
                     <span class="drp-field-label">To</span>
-                    <input
-                        v-model="customTo"
-                        type="text"
-                        class="drp-input"
-                        placeholder="YYYY-MM-DD HH:mm[:ss]"
-                        @paste="e => handlePaste(e, 'to')"
-                    />
+                    <input v-model="customTo" type="text" class="drp-input" placeholder="YYYY-MM-DD HH:mm[:ss]" @paste="e => handlePaste(e, 'to')" />
                 </label>
                 <button class="drp-apply" :disabled="!textToDate(customFrom) || !textToDate(customTo)" @click="applyCustom">Apply</button>
             </div>

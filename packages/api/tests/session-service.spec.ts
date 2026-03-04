@@ -17,7 +17,8 @@ function makeSessionEntity(overrides: Partial<SessionEntity> = {}): SessionEntit
         eventChunkCount: 3,
         createdAt: now,
         updatedAt: now,
-        hasChatMessages: false
+        hasChatMessages: false,
+        ...overrides
     } as SessionEntity;
 }
 
@@ -239,12 +240,8 @@ describe('SessionService', () => {
         });
 
         it('filters by prefix in JavaScript after resolving keys', async () => {
-            const { db, appResolver, rawFindUnsafeFn } = createMocks({
-                rawFindResult: [
-                    { appId: 'uuid-my-app' },
-                    { appId: 'uuid-other-app' },
-                    { appId: 'uuid-my-thing' }
-                ]
+            const { db, appResolver } = createMocks({
+                rawFindResult: [{ appId: 'uuid-my-app' }, { appId: 'uuid-other-app' }, { appId: 'uuid-my-thing' }]
             });
             (appResolver.resolveAppKey as any).mock.mockImplementation((uuid: string) => {
                 if (uuid === 'uuid-my-app') return 'my-app';

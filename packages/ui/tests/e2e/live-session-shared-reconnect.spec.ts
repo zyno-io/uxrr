@@ -29,18 +29,12 @@ async function waitForSessionCreated(page: Page, sessionId: string): Promise<voi
     page.on('response', onResponse);
 
     try {
-        await page.waitForResponse(
-            response =>
-                response.request().method() === 'POST' &&
-                response.url().includes(ingestPath) &&
-                response.ok(),
-            { timeout: 70_000 }
-        );
+        await page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes(ingestPath) && response.ok(), {
+            timeout: 70_000
+        });
     } catch {
         const statusSummary = seenIngestStatuses.length > 0 ? seenIngestStatuses.join(', ') : 'none';
-        throw new Error(
-            `Session ${sessionId} was not ingested in time (no successful POST ${ingestPath}; statuses seen: ${statusSummary})`
-        );
+        throw new Error(`Session ${sessionId} was not ingested in time (no successful POST ${ingestPath}; statuses seen: ${statusSummary})`);
     } finally {
         page.off('response', onResponse);
     }
@@ -58,9 +52,7 @@ async function waitForSessionCreated(page: Page, sessionId: string): Promise<voi
         }
         await new Promise(resolve => setTimeout(resolve, 500));
     }
-    const suffix = lastStatus
-        ? ` (last status: ${lastStatus}${lastBody ? `, body: ${lastBody.slice(0, 200)}` : ''})`
-        : '';
+    const suffix = lastStatus ? ` (last status: ${lastStatus}${lastBody ? `, body: ${lastBody.slice(0, 200)}` : ''})` : '';
     throw new Error(`Session ${sessionId} was not created in time${suffix}`);
 }
 
@@ -183,9 +175,7 @@ async function waitForReplayCounterValue(page: Page, expected: number, timeout =
 async function countCounterLogs(page: Page): Promise<number> {
     return page.evaluate(() => {
         const entries = document.querySelectorAll('.console-panel .entry-msg');
-        return [...entries]
-            .map(entry => entry.textContent?.trim())
-            .filter((text): text is string => !!text && text.startsWith('Counter:')).length;
+        return [...entries].map(entry => entry.textContent?.trim()).filter((text): text is string => !!text && text.startsWith('Counter:')).length;
     });
 }
 
@@ -193,9 +183,7 @@ async function waitForCounterLogsToIncrease(page: Page, baseline: number, timeou
     await page.waitForFunction(
         minCount => {
             const entries = document.querySelectorAll('.console-panel .entry-msg');
-            const count = [...entries]
-                .map(entry => entry.textContent?.trim())
-                .filter(text => !!text && text.startsWith('Counter:')).length;
+            const count = [...entries].map(entry => entry.textContent?.trim()).filter(text => !!text && text.startsWith('Counter:')).length;
             return count > minCount;
         },
         baseline,

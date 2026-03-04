@@ -13,14 +13,14 @@ paths:
         - admin
       operationId: getAdminListApps
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/AppResponse"
+                  $ref: '#/components/schemas/AppResponse'
     post:
       tags:
         - admin
@@ -29,15 +29,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateAppBody"
+              $ref: '#/components/schemas/CreateAppBody'
         required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AppResponse"
+                $ref: '#/components/schemas/AppResponse'
   /v1/admin/apps/{appKey}:
     patch:
       tags:
@@ -53,15 +53,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateAppBody"
+              $ref: '#/components/schemas/UpdateAppBody'
         required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AppResponse"
+                $ref: '#/components/schemas/AppResponse'
     delete:
       tags:
         - admin
@@ -73,8 +73,8 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -90,14 +90,14 @@ paths:
         - admin
       operationId: getAdminListUsers
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/UserResponse"
+                  $ref: '#/components/schemas/UserResponse'
   /v1/admin/users/{id}:
     patch:
       tags:
@@ -113,47 +113,47 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateUserBody"
+              $ref: '#/components/schemas/UpdateUserBody'
         required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: '#/components/schemas/UserResponse'
   /v1/auth/config:
     get:
       tags:
         - auth
       operationId: getAuthGetConfig
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthConfigResponse"
+                $ref: '#/components/schemas/AuthConfigResponse'
   /v1/auth/me:
     get:
       tags:
         - auth
       operationId: getAuthGetMe
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MeResponse"
+                $ref: '#/components/schemas/MeResponse'
   /v1/auth/ws-token:
     post:
       tags:
         - auth
       operationId: postAuthGetWsToken
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -183,11 +183,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/IngestDataPayload"
+              $ref: '#/components/schemas/IngestDataPayload'
         required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -220,8 +220,8 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema: {}
@@ -272,14 +272,14 @@ paths:
           schema:
             type: number
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/ISession"
+                  $ref: '#/components/schemas/ISession'
   /v1/sessions/autocomplete/appKeys:
     get:
       tags:
@@ -291,8 +291,8 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -310,8 +310,8 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -329,8 +329,8 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -358,12 +358,12 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ISession"
+                $ref: '#/components/schemas/ISession'
     delete:
       tags:
         - session
@@ -375,8 +375,8 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -408,14 +408,14 @@ paths:
           schema:
             type: number
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/IRrwebEvent"
+                  $ref: '#/components/schemas/IRrwebEvent'
   /v1/sessions/{id}/logs:
     get:
       tags:
@@ -432,14 +432,14 @@ paths:
           schema:
             type: number
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/ILogEntry"
+                  $ref: '#/components/schemas/ILogEntry'
   /v1/sessions/{id}/chat:
     get:
       tags:
@@ -452,14 +452,14 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/IChatMessage"
+                  $ref: '#/components/schemas/IChatMessage'
   /v1/sessions/{id}/share:
     post:
       tags:
@@ -472,8 +472,8 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -500,8 +500,8 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -522,8 +522,8 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -551,12 +551,12 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/IShareSession"
+                $ref: '#/components/schemas/IShareSession'
   /v1/shared/{token}/events:
     get:
       tags:
@@ -577,8 +577,8 @@ paths:
           schema:
             type: number
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -600,8 +600,8 @@ paths:
           schema:
             type: number
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -619,8 +619,8 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -635,11 +635,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateApiKeyBody"
+              $ref: '#/components/schemas/CreateApiKeyBody'
         required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -680,14 +680,14 @@ paths:
         - apiKey
       operationId: getApiKeyListKeys
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/ApiKeyResponse"
+                  $ref: '#/components/schemas/ApiKeyResponse'
   /v1/api-keys/{id}:
     get:
       tags:
@@ -700,12 +700,12 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiKeyResponse"
+                $ref: '#/components/schemas/ApiKeyResponse'
     patch:
       tags:
         - apiKey
@@ -720,15 +720,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateApiKeyBody"
+              $ref: '#/components/schemas/UpdateApiKeyBody'
         required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiKeyResponse"
+                $ref: '#/components/schemas/ApiKeyResponse'
     delete:
       tags:
         - apiKey
@@ -740,8 +740,8 @@ paths:
             type: string
           required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -760,11 +760,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SignTokenBody"
+              $ref: '#/components/schemas/SignTokenBody'
         required: true
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -780,8 +780,8 @@ paths:
         - healthcheck
       operationId: getHealthcheckIndex
       responses:
-        "200":
-          description: ""
+        '200':
+          description: ''
           content:
             application/json:
               schema:
@@ -903,11 +903,11 @@ components:
         oidc:
           nullable: true
           allOf:
-            - $ref: "#/components/schemas/OidcConfig"
+            - $ref: '#/components/schemas/OidcConfig'
         grafana:
           nullable: true
           allOf:
-            - $ref: "#/components/schemas/GrafanaConfig"
+            - $ref: '#/components/schemas/GrafanaConfig'
       required:
         - oidc
         - grafana
@@ -986,11 +986,11 @@ components:
         events:
           type: array
           items:
-            $ref: "#/components/schemas/RrwebEvent"
+            $ref: '#/components/schemas/RrwebEvent'
         logs:
           type: array
           items:
-            $ref: "#/components/schemas/IngestLogEntry"
+            $ref: '#/components/schemas/IngestLogEntry'
       required:
         - identity
         - meta

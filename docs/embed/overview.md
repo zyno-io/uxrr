@@ -201,12 +201,7 @@ token = sign_embed_token(
 ### Specific Session Playback
 
 ```html
-<iframe
-    src="https://uxrr.yourcompany.com/embed/SESSION_ID?token=EMBED_TOKEN"
-    width="100%"
-    height="600"
-    frameborder="0"
-></iframe>
+<iframe src="https://uxrr.yourcompany.com/embed/SESSION_ID?token=EMBED_TOKEN" width="100%" height="600" frameborder="0"></iframe>
 ```
 
 ### Session-Specific Tokens

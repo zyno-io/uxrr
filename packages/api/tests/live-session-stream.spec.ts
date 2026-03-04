@@ -58,9 +58,7 @@ describe('LiveSessionStream', () => {
             stream.onAgentConnected('sess-1', 'a1', { email: 'agent@test.com' });
             stream.onClientConnected('sess-1', 'app-1');
 
-            const calls = broadcastToAgents.mock.calls.filter(
-                c => (c.arguments[1] as LiveMessage).type === 'client_connected'
-            );
+            const calls = broadcastToAgents.mock.calls.filter(c => (c.arguments[1] as LiveMessage).type === 'client_connected');
             assert.ok(calls.length > 0, 'Should broadcast client_connected to agents');
         });
 
@@ -70,9 +68,7 @@ describe('LiveSessionStream', () => {
             stream.onClientConnected('sess-1', 'app-1');
             stream.onClientDisconnected('sess-1');
 
-            const calls = broadcastToAgents.mock.calls.filter(
-                c => (c.arguments[1] as LiveMessage).type === 'client_disconnected'
-            );
+            const calls = broadcastToAgents.mock.calls.filter(c => (c.arguments[1] as LiveMessage).type === 'client_disconnected');
             assert.equal(calls.length, 1);
         });
     });
@@ -124,9 +120,7 @@ describe('LiveSessionStream', () => {
             stream.onAgentConnected('sess-1', 'a1', { email: 'agent@test.com' });
             stream.onAgentDisconnected('sess-1', 'a1');
 
-            const calls = sendToClient.mock.calls.filter(
-                c => (c.arguments[1] as LiveMessage).type === 'agent_disconnected'
-            );
+            const calls = sendToClient.mock.calls.filter(c => (c.arguments[1] as LiveMessage).type === 'agent_disconnected');
             assert.equal(calls.length, 1);
         });
     });
@@ -137,9 +131,7 @@ describe('LiveSessionStream', () => {
             stream.onClientConnected('sess-1', 'app-1');
             stream.onAgentConnected('sess-1', 'a1', { email: 'agent@test.com' });
 
-            const snapshotRequests = sendToClient.mock.calls.filter(
-                c => (c.arguments[1] as LiveMessage).type === 'request_snapshot'
-            );
+            const snapshotRequests = sendToClient.mock.calls.filter(c => (c.arguments[1] as LiveMessage).type === 'request_snapshot');
             assert.equal(snapshotRequests.length, 1, 'Should request fresh snapshot from client');
         });
 
@@ -149,9 +141,7 @@ describe('LiveSessionStream', () => {
             stream.onAgentConnected('sess-1', 'a1', { email: 'agent@test.com' });
 
             // Agent should NOT receive events via sendToAgent (snapshot comes via broadcast)
-            const eventsCalls = sendToAgent.mock.calls.filter(
-                c => c.arguments[1] === 'a1' && (c.arguments[2] as LiveMessage).type === 'events'
-            );
+            const eventsCalls = sendToAgent.mock.calls.filter(c => c.arguments[1] === 'a1' && (c.arguments[2] as LiveMessage).type === 'events');
             assert.equal(eventsCalls.length, 0);
         });
 
@@ -169,9 +159,7 @@ describe('LiveSessionStream', () => {
                 ]
             });
 
-            const eventsCalls = broadcastToAgents.mock.calls.filter(
-                c => (c.arguments[1] as LiveMessage).type === 'events'
-            );
+            const eventsCalls = broadcastToAgents.mock.calls.filter(c => (c.arguments[1] as LiveMessage).type === 'events');
             assert.ok(eventsCalls.length >= 1, 'Fresh snapshot should be broadcast to all agents');
         });
     });
@@ -184,9 +172,7 @@ describe('LiveSessionStream', () => {
 
             stream.onAgentMessage('sess-1', 'a1', { type: 'highlight', x: 100, y: 200 });
 
-            const calls = sendToClient.mock.calls.filter(
-                c => (c.arguments[1] as LiveMessage).type === 'highlight'
-            );
+            const calls = sendToClient.mock.calls.filter(c => (c.arguments[1] as LiveMessage).type === 'highlight');
             assert.equal(calls.length, 1);
         });
 
@@ -198,9 +184,7 @@ describe('LiveSessionStream', () => {
 
             stream.onAgentMessage('sess-1', 'a2', { type: 'highlight', x: 100, y: 200 });
 
-            const calls = sendToClient.mock.calls.filter(
-                c => (c.arguments[1] as LiveMessage).type === 'highlight'
-            );
+            const calls = sendToClient.mock.calls.filter(c => (c.arguments[1] as LiveMessage).type === 'highlight');
             assert.equal(calls.length, 0);
         });
 
@@ -231,9 +215,7 @@ describe('LiveSessionStream', () => {
 
             stream.onAgentMessage('sess-1', 'a1', { type: 'chat', message: 'hello' });
 
-            const chatCalls = sendToClient.mock.calls.filter(
-                c => (c.arguments[1] as LiveMessage).type === 'chat'
-            );
+            const chatCalls = sendToClient.mock.calls.filter(c => (c.arguments[1] as LiveMessage).type === 'chat');
             assert.equal(chatCalls.length, 1);
             assert.equal((chatCalls[0].arguments[1] as Record<string, unknown>).from, 'Admin');
         });
@@ -247,9 +229,7 @@ describe('LiveSessionStream', () => {
 
             stream.onClientMessage('sess-1', { type: 'events', data: [{ type: 3, timestamp: 1000 }] });
 
-            const calls = broadcastToAgents.mock.calls.filter(
-                c => (c.arguments[1] as LiveMessage).type === 'events'
-            );
+            const calls = broadcastToAgents.mock.calls.filter(c => (c.arguments[1] as LiveMessage).type === 'events');
             assert.ok(calls.length >= 1);
         });
 
@@ -270,9 +250,7 @@ describe('LiveSessionStream', () => {
             const { stream, broadcastAgentList } = createStream();
             stream.onAgentConnected('sess-1', 'a1', { email: 'local@test.com' });
 
-            stream.onRemoteAgentsSync('sess-1', 'pod-2', [
-                { id: 'r1', email: 'remote@test.com', isController: false }
-            ]);
+            stream.onRemoteAgentsSync('sess-1', 'pod-2', [{ id: 'r1', email: 'remote@test.com', isController: false }]);
 
             // Should broadcast updated list that includes both local and remote
             const lastCall = broadcastAgentList.mock.calls[broadcastAgentList.mock.calls.length - 1];

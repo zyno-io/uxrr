@@ -21,9 +21,7 @@ export class OidcService {
             this.discoveryUrl = this.normalizeIssuer(config.OIDC_ISSUER_URL);
             this.issuer = config.OIDC_ISSUER ? config.OIDC_ISSUER : this.discoveryUrl;
             this.audience = config.OIDC_AUDIENCE ?? config.OIDC_CLIENT_ID;
-            this.logger.info(
-                `OIDC auth enabled — discovery: ${this.discoveryUrl}, issuer: ${this.issuer}, audience: ${this.audience}`
-            );
+            this.logger.info(`OIDC auth enabled — discovery: ${this.discoveryUrl}, issuer: ${this.issuer}, audience: ${this.audience}`);
         } else {
             this.logger.info('OIDC auth not configured; session routes are unprotected');
         }

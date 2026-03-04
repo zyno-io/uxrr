@@ -1,11 +1,11 @@
 {
-    "private": true,
     "name": "uxrr",
+    "version": "0.1.1",
+    "private": true,
     "license": "SEE LICENSE IN LICENSE",
     "workspaces": [
         "packages/*"
     ],
-    "packageManager": "yarn@4.12.0",
     "scripts": {
         "build": "yarn workspaces foreach -At run build",
         "build:client": "yarn workspace @zyno-io/uxrr-client build",
@@ -22,17 +22,17 @@
         "test:e2e:vrt": "scripts/test-e2e.sh vrt",
         "test:e2e:live": "scripts/test-e2e.sh live",
         "clean": "yarn workspaces foreach -A run clean",
-        "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && prettier --write ."
+        "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && oxfmt"
     },
     "devDependencies": {
         "lefthook": "^2.1.1",
+        "oxfmt": "^0.36.0",
         "oxlint": "^1.47.0",
-        "prettier": "^3.8.1",
         "typescript": "~5.9",
         "vitepress": "^1.6.4"
     },
     "resolutions": {
         "deepkit-openapi-core": "0.0.9"
     },
-    "version": "0.1.1"
+    "packageManager": "yarn@4.12.0"
 }

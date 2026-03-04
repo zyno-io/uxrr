@@ -14,13 +14,13 @@ All server configuration is via environment variables.
 
 ## S3 / Object Storage
 
-| Variable               | Default       | Description                                               |
-| ---------------------- | ------------- | --------------------------------------------------------- |
-| `S3_ENDPOINT`          | —             | S3-compatible endpoint URL                                |
-| `S3_REGION`            | `us-east-1`   | S3 region                                                 |
-| `S3_BUCKET`            | `uxrr-events` | Bucket name for event storage                             |
-| `S3_ACCESS_KEY_SECRET` | —             | Access key                                                |
-| `S3_SECRET_KEY_SECRET` | —             | Secret key                                                |
+| Variable               | Default       | Description                                                |
+| ---------------------- | ------------- | ---------------------------------------------------------- |
+| `S3_ENDPOINT`          | —             | S3-compatible endpoint URL                                 |
+| `S3_REGION`            | `us-east-1`   | S3 region                                                  |
+| `S3_BUCKET`            | `uxrr-events` | Bucket name for event storage                              |
+| `S3_ACCESS_KEY_SECRET` | —             | Access key                                                 |
+| `S3_SECRET_KEY_SECRET` | —             | Secret key                                                 |
 | `S3_FORCE_PATH_STYLE`  | `true`        | Use path-style addressing (required for MinIO, LocalStack) |
 
 ## OIDC Authentication
@@ -60,13 +60,13 @@ See [Authentication](./authentication) for setup instructions.
 
 ## Redis
 
-| Variable               | Default | Description                                       |
-| ---------------------- | ------- | ------------------------------------------------- |
-| `REDIS_HOST`           | —       | Redis host (enables horizontal scaling)           |
-| `REDIS_PORT`           | `6379`  | Redis port                                        |
-| `REDIS_SENTINEL_HOST`  | —       | Redis Sentinel host (alternative to `REDIS_HOST`) |
-| `REDIS_SENTINEL_PORT`  | —       | Redis Sentinel port                               |
-| `REDIS_SENTINEL_NAME`  | —       | Redis Sentinel master name                        |
+| Variable              | Default | Description                                       |
+| --------------------- | ------- | ------------------------------------------------- |
+| `REDIS_HOST`          | —       | Redis host (enables horizontal scaling)           |
+| `REDIS_PORT`          | `6379`  | Redis port                                        |
+| `REDIS_SENTINEL_HOST` | —       | Redis Sentinel host (alternative to `REDIS_HOST`) |
+| `REDIS_SENTINEL_PORT` | —       | Redis Sentinel port                               |
+| `REDIS_SENTINEL_NAME` | —       | Redis Sentinel master name                        |
 
 ## Encryption
 
@@ -76,14 +76,14 @@ See [Authentication](./authentication) for setup instructions.
 
 ## Application Settings
 
-| Variable                    | Default   | Description                                                      |
-| --------------------------- | --------- | ---------------------------------------------------------------- |
-| `UXRR_DEV_MODE`             | `false`   | Bypass OIDC authentication (development only)                    |
-| `UXRR_MAX_EVENT_BATCH_SIZE` | `500`     | Max events per ingest request                                    |
-| `UXRR_MAX_LOG_BATCH_SIZE`   | `200`     | Max logs per ingest request                                      |
-| `UXRR_INGEST_EVENT_FLUSH_DELAY_MS` | `30000` | Max time to buffer ingest events before writing an S3 chunk |
-| `UXRR_INGEST_EVENT_FLUSH_MAX_EVENTS` | `200` | Flush ingest event buffer when this many events are queued |
-| `UXRR_INGEST_EVENT_FLUSH_MAX_BYTES` | `262144` | Flush ingest event buffer when buffered JSON size reaches this many bytes |
-| `UXRR_MAX_EMBED_TOKEN_TTL`  | `2592000` | Max embed token lifetime in seconds (30 days)                    |
-| `UXRR_SHARE_SECRET`         | —         | Secret for generating share links (min 32 characters)            |
-| `DATA_RETENTION_DAYS`       | `30`      | Auto-delete sessions older than this (0 = keep forever)          |
+| Variable                             | Default   | Description                                                               |
+| ------------------------------------ | --------- | ------------------------------------------------------------------------- |
+| `UXRR_DEV_MODE`                      | `false`   | Bypass OIDC authentication (development only)                             |
+| `UXRR_MAX_EVENT_BATCH_SIZE`          | `500`     | Max events per ingest request                                             |
+| `UXRR_MAX_LOG_BATCH_SIZE`            | `200`     | Max logs per ingest request                                               |
+| `UXRR_INGEST_EVENT_FLUSH_DELAY_MS`   | `30000`   | Max time to buffer ingest events before writing an S3 chunk               |
+| `UXRR_INGEST_EVENT_FLUSH_MAX_EVENTS` | `200`     | Flush ingest event buffer when this many events are queued                |
+| `UXRR_INGEST_EVENT_FLUSH_MAX_BYTES`  | `262144`  | Flush ingest event buffer when buffered JSON size reaches this many bytes |
+| `UXRR_MAX_EMBED_TOKEN_TTL`           | `2592000` | Max embed token lifetime in seconds (30 days)                             |
+| `UXRR_SHARE_SECRET`                  | —         | Secret for generating share links (min 32 characters)                     |
+| `DATA_RETENTION_DAYS`                | `30`      | Auto-delete sessions older than this (0 = keep forever)                   |

@@ -2,7 +2,7 @@ import type { eventWithTime } from '@rrweb/types';
 
 export interface Segment {
     events: eventWithTime[];
-    offsetMs: number;   // time from recording start to this segment's first real event
+    offsetMs: number; // time from recording start to this segment's first real event
     durationMs: number; // last event timestamp − first event timestamp within this segment
 }
 
@@ -58,11 +58,7 @@ export function splitIntoSegments(events: eventWithTime[]): Segment[] {
  * duration. With padding, the user sees a continuous timeline and can seek
  * across segments using rrweb's built-in controller.
  */
-export function padSegmentEvents(
-    seg: Segment,
-    recordingStartTs: number,
-    recordingEndTs: number
-): eventWithTime[] {
+export function padSegmentEvents(seg: Segment, recordingStartTs: number, recordingEndTs: number): eventWithTime[] {
     const padded = [...seg.events];
     const segStart = seg.events[0]!.timestamp;
     const segEnd = seg.events[seg.events.length - 1]!.timestamp;

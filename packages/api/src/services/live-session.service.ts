@@ -43,20 +43,13 @@ export class LiveSessionService {
         this.boundRedisHandler = this.transport.createRedisHandler({
             onRemoteRelay: (sessionId, target, msg) => this.stream.onRemoteRelay(sessionId, target, msg),
             onRemoteAgentsSync: (sessionId, podId, agents) => this.stream.onRemoteAgentsSync(sessionId, podId, agents),
-            onRemoteControllerUpdate: (sessionId, agentId, podId, email) =>
-                this.stream.onRemoteControllerUpdate(sessionId, agentId, podId, email)
+            onRemoteControllerUpdate: (sessionId, agentId, podId, email) => this.stream.onRemoteControllerUpdate(sessionId, agentId, podId, email)
         });
     }
 
     // ── Public API ──────────────────────────────────────────────────────
 
-    async connectAgent(
-        sessionId: string,
-        ws: WebSocket,
-        agentEmail?: string,
-        agentName?: string,
-        agentUserId?: string
-    ): Promise<void> {
+    async connectAgent(sessionId: string, ws: WebSocket, agentEmail?: string, agentName?: string, agentUserId?: string): Promise<void> {
         const conn = this.getOrCreate(sessionId);
         const agentId = uuidv7();
         const email = agentEmail ?? 'agent';

@@ -93,17 +93,12 @@ class UXRR implements UxrrInstance {
 
         // Support (requires sessions)
         if (supportEnabled) {
-            this.supportConnection = new SupportConnection(
-                config.endpoint,
-                this.sessionId,
-                config.support?.renderUI !== false,
-                {
-                    onAgentConnected: config.support?.onAgentConnected,
-                    onAgentDisconnected: config.support?.onAgentDisconnected,
-                    onAnnotation: config.support?.onAnnotation,
-                    onChat: config.support?.onChat
-                }
-            );
+            this.supportConnection = new SupportConnection(config.endpoint, this.sessionId, config.support?.renderUI !== false, {
+                onAgentConnected: config.support?.onAgentConnected,
+                onAgentDisconnected: config.support?.onAgentDisconnected,
+                onAnnotation: config.support?.onAnnotation,
+                onChat: config.support?.onChat
+            });
             this.ingestBuffer.setSupportConnection(this.supportConnection);
             this.supportConnection.setOnLiveModeChange(liveEnabled => {
                 this.ingestBuffer!.setLiveMode(liveEnabled);
@@ -135,13 +130,7 @@ class UXRR implements UxrrInstance {
     private async initTracing(config: UxrrConfig): Promise<void> {
         const { createTracingProvider } = await import('./tracing/provider');
         if (!this.transport) return; // guard against stop() called before load
-        this.tracingProvider = await createTracingProvider(
-            this.transport,
-            this.identity,
-            this.sessionId,
-            config,
-            this.ingestBuffer
-        );
+        this.tracingProvider = await createTracingProvider(this.transport, this.identity, this.sessionId, config, this.ingestBuffer);
         this.tracer = this.tracingProvider.tracer;
         _activeTracer = this.tracer;
     }

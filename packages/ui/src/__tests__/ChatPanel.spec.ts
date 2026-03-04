@@ -64,10 +64,7 @@ describe('ChatPanel', () => {
         it('renders messages with sender labels', () => {
             const wrapper = mount(ChatPanel, {
                 props: {
-                    messages: [
-                        makeMsg({ from: 'user', message: 'hi from user' }),
-                        makeMsg({ from: 'admin@test.com', message: 'hi from agent' })
-                    ],
+                    messages: [makeMsg({ from: 'user', message: 'hi from user' }), makeMsg({ from: 'admin@test.com', message: 'hi from agent' })],
                     chatStarted: false,
                     chatActive: false,
                     clientConnected: false,
@@ -84,11 +81,7 @@ describe('ChatPanel', () => {
         it('renders chat separator', () => {
             const wrapper = mount(ChatPanel, {
                 props: {
-                    messages: [
-                        makeMsg(),
-                        makeMsg({ from: '__separator', message: '' }),
-                        makeMsg({ from: 'user', message: 'after restart' })
-                    ],
+                    messages: [makeMsg(), makeMsg({ from: '__separator', message: '' }), makeMsg({ from: 'user', message: 'after restart' })],
                     chatStarted: false,
                     chatActive: false,
                     clientConnected: false,

@@ -167,9 +167,7 @@ export class AdminController {
             try {
                 const url = new URL(trimmed);
                 if (url.origin !== trimmed) {
-                    throw new HttpBadRequestError(
-                        `Invalid origin "${trimmed}": must be scheme + host (e.g. https://example.com)`
-                    );
+                    throw new HttpBadRequestError(`Invalid origin "${trimmed}": must be scheme + host (e.g. https://example.com)`);
                 }
             } catch (err) {
                 if (err instanceof HttpBadRequestError) throw err;
@@ -190,14 +188,7 @@ export class AdminController {
         };
     }
 
-    private toUserResponse(user: {
-        id: string;
-        email: string;
-        name?: string;
-        isAdmin: boolean;
-        lastLoginAt: Date;
-        createdAt: Date;
-    }): UserResponse {
+    private toUserResponse(user: { id: string; email: string; name?: string; isAdmin: boolean; lastLoginAt: Date; createdAt: Date }): UserResponse {
         return {
             id: user.id,
             email: user.email,

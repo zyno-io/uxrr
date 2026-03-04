@@ -67,7 +67,8 @@ const {
     loggerScope: 'embed-session-detail',
     loadSession: () => SessionApi.getSessionGetSession({ path: { id: sessionId } }).then(r => dataFrom(r) as unknown as ISession),
     loadEvents: () => SessionApi.getSessionGetSessionEvents({ path: { id: sessionId } }).then(r => dataFrom(r)),
-    loadLogs: (since?: number) => SessionApi.getSessionGetSessionLogs({ path: { id: sessionId }, query: { since } }).then(r => dataFrom(r) as ILogEntry[]),
+    loadLogs: (since?: number) =>
+        SessionApi.getSessionGetSessionLogs({ path: { id: sessionId }, query: { since } }).then(r => dataFrom(r) as ILogEntry[]),
     loadChat: async () => {
         const c = await SessionApi.getSessionGetSessionChat({ path: { id: sessionId } });
         const messages = dataFrom(c) as IChatMessage[];
@@ -198,11 +199,7 @@ function goBack() {
             <template v-if="session">
                 <div class="detail-meta">
                     <span v-if="liveStatus === 'live'" class="live-badge">LIVE</span>
-                    <span
-                        v-else-if="liveStatus === 'waiting' || liveStatus === 'syncing'"
-                        class="live-badge live-badge--connecting"
-                        >CONNECTING</span
-                    >
+                    <span v-else-if="liveStatus === 'waiting' || liveStatus === 'syncing'" class="live-badge live-badge--connecting">CONNECTING</span>
                     <span class="meta-id">{{ session.id.slice(0, 8) }}</span>
                     <span class="meta-sep">/</span>
                     <span>{{ formatMeta(session) }}</span>
@@ -211,36 +208,19 @@ function goBack() {
                 </div>
                 <div class="detail-indicators">
                     <span v-if="liveStatus === 'waiting'" class="client-indicator client-indicator--off"
-                        >Waiting for client to connect...
-                        <button class="skip-live-link" @click="skipLive">Skip</button></span
+                        >Waiting for client to connect... <button class="skip-live-link" @click="skipLive">Skip</button></span
                     >
-                    <span v-else-if="liveStatus === 'syncing'" class="client-indicator client-indicator--off"
-                        >Syncing...</span
-                    >
-                    <span v-else-if="liveStatus === 'live' && clientFocused" class="client-indicator"
-                        >Client connected</span
-                    >
-                    <span
-                        v-else-if="liveStatus === 'live' && !clientFocused"
-                        class="client-indicator client-indicator--unfocused"
+                    <span v-else-if="liveStatus === 'syncing'" class="client-indicator client-indicator--off">Syncing...</span>
+                    <span v-else-if="liveStatus === 'live' && clientFocused" class="client-indicator">Client connected</span>
+                    <span v-else-if="liveStatus === 'live' && !clientFocused" class="client-indicator client-indicator--unfocused"
                         >Window hidden</span
                     >
-                    <span v-else-if="liveStatus === 'ended'" class="client-indicator client-indicator--off"
-                        >Session ended</span
-                    >
+                    <span v-else-if="liveStatus === 'ended'" class="client-indicator client-indicator--off">Session ended</span>
                     <div v-if="isInteractive && liveStatus === 'live' && hasControl" class="interaction-toolbar">
-                        <button
-                            :class="['tool-btn', { active: interactionMode === 'view' }]"
-                            @click="interactionMode = 'view'"
-                            title="View only"
-                        >
+                        <button :class="['tool-btn', { active: interactionMode === 'view' }]" @click="interactionMode = 'view'" title="View only">
                             V
                         </button>
-                        <button
-                            :class="['tool-btn', { active: interactionMode === 'pointer' }]"
-                            @click="interactionMode = 'pointer'"
-                            title="Cursor"
-                        >
+                        <button :class="['tool-btn', { active: interactionMode === 'pointer' }]" @click="interactionMode = 'pointer'" title="Cursor">
                             &#9654;
                         </button>
                         <button
@@ -250,19 +230,11 @@ function goBack() {
                         >
                             &#9673;
                         </button>
-                        <button
-                            :class="['tool-btn', { active: interactionMode === 'pen' }]"
-                            @click="interactionMode = 'pen'"
-                            title="Pen"
-                        >
+                        <button :class="['tool-btn', { active: interactionMode === 'pen' }]" @click="interactionMode = 'pen'" title="Pen">
                             &#9998;
                         </button>
                     </div>
-                    <button
-                        v-if="isInteractive && liveStatus === 'live' && !hasControl"
-                        class="take-control-btn"
-                        @click="takeControl"
-                    >
+                    <button v-if="isInteractive && liveStatus === 'live' && !hasControl" class="take-control-btn" @click="takeControl">
                         Take Control
                     </button>
                 </div>
@@ -271,12 +243,7 @@ function goBack() {
 
         <div v-if="loading" class="detail-loading">Loading session...</div>
         <div v-else-if="error" class="detail-error">{{ error }}</div>
-        <div
-            v-else
-            ref="contentRef"
-            :class="['detail-content', `layout-${layout}`]"
-            :style="isResizing ? { userSelect: 'none' } : undefined"
-        >
+        <div v-else ref="contentRef" :class="['detail-content', `layout-${layout}`]" :style="isResizing ? { userSelect: 'none' } : undefined">
             <div class="replay-pane">
                 <div v-if="liveStatus === 'waiting'" class="replay-status">
                     <div class="replay-status-content">
@@ -285,13 +252,7 @@ function goBack() {
                     </div>
                 </div>
                 <div v-else-if="liveStatus === 'syncing'" class="replay-status">Syncing...</div>
-                <ReplayPlayer
-                    ref="playerRef"
-                    :live-mode="isLive"
-                    @time-update="onTimeUpdate"
-                    @interact="onInteract"
-                    @interact-end="onInteractEnd"
-                />
+                <ReplayPlayer ref="playerRef" :live-mode="isLive" @time-update="onTimeUpdate" @interact="onInteract" @interact-end="onInteractEnd" />
                 <div v-if="playbackTime" class="playback-time-bar">
                     <span class="playback-time-label">Local</span>
                     <span class="playback-time-value">{{ formatLocal(playbackTime) }}</span>
@@ -301,30 +262,15 @@ function goBack() {
                 </div>
             </div>
             <div :class="['resize-handle', `resize-handle--${layout}`]" @mousedown="startResize" />
-            <div
-                class="side-pane"
-                :style="layout === 'right' ? { width: sidePaneSize + 'px' } : { height: sidePaneSize + 'px' }"
-            >
+            <div class="side-pane" :style="layout === 'right' ? { width: sidePaneSize + 'px' } : { height: sidePaneSize + 'px' }">
                 <div class="tab-bar">
-                    <button :class="['tab', { active: activeTab === 'console' }]" @click="activeTab = 'console'">
-                        Console
-                    </button>
-                    <button :class="['tab', { active: activeTab === 'network' }]" @click="activeTab = 'network'">
-                        Network
-                    </button>
-                    <button
-                        v-if="showChatTab"
-                        :class="['tab', { active: activeTab === 'chat' }]"
-                        @click="activeTab = 'chat'"
-                    >
+                    <button :class="['tab', { active: activeTab === 'console' }]" @click="activeTab = 'console'">Console</button>
+                    <button :class="['tab', { active: activeTab === 'network' }]" @click="activeTab = 'network'">Network</button>
+                    <button v-if="showChatTab" :class="['tab', { active: activeTab === 'chat' }]" @click="activeTab = 'chat'">
                         Chat
                         <span v-if="chatMessages.length > 0" class="tab-badge">{{ chatMessages.length }}</span>
                     </button>
-                    <button
-                        class="layout-toggle"
-                        @click="toggleLayout"
-                        :title="layout === 'right' ? 'Move panel to bottom' : 'Move panel to right'"
-                    >
+                    <button class="layout-toggle" @click="toggleLayout" :title="layout === 'right' ? 'Move panel to bottom' : 'Move panel to right'">
                         {{ layout === 'right' ? '&#11027;' : '&#11028;' }}
                     </button>
                 </div>

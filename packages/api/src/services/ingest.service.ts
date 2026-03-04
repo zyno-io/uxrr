@@ -129,10 +129,7 @@ export class IngestService {
 
         // maintain join table for multi-identity tracking
         if (payload.identity.userId) {
-            const exists = await this.db
-                .query(SessionUserIdEntity)
-                .filter({ sessionId, userId: payload.identity.userId })
-                .has();
+            const exists = await this.db.query(SessionUserIdEntity).filter({ sessionId, userId: payload.identity.userId }).has();
             if (!exists) {
                 const entry = new SessionUserIdEntity();
                 entry.sessionId = sessionId;
@@ -247,10 +244,7 @@ export class IngestService {
         buffer.events.push(...events);
         buffer.approxBytes += Buffer.byteLength(JSON.stringify(events), 'utf-8');
 
-        if (
-            buffer.events.length >= this.ingestEventFlushMaxEvents ||
-            buffer.approxBytes >= this.ingestEventFlushMaxBytes
-        ) {
+        if (buffer.events.length >= this.ingestEventFlushMaxEvents || buffer.approxBytes >= this.ingestEventFlushMaxBytes) {
             await this.flushEventsBuffer(sessionId, 'threshold');
             return;
         }
@@ -316,23 +310,20 @@ export class IngestService {
             throw err;
         } finally {
             const latest = this.eventBuffers.get(sessionId);
-            if (!latest) return;
-
-            latest.flushPromise = undefined;
-            if (latest.flushRequested) {
-                latest.flushRequested = false;
-                if (latest.events.length > 0) {
-                    this.flushEventsBuffer(sessionId, 'queued').catch(err => {
-                        this.logger.error(`Failed follow-up ingest event flush for session ${sessionId}`, err);
-                    });
+            if (latest) {
+                latest.flushPromise = undefined;
+                if (latest.flushRequested) {
+                    latest.flushRequested = false;
+                    if (latest.events.length > 0) {
+                        this.flushEventsBuffer(sessionId, 'queued').catch(err => {
+                            this.logger.error(`Failed follow-up ingest event flush for session ${sessionId}`, err);
+                        });
+                    }
+                } else if (latest.events.length === 0) {
+                    this.eventBuffers.delete(sessionId);
+                } else {
+                    this.ensureEventFlushTimer(sessionId, latest);
                 }
-                return;
-            }
-
-            if (latest.events.length === 0) {
-                this.eventBuffers.delete(sessionId);
-            } else {
-                this.ensureEventFlushTimer(sessionId, latest);
             }
         }
 

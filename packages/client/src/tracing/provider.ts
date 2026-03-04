@@ -12,11 +12,7 @@ export class TracingProvider {
     private networkLogger?: NetworkLogger;
     readonly tracer: Tracer;
 
-    constructor(
-        provider: WebTracerProvider,
-        tracer: Tracer,
-        networkLogger?: NetworkLogger
-    ) {
+    constructor(provider: WebTracerProvider, tracer: Tracer, networkLogger?: NetworkLogger) {
         this.provider = provider;
         this.tracer = tracer;
         this.networkLogger = networkLogger;
@@ -76,7 +72,13 @@ export async function createTracingProvider(
 
     const isDev = config.environment === 'development';
     const baseProcessor = new BatchSpanProcessor(exporter, isDev ? { scheduledDelayMillis: 2000 } : undefined);
-    const processor = new IdentitySpanProcessor(baseProcessor, identity, sessionId, config.tracing?.spanAttributes, config.tracing?.includeIdentityAttributes);
+    const processor = new IdentitySpanProcessor(
+        baseProcessor,
+        identity,
+        sessionId,
+        config.tracing?.spanAttributes,
+        config.tracing?.includeIdentityAttributes
+    );
 
     const provider = new WebTracerProvider({
         resource,

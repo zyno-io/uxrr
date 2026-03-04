@@ -61,7 +61,7 @@ export function useLivePlayerController(loggerScope: string): LivePlayerControll
     let player: PlayerHandle | undefined;
     let eventBuffer: unknown[] = [];
     let lastMetaEvent: unknown | undefined;
-    let hasMountedTimeline = false;
+    let _hasMountedTimeline = false;
     let mounting = false;
     let mountGeneration = 0;
 
@@ -101,18 +101,20 @@ export function useLivePlayerController(loggerScope: string): LivePlayerControll
         }
 
         const baselineMeta = metaEvent ?? lastMetaEvent;
-        const normalizedMeta = baselineMeta && fullSnapshotTs
-            ? { ...(baselineMeta as Record<string, unknown>), timestamp: Math.min(
-                typeof (baselineMeta as { timestamp?: unknown }).timestamp === 'number'
-                    ? (baselineMeta as { timestamp: number }).timestamp
-                    : fullSnapshotTs - 1,
-                fullSnapshotTs - 1
-            ) }
-            : baselineMeta;
+        const normalizedMeta =
+            baselineMeta && fullSnapshotTs
+                ? {
+                      ...(baselineMeta as Record<string, unknown>),
+                      timestamp: Math.min(
+                          typeof (baselineMeta as { timestamp?: unknown }).timestamp === 'number'
+                              ? (baselineMeta as { timestamp: number }).timestamp
+                              : fullSnapshotTs - 1,
+                          fullSnapshotTs - 1
+                      )
+                  }
+                : baselineMeta;
 
-        const mountEvents = normalizedMeta
-            ? [normalizedMeta, ...events.slice(snapshotIndex)]
-            : events.slice(snapshotIndex);
+        const mountEvents = normalizedMeta ? [normalizedMeta, ...events.slice(snapshotIndex)] : events.slice(snapshotIndex);
 
         return { mountEvents, fullSnapshotIndex: snapshotIndex };
     }
@@ -133,7 +135,7 @@ export function useLivePlayerController(loggerScope: string): LivePlayerControll
         // Clear consumed events; events arriving during the async mount will
         // be re-buffered (ready is still false) and drained after mount completes.
         eventBuffer = [];
-        hasMountedTimeline = true;
+        _hasMountedTimeline = true;
 
         player.mount(payload.mountEvents).then(() => {
             if (gen !== mountGeneration) return; // superseded
@@ -220,7 +222,7 @@ export function useLivePlayerController(loggerScope: string): LivePlayerControll
         if (isReconnect) {
             log.log('client reconnected — entering syncing state');
             ready.value = false;
-            hasMountedTimeline = false;
+            _hasMountedTimeline = false;
             state.value = 'reconnecting';
             eventBuffer = [];
 
@@ -251,7 +253,7 @@ export function useLivePlayerController(loggerScope: string): LivePlayerControll
         ready.value = false;
         clientConnected.value = false;
         clientEverConnected.value = false;
-        hasMountedTimeline = false;
+        _hasMountedTimeline = false;
         mounting = false;
         eventBuffer = [];
         lastMetaEvent = undefined;

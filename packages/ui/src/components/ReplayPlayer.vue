@@ -2,12 +2,7 @@
 import { ref, onBeforeUnmount } from 'vue';
 import type { eventWithTime } from '@rrweb/types';
 import { createLogger } from '@/logger';
-import {
-    splitIntoSegments,
-    padSegmentEvents,
-    filterValidEvents,
-    findSegmentForTime
-} from './replay-segments';
+import { splitIntoSegments, padSegmentEvents, filterValidEvents, findSegmentForTime } from './replay-segments';
 import type { Segment } from './replay-segments';
 
 const log = createLogger('player');
@@ -26,13 +21,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     timeUpdate: [timeMs: number];
-    interact: [
-        type: 'click' | 'mousedown' | 'mousemove' | 'mouseup',
-        viewportX: number,
-        viewportY: number,
-        localX: number,
-        localY: number
-    ];
+    interact: [type: 'click' | 'mousedown' | 'mousemove' | 'mouseup', viewportX: number, viewportY: number, localX: number, localY: number];
     interactEnd: [];
 }>();
 
@@ -176,10 +165,7 @@ function createPlayer(events: eventWithTime[], isLive: boolean, autoPlay: boolea
                     transitionToSegment(nextIdx);
                 }
             } else if (seg.offsetMs > 0 && currentTime < seg.offsetMs - 200) {
-                const targetIdx = findSegmentForTime(
-                    segments.slice(0, currentSegmentIndex),
-                    currentTime
-                );
+                const targetIdx = findSegmentForTime(segments.slice(0, currentSegmentIndex), currentTime);
                 transitionToSegment(targetIdx, currentTime);
             }
         }
