@@ -1,3 +1,4 @@
+import { HttpNotFoundError } from '@deepkit/http';
 import { ScopedLogger } from '@deepkit/logger';
 import type { JWTPayload } from 'jose';
 
@@ -87,7 +88,8 @@ export class UserService {
     }
 
     async setAdmin(userId: string, isAdmin: boolean): Promise<UserEntity> {
-        const user = await this.db.query(UserEntity).filter({ id: userId }).findOne();
+        const user = await this.db.query(UserEntity).filter({ id: userId }).findOneOrUndefined();
+        if (!user) throw new HttpNotFoundError(`User ${userId} not found`);
         user.isAdmin = isAdmin;
         user.updatedAt = new Date();
         await this.db.persist(user);

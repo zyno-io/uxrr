@@ -1,4 +1,4 @@
-import { http, HttpBody, HttpRequest, HttpAccessDeniedError, HttpBadRequestError } from '@deepkit/http';
+import { http, HttpBody, HttpRequest, HttpAccessDeniedError, HttpBadRequestError, HttpNotFoundError } from '@deepkit/http';
 import { HttpUserError } from '@zyno-io/dk-server-foundation';
 import { ScopedLogger } from '@deepkit/logger';
 
@@ -95,10 +95,12 @@ export class AdminController {
     @http.PATCH('apps/:appKey')
     @http.middleware(OidcAuthMiddleware)
     async updateApp(appKey: string, body: HttpBody<UpdateAppBody>): Promise<AppResponse> {
+        appKey = decodeURIComponent(appKey);
         if (body.name !== undefined) this.validateAppName(body.name);
         if (body.origins !== undefined) this.validateOrigins(body.origins);
 
-        const app = await this.db.query(AppEntity).filter({ appKey }).findOne();
+        const app = await this.db.query(AppEntity).filter({ appKey }).findOneOrUndefined();
+        if (!app) throw new HttpNotFoundError(`App "${appKey}" not found`);
         if (body.name !== undefined) app.name = body.name.trim();
         if (body.origins !== undefined) app.origins = body.origins.map(o => o.trim());
         if (body.isActive !== undefined) app.isActive = body.isActive;
@@ -112,7 +114,9 @@ export class AdminController {
     @http.DELETE('apps/:appKey')
     @http.middleware(OidcAuthMiddleware)
     async deactivateApp(appKey: string): Promise<{ ok: boolean }> {
-        const app = await this.db.query(AppEntity).filter({ appKey }).findOne();
+        appKey = decodeURIComponent(appKey);
+        const app = await this.db.query(AppEntity).filter({ appKey }).findOneOrUndefined();
+        if (!app) throw new HttpNotFoundError(`App "${appKey}" not found`);
         app.isActive = false;
         app.updatedAt = new Date();
         await this.db.persist(app);
@@ -139,7 +143,8 @@ export class AdminController {
         // Prevent last-admin lockout
         if (!body.isAdmin) {
             const adminCount = await this.db.query(UserEntity).filter({ isAdmin: true }).count();
-            const target = await this.db.query(UserEntity).filter({ id }).findOne();
+            const target = await this.db.query(UserEntity).filter({ id }).findOneOrUndefined();
+            if (!target) throw new HttpNotFoundError(`User ${id} not found`);
             if (target.isAdmin && adminCount <= 1) {
                 throw new HttpBadRequestError('Cannot demote the last admin');
             }
