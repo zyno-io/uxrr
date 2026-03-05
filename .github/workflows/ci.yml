@@ -283,20 +283,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Extract release notes from CHANGELOG.md
-        id: notes
         run: |
           tag="${GITHUB_REF_NAME}"
           if ! grep -q "^## ${tag}$" CHANGELOG.md; then
             echo "::error::CHANGELOG.md has no entry for ${tag}"
             exit 1
           fi
-          # Extract the section for the current tag between its heading and the next ## heading
-          notes=$(awk "/^## ${tag}$/,/^## /{if(/^## / && !/^## ${tag}$/) exit; print}" CHANGELOG.md | tail -n +2)
-          {
-            echo "notes<<NOTES_EOF"
-            echo "$notes"
-            echo "NOTES_EOF"
-          } >> "$GITHUB_OUTPUT"
+          awk 'BEGIN{p=0} /^## '"${tag}"'$/{p=1; next} /^## /{if(p) exit} p' CHANGELOG.md > /tmp/release-notes.md
 
       - name: Create GitHub release
         env:
@@ -304,4 +297,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
-            --notes "${{ steps.notes.outputs.notes }}"
+            --notes-file /tmp/release-notes.md
