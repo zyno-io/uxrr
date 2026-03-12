@@ -18,7 +18,7 @@ export class SessionEntity extends BaseEntity {
     eventChunkCount: number = 0;
     eventBytesStored: number = 0;
     hasChatMessages: boolean = false;
-    previousSessionId?: string & Index;
+    previousSessionId?: UUID & Index;
     createdAt!: Date;
     updatedAt!: Date;
 }
