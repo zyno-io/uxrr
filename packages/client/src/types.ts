@@ -14,6 +14,8 @@ export interface UxrrConfig {
     version?: string;
     environment?: string;
 
+    idleTimeout?: number; // ms of inactivity before resetting to a new session; default 1800000 (30 min); 0 to disable
+
     recording?: {
         privacy?: {
             maskInputs?: boolean;

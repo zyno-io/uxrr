@@ -7,10 +7,14 @@ export class IdentitySpanProcessor implements SpanProcessor {
     constructor(
         private readonly delegate: SpanProcessor,
         private readonly identity: IdentityManager,
-        private readonly sessionId: string,
+        private sessionId: string,
         private readonly customAttributes?: () => Record<string, string>,
         private readonly includeIdentityAttributes = true
     ) {}
+
+    updateSessionId(sessionId: string): void {
+        this.sessionId = sessionId;
+    }
 
     onStart(span: Span, parentContext: Context): void {
         if (this.includeIdentityAttributes) {

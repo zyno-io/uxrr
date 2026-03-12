@@ -34,6 +34,7 @@ export interface IngestDataPayload {
     identity: { deviceId?: string; userId?: string; userName?: string; userEmail?: string };
     meta: { version?: string; environment?: string; userAgent?: string };
     launchTs: number;
+    previousSessionId?: string;
     events?: RrwebEvent[];
     logs?: IngestLogEntry[];
 }
@@ -118,6 +119,7 @@ export class IngestService {
             newSession.environment = payload.meta.environment;
             newSession.userAgent = payload.meta.userAgent;
             newSession.ipAddress = ipAddress;
+            newSession.previousSessionId = payload.previousSessionId;
             newSession.startedAt = now;
             newSession.lastActivityAt = now;
             newSession.eventChunkCount = 0;

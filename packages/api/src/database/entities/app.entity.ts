@@ -9,6 +9,7 @@ export class AppEntity extends BaseEntity {
     origins: string[] = [];
     apiKey?: string & Unique;
     isActive: boolean = true;
+    maxIdleTimeout?: number;
     createdAt!: Date;
     updatedAt!: Date;
 }

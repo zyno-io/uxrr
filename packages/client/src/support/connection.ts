@@ -27,10 +27,14 @@ export class SupportConnection {
 
     constructor(
         private readonly endpoint: string,
-        private readonly sessionId: string,
+        private sessionId: string,
         private readonly renderUI: boolean,
         private readonly callbacks: SupportCallbacks
     ) {}
+
+    updateSessionId(sessionId: string): void {
+        this.sessionId = sessionId;
+    }
 
     get isConnected(): boolean {
         return this.ws?.readyState === WebSocket.OPEN;

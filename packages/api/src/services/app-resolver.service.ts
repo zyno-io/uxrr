@@ -10,6 +10,7 @@ const CACHE_TTL_MS = 60_000; // 1 minute
 export interface ResolvedApp {
     uuid: string;
     appKey: string;
+    maxIdleTimeout?: number;
 }
 
 export class AppResolverService {
@@ -77,7 +78,7 @@ export class AppResolverService {
             const newUuidToAppKey = new Map<string, string>();
 
             for (const app of apps) {
-                const resolved: ResolvedApp = { uuid: app.id, appKey: app.appKey };
+                const resolved: ResolvedApp = { uuid: app.id, appKey: app.appKey, maxIdleTimeout: app.maxIdleTimeout };
                 newAppKeyToUuid.set(app.appKey, app.id);
                 newUuidToAppKey.set(app.id, app.appKey);
 

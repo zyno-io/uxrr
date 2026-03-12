@@ -424,4 +424,294 @@ describe('IngestBuffer', () => {
 
         expect(conn.upgrade).toHaveBeenCalledOnce();
     });
+
+    describe('HTTP 413 handling', () => {
+        it('splits events and logs into separate requests on 413', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            // First call: combined payload → 413
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 });
+            // Second call: events-only → success
+            postJSONFn.mockResolvedValueOnce({ ok: true });
+            // Third call: logs-only → success
+            postJSONFn.mockResolvedValueOnce({ ok: true });
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+
+            buffer.pushEvent(makeEvent());
+            buffer.pushLog(makeLog());
+            buffer.flush();
+
+            await vi.advanceTimersByTimeAsync(0);
+            // Let the split async function run
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(postJSONFn).toHaveBeenCalledTimes(3);
+            // Second call should have events but not logs
+            const eventsPayload = postJSONFn.mock.calls[1][1] as Record<string, unknown>;
+            expect(eventsPayload.events).toBeDefined();
+            expect(eventsPayload.logs).toBeUndefined();
+            // Third call should have logs but not events
+            const logsPayload = postJSONFn.mock.calls[2][1] as Record<string, unknown>;
+            expect(logsPayload.logs).toBeDefined();
+            expect(logsPayload.events).toBeUndefined();
+        });
+
+        it('drops events and sets needsFullSnapshot when events-only also returns 413', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // combined
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // events-only
+            postJSONFn.mockResolvedValueOnce({ ok: true }); // logs-only
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+            const snapshotCb = vi.fn();
+            buffer.onNeedFullSnapshot = snapshotCb;
+
+            buffer.pushEvent(makeEvent());
+            buffer.pushLog(makeLog());
+            buffer.flush();
+
+            await vi.advanceTimersByTimeAsync(0);
+            await vi.advanceTimersByTimeAsync(0);
+
+            // Events dropped, logs succeeded
+            expect(postJSONFn).toHaveBeenCalledTimes(3);
+
+            // Trigger a success flush to fire the snapshot callback
+            postJSONFn.mockResolvedValueOnce({ ok: true });
+            buffer.pushEvent(makeEvent());
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+            expect(snapshotCb).toHaveBeenCalled();
+        });
+
+        it('drops logs when logs-only also returns 413', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // combined
+            postJSONFn.mockResolvedValueOnce({ ok: true }); // events-only
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // logs-only
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+
+            buffer.pushLog(makeLog());
+            buffer.pushEvent(makeEvent());
+            buffer.flush();
+
+            await vi.advanceTimersByTimeAsync(0);
+            await vi.advanceTimersByTimeAsync(0);
+
+            // Should not have re-queued anything — next flush should be empty
+            buffer.flush();
+            // The third call was for logs-only 413, fourth call should not happen
+            expect(postJSONFn).toHaveBeenCalledTimes(3);
+        });
+    });
+
+    describe('HTTP 410 handling (session expired)', () => {
+        it('fires onSessionExpired and drops data on 410', async () => {
+            const transport = makeTransport({ ok: false, status: 410 });
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+            const expiredCb = vi.fn();
+            buffer.onSessionExpired = expiredCb;
+
+            buffer.pushEvent(makeEvent());
+            buffer.pushLog(makeLog());
+            buffer.flush();
+
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(expiredCb).toHaveBeenCalledOnce();
+            // Data should NOT be re-queued
+            buffer.flush();
+            expect(transport.postJSON).toHaveBeenCalledOnce(); // only the original call
+        });
+
+        it('fires onSessionExpired on 410 during split retry (events)', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // combined → split
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 410 }); // events-only → expired
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+            const expiredCb = vi.fn();
+            buffer.onSessionExpired = expiredCb;
+
+            buffer.pushEvent(makeEvent());
+            buffer.pushLog(makeLog());
+            buffer.flush();
+
+            await vi.advanceTimersByTimeAsync(0);
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(expiredCb).toHaveBeenCalledOnce();
+            // Should NOT have attempted logs (early return after 410)
+            expect(postJSONFn).toHaveBeenCalledTimes(2);
+        });
+
+        it('fires onSessionExpired on 410 during split retry (logs)', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // combined → split
+            postJSONFn.mockResolvedValueOnce({ ok: true }); // events-only → ok
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 410 }); // logs-only → expired
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+            const expiredCb = vi.fn();
+            buffer.onSessionExpired = expiredCb;
+
+            buffer.pushEvent(makeEvent());
+            buffer.pushLog(makeLog());
+            buffer.flush();
+
+            await vi.advanceTimersByTimeAsync(0);
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(expiredCb).toHaveBeenCalledOnce();
+        });
+    });
+
+    describe('session generation (prevents stale re-queuing)', () => {
+        it('does not re-queue events after session rotation on failure', async () => {
+            const transport = makeTransport({ ok: false, status: 500 });
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+
+            buffer.pushEvent(makeEvent(1));
+            buffer.flush();
+
+            // Rotate session before the promise resolves
+            buffer.resetSession(2000, 'old-session-id');
+
+            await vi.advanceTimersByTimeAsync(0);
+
+            // Events should NOT be re-queued (generation mismatch)
+            // Push a new event and flush — should only see the new event
+            (transport.postJSON as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true });
+            buffer.pushEvent(makeEvent(2));
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+
+            const lastPayload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.lastCall![1] as Record<string, unknown>;
+            const events = lastPayload.events as eventWithTime[];
+            expect(events).toHaveLength(1);
+            expect(events[0].timestamp).toBe(2);
+        });
+
+        it('does not re-queue logs after session rotation on failure', async () => {
+            const transport = makeTransport({ ok: false, status: 500 });
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+
+            buffer.pushLog(makeLog(1));
+            buffer.flush();
+
+            // Rotate session before the promise resolves
+            buffer.resetSession(2000, 'old-session-id');
+
+            await vi.advanceTimersByTimeAsync(0);
+
+            // Logs should NOT be re-queued (generation mismatch)
+            (transport.postJSON as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true });
+            buffer.pushLog(makeLog(2));
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+
+            const lastPayload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.lastCall![1] as Record<string, unknown>;
+            const logs = lastPayload.logs as LogEntry[];
+            expect(logs).toHaveLength(1);
+            expect(logs[0].t).toBe(2);
+        });
+
+        it('does not re-queue split retry data after session rotation', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // combined → split
+            // events-only fails with generic error
+            postJSONFn.mockImplementationOnce(async () => {
+                // Simulate session rotation happening during the split
+                buffer.resetSession(2000, 'old-session-id');
+                return { ok: false, status: 500 };
+            });
+            postJSONFn.mockResolvedValueOnce({ ok: true }); // logs-only
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+
+            buffer.pushEvent(makeEvent(1));
+            buffer.pushLog(makeLog(1));
+            buffer.flush();
+
+            await vi.advanceTimersByTimeAsync(0);
+            await vi.advanceTimersByTimeAsync(0);
+
+            // Events should NOT have been re-queued (generation changed)
+            postJSONFn.mockResolvedValue({ ok: true });
+            buffer.pushEvent(makeEvent(2));
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+
+            const lastPayload = postJSONFn.mock.lastCall![1] as Record<string, unknown>;
+            const events = lastPayload.events as eventWithTime[];
+            expect(events).toHaveLength(1);
+            expect(events[0].timestamp).toBe(2);
+        });
+
+        it('resetSession resets consecutiveFailures counter', async () => {
+            const transport = makeTransport({ ok: false });
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+            const snapshotCb = vi.fn();
+            buffer.onNeedFullSnapshot = snapshotCb;
+
+            // 2 consecutive failures
+            buffer.pushEvent(makeEvent());
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+
+            // Reset session — counter should go back to 0
+            buffer.resetSession(2000, 'old-id');
+
+            // Next failure is only the 1st after reset, so events should be re-queued, not dropped
+            buffer.pushEvent(makeEvent(99));
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+
+            // Still on 2nd failure — events should still be in queue
+            buffer.flush();
+            expect(transport.postJSON).toHaveBeenCalledTimes(5); // original 2 + 3 after reset
+        });
+
+        it('resetSession updates launchTs and previousSessionId in payload', async () => {
+            const transport = makeTransport();
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+
+            buffer.resetSession(9999, 'prev-session-123');
+            buffer.pushEvent(makeEvent());
+            buffer.flush();
+
+            await vi.advanceTimersByTimeAsync(0);
+
+            const payload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.lastCall![1] as Record<string, unknown>;
+            expect(payload.launchTs).toBe(9999);
+            expect(payload.previousSessionId).toBe('prev-session-123');
+        });
+    });
+
+    it('successful flush with ws flag triggers connection upgrade', async () => {
+        const transport = makeTransport({ ok: true, ws: true });
+        const conn = makeSupportConnection(false); // not yet connected
+        const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+        buffer.setSupportConnection(conn);
+
+        buffer.pushEvent(makeEvent());
+        buffer.flush();
+
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(conn.upgrade).toHaveBeenCalledOnce();
+    });
 });

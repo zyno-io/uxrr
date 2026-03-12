@@ -6,16 +6,23 @@ import type { IngestBuffer } from '../transport/ingest-buffer';
 import type { HttpTransport } from '../transport/http';
 import type { UxrrConfig } from '../types';
 import type { NetworkLogger } from './network-logger';
+import type { IdentitySpanProcessor } from './span-processor';
 
 export class TracingProvider {
     private provider: WebTracerProvider;
     private networkLogger?: NetworkLogger;
+    private processor: IdentitySpanProcessor;
     readonly tracer: Tracer;
 
-    constructor(provider: WebTracerProvider, tracer: Tracer, networkLogger?: NetworkLogger) {
+    constructor(provider: WebTracerProvider, tracer: Tracer, processor: IdentitySpanProcessor, networkLogger?: NetworkLogger) {
         this.provider = provider;
         this.tracer = tracer;
+        this.processor = processor;
         this.networkLogger = networkLogger;
+    }
+
+    updateSessionId(sessionId: string): void {
+        this.processor.updateSessionId(sessionId);
     }
 
     async shutdown(): Promise<void> {
@@ -115,5 +122,5 @@ export async function createTracingProvider(
 
     const tracer = provider.getTracer('uxrr');
 
-    return new TracingProvider(provider, tracer, networkLogger);
+    return new TracingProvider(provider, tracer, processor, networkLogger);
 }

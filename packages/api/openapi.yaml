@@ -201,6 +201,11 @@ paths:
                     type: boolean
                     enum:
                       - true
+                  config:
+                    type: object
+                    properties:
+                      maxIdleTimeout:
+                        type: number
                 required:
                   - ok
   /v1/ng/{appKey}/{sessionId}/t:
@@ -806,6 +811,8 @@ components:
           type: array
           items:
             type: string
+        maxIdleTimeout:
+          type: number
         isActive:
           type: boolean
         createdAt:
@@ -831,6 +838,8 @@ components:
           type: array
           items:
             type: string
+        maxIdleTimeout:
+          type: number
       required:
         - appKey
         - name
@@ -844,6 +853,9 @@ components:
           type: array
           items:
             type: string
+        maxIdleTimeout:
+          type: number
+          nullable: true
         isActive:
           type: boolean
     UserResponse:
@@ -983,6 +995,8 @@ components:
               type: string
         launchTs:
           type: number
+        previousSessionId:
+          type: string
         events:
           type: array
           items:
@@ -1051,6 +1065,8 @@ components:
           type: number
         hasChatMessages:
           type: boolean
+        previousSessionId:
+          type: string
         createdAt:
           type: string
         updatedAt:
@@ -1162,6 +1178,8 @@ components:
           type: number
         hasChatMessages:
           type: boolean
+        previousSessionId:
+          type: string
         createdAt:
           type: string
         updatedAt:

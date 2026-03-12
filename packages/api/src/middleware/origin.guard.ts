@@ -8,6 +8,8 @@ import { AppResolverService, ResolvedApp } from '../services/app-resolver.servic
 export const APP_KEY_KEY = Symbol('appKey');
 /** Resolved app UUID (database PK), attached to request by the guard */
 export const APP_UUID_KEY = Symbol('appUuid');
+/** Max idle timeout (ms) for the resolved app, attached to request by the guard */
+export const APP_MAX_IDLE_TIMEOUT_KEY = Symbol('appMaxIdleTimeout');
 
 export function getAppKey(request: HttpRequest): string {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,6 +19,11 @@ export function getAppKey(request: HttpRequest): string {
 export function getAppUuid(request: HttpRequest): string {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (request as any)[APP_UUID_KEY];
+}
+
+export function getAppMaxIdleTimeout(request: HttpRequest): number | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (request as any)[APP_MAX_IDLE_TIMEOUT_KEY];
 }
 
 export class AppGuard {
@@ -56,5 +63,7 @@ export class AppGuard {
         (event.request as any)[APP_KEY_KEY] = resolved.appKey;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (event.request as any)[APP_UUID_KEY] = resolved.uuid;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (event.request as any)[APP_MAX_IDLE_TIMEOUT_KEY] = resolved.maxIdleTimeout;
     }
 }

@@ -15,6 +15,7 @@ const modalError = ref<string | null>(null);
 const formId = ref('');
 const formName = ref(props.app?.name ?? '');
 const formOrigins = ref(props.app?.origins.join(', ') ?? '');
+const formMaxIdleMinutes = ref(props.app?.maxIdleTimeout ? String(props.app.maxIdleTimeout / 60000) : '');
 
 async function submit() {
     modalError.value = null;
@@ -25,19 +26,23 @@ async function submit() {
             .map(s => s.trim())
             .filter(Boolean);
 
+        const maxIdleTimeout = formMaxIdleMinutes.value.trim()
+            ? Math.round(parseFloat(formMaxIdleMinutes.value) * 60000)
+            : undefined;
+
         let result: AppResponse;
         if (props.app) {
             result = dataFrom(
                 await AdminApi.patchAdminUpdateApp({
                     path: { appKey: props.app.appKey },
-                    body: { name: formName.value, origins }
+                    body: { name: formName.value, origins, maxIdleTimeout: maxIdleTimeout ?? null }
                 })
             ) as unknown as AppResponse;
         } else {
             const name = formName.value || formId.value;
             result = dataFrom(
                 await AdminApi.postAdminCreateApp({
-                    body: { appKey: formId.value, name, origins }
+                    body: { appKey: formId.value, name, origins, maxIdleTimeout }
                 })
             ) as unknown as AppResponse;
         }
@@ -69,6 +74,11 @@ async function submit() {
             <label>
                 Origins (comma-separated)
                 <input v-model="formOrigins" type="text" placeholder="https://example.com" />
+            </label>
+            <label>
+                Max Idle Timeout (minutes)
+                <input v-model="formMaxIdleMinutes" type="number" min="0" step="1" placeholder="30 (default)" />
+                <span class="field-hint">Session resets after this many minutes of inactivity. Leave blank for default (30 min).</span>
             </label>
         </div>
 
@@ -110,6 +120,12 @@ async function submit() {
             opacity: 0.7;
             cursor: default;
         }
+    }
+
+    .field-hint {
+        font-size: 11px;
+        color: var(--uxrr-text-muted);
+        opacity: 0.7;
     }
 }
 </style>

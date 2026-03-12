@@ -15,12 +15,14 @@ interface CreateAppBody {
     appKey: string;
     name: string;
     origins: string[];
+    maxIdleTimeout?: number;
 }
 
 interface UpdateAppBody {
     name?: string;
     origins?: string[];
     isActive?: boolean;
+    maxIdleTimeout?: number | null;
 }
 
 interface AppResponse {
@@ -28,6 +30,7 @@ interface AppResponse {
     appKey: string;
     name: string;
     origins: string[];
+    maxIdleTimeout?: number;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
@@ -67,6 +70,7 @@ export class AdminController {
     async createApp(body: HttpBody<CreateAppBody>): Promise<AppResponse> {
         this.validateAppName(body.name);
         this.validateOrigins(body.origins);
+        this.validateMaxIdleTimeout(body.maxIdleTimeout);
 
         const appKey = body.appKey.trim();
         if (!appKey) {
@@ -83,6 +87,7 @@ export class AdminController {
         app.appKey = appKey;
         app.name = body.name.trim();
         app.origins = body.origins.map(o => o.trim());
+        app.maxIdleTimeout = body.maxIdleTimeout;
         app.isActive = true;
         app.createdAt = new Date();
         app.updatedAt = new Date();
@@ -98,12 +103,14 @@ export class AdminController {
         appKey = decodeURIComponent(appKey);
         if (body.name !== undefined) this.validateAppName(body.name);
         if (body.origins !== undefined) this.validateOrigins(body.origins);
+        this.validateMaxIdleTimeout(body.maxIdleTimeout);
 
         const app = await this.db.query(AppEntity).filter({ appKey }).findOneOrUndefined();
         if (!app) throw new HttpNotFoundError(`App "${appKey}" not found`);
         if (body.name !== undefined) app.name = body.name.trim();
         if (body.origins !== undefined) app.origins = body.origins.map(o => o.trim());
         if (body.isActive !== undefined) app.isActive = body.isActive;
+        if (body.maxIdleTimeout !== undefined) app.maxIdleTimeout = body.maxIdleTimeout ?? undefined;
         app.updatedAt = new Date();
         await this.db.persist(app);
         this.appResolver.invalidateCache();
@@ -160,6 +167,16 @@ export class AdminController {
         }
     }
 
+    private validateMaxIdleTimeout(value: number | null | undefined): void {
+        if (value === undefined || value === null) return;
+        if (!Number.isInteger(value) || value <= 0) {
+            throw new HttpBadRequestError('maxIdleTimeout must be a positive integer (milliseconds)');
+        }
+        if (value > 24 * 60 * 60 * 1000) {
+            throw new HttpBadRequestError('maxIdleTimeout cannot exceed 24 hours');
+        }
+    }
+
     private validateOrigins(origins: string[]): void {
         for (const origin of origins) {
             const trimmed = origin.trim();
@@ -182,6 +199,7 @@ export class AdminController {
             appKey: app.appKey,
             name: app.name,
             origins: app.origins,
+            maxIdleTimeout: app.maxIdleTimeout,
             isActive: app.isActive,
             createdAt: app.createdAt.toISOString(),
             updatedAt: app.updatedAt.toISOString()

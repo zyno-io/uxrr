@@ -72,6 +72,9 @@ const {
                     <span>{{ formatMeta(session) }}</span>
                     <span class="meta-sep">/</span>
                     <span class="meta-time">{{ format(new Date(session.startedAt), 'MMM d, yyyy HH:mm:ss') }}</span>
+                    <span v-if="session.previousSessionId" class="prev-session-note">
+                        (continued from {{ (session.previousSessionId as string).slice(0, 8) }})
+                    </span>
                 </div>
                 <div class="detail-indicators">
                     <span v-if="liveStatus === 'waiting'" class="client-indicator client-indicator--off"
@@ -222,6 +225,12 @@ const {
 
 .meta-time {
     color: var(--uxrr-text-muted);
+}
+
+.prev-session-note {
+    font-size: 11px;
+    color: var(--uxrr-text-muted);
+    margin-left: 4px;
 }
 
 .detail-indicators {

@@ -376,6 +376,14 @@ function filterByUser(userId: string) {
                     <span>{{ formatMeta(session) }}</span>
                     <span class="meta-sep">/</span>
                     <span class="meta-time">{{ format(new Date(session.startedAt), 'MMM d, yyyy HH:mm:ss') }}</span>
+                    <router-link
+                        v-if="session.previousSessionId"
+                        :to="{ name: 'session-detail', params: { id: session.previousSessionId } }"
+                        class="prev-session-link"
+                        title="Jump to previous session"
+                    >
+                        Previous Session
+                    </router-link>
                     <span v-if="session.userId" class="meta-sep">/</span>
                     <UserInfoPopover
                         v-if="session.userId"
@@ -609,6 +617,21 @@ function filterByUser(userId: string) {
 
 .meta-time {
     color: var(--uxrr-text-muted);
+}
+
+.prev-session-link {
+    margin-left: 4px;
+    padding: 1px 8px;
+    border: 1px solid var(--uxrr-border);
+    border-radius: 3px;
+    font-size: 11px;
+    color: var(--uxrr-text-muted);
+    text-decoration: none;
+
+    &:hover {
+        border-color: var(--uxrr-accent);
+        color: var(--uxrr-accent);
+    }
 }
 
 .detail-indicators {

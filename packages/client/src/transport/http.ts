@@ -1,19 +1,27 @@
 export interface PostResult {
     ok: boolean;
+    status?: number;
     ws?: boolean;
+    config?: { maxIdleTimeout?: number };
 }
 
 export class HttpTransport {
     private readonly baseUrl: string;
     private readonly appKey: string;
+    private sessionId: string;
 
     constructor(
         endpoint: string,
         appKey: string,
-        private readonly sessionId: string
+        sessionId: string
     ) {
         this.baseUrl = endpoint.replace(/\/$/, '');
         this.appKey = encodeURIComponent(appKey);
+        this.sessionId = sessionId;
+    }
+
+    setSessionId(sessionId: string): void {
+        this.sessionId = sessionId;
     }
 
     async postJSON(path: string, body: unknown): Promise<PostResult> {
@@ -25,7 +33,7 @@ export class HttpTransport {
                 body: JSON.stringify(body),
                 signal: AbortSignal.timeout(10_000)
             });
-            if (!response.ok) return { ok: false };
+            if (!response.ok) return { ok: false, status: response.status };
             try {
                 return await response.json();
             } catch {

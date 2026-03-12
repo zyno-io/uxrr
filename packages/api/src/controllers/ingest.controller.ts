@@ -1,10 +1,12 @@
 import { http, HttpBody, HttpRequest, HttpResponse } from '@deepkit/http';
-import { HttpAccessDeniedError, HttpBadRequestError, HttpTooManyRequestsError } from '@deepkit/http';
+import { HttpAccessDeniedError, HttpBadRequestError, HttpGoneError, HttpTooManyRequestsError } from '@deepkit/http';
 import { ScopedLogger } from '@deepkit/logger';
 import { HttpCors } from '@zyno-io/dk-server-foundation/http/cors.js';
 
 import { UxrrConfig } from '../config';
-import { getAppKey, getAppUuid } from '../middleware/origin.guard';
+import { SessionEntity } from '../database/entities/session.entity';
+import { UxrrDatabase } from '../database/database';
+import { getAppKey, getAppUuid, getAppMaxIdleTimeout } from '../middleware/origin.guard';
 import { IngestService, IngestDataPayload } from '../services/ingest.service';
 import { LiveSessionService } from '../services/live-session.service';
 import { RateLimiter } from '../util/rate-limiter';
@@ -18,6 +20,7 @@ const otlpRateLimiter = new RateLimiter(30, 60_000); // 30 req/min per IP
 export class IngestController {
     constructor(
         private readonly config: UxrrConfig,
+        private readonly db: UxrrDatabase,
         private readonly ingestSvc: IngestService,
         private readonly liveSvc: LiveSessionService,
         private readonly logger: ScopedLogger
@@ -34,9 +37,17 @@ export class IngestController {
     }
 
     @http.POST(':appKey/:sessionId/data')
-    async ingestData(appKey: string, sessionId: string, request: HttpRequest, body: HttpBody<IngestDataPayload>): Promise<{ ok: true; ws?: true }> {
+    async ingestData(
+        appKey: string,
+        sessionId: string,
+        request: HttpRequest,
+        body: HttpBody<IngestDataPayload>
+    ): Promise<{ ok: true; ws?: true; config?: { maxIdleTimeout?: number } }> {
         const { appKey: resolvedAppKey, appUuid } = this.validateAppKey(request, appKey);
         validateSessionId(sessionId);
+        if (body.previousSessionId) {
+            validateSessionId(body.previousSessionId);
+        }
 
         const ipAddress = request.getRemoteAddress?.() ?? 'unknown';
         if (!ingestRateLimiter.isAllowed(ipAddress)) {
@@ -53,10 +64,25 @@ export class IngestController {
             throw new HttpBadRequestError(`Too many logs (max ${this.config.UXRR_MAX_LOG_BATCH_SIZE})`);
         }
 
+        // Reject events past the idle threshold for this session
+        const maxIdleTimeout = getAppMaxIdleTimeout(request);
+        if (maxIdleTimeout) {
+            const existingSession = await this.db.query(SessionEntity).filter({ id: sessionId }).findOneOrUndefined();
+            if (existingSession) {
+                const idleMs = Date.now() - existingSession.lastActivityAt.getTime();
+                if (idleMs > maxIdleTimeout) {
+                    throw new HttpGoneError('Session exceeded max idle timeout');
+                }
+            }
+        }
+
         await this.ingestSvc.ingestData(appUuid, resolvedAppKey, sessionId, body, ipAddress);
-        const result: { ok: true; ws?: true } = { ok: true };
+        const result: { ok: true; ws?: true; config?: { maxIdleTimeout?: number } } = { ok: true };
         if (this.liveSvc.isAgentConnected(sessionId)) {
             result.ws = true;
+        }
+        if (maxIdleTimeout) {
+            result.config = { maxIdleTimeout };
         }
         return result;
     }

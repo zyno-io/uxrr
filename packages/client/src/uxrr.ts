@@ -1,6 +1,7 @@
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 
+import { IdleMonitor } from './idle-monitor';
 import { IdentityManager } from './identity';
 import { NavigationLogger } from './logging/navigation';
 import { ScopedLogger } from './logging/logger';
@@ -39,13 +40,19 @@ export const uxrr: UxrrInstance = new Proxy({} as UxrrInstance, {
     }
 });
 
+const DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
 class UXRR implements UxrrInstance {
-    readonly sessionId: string;
+    get sessionId(): string {
+        return this.session.sessionId;
+    }
+
     tracer: Tracer;
 
     private readonly identity: IdentityManager;
     private readonly session: SessionManager;
     private consolePrefix = '';
+    private config: UxrrConfig | undefined;
     private transport: HttpTransport | undefined;
     private flushCoordinator: FlushCoordinator | undefined;
     private ingestBuffer: IngestBuffer | undefined;
@@ -53,12 +60,12 @@ class UXRR implements UxrrInstance {
     private tracingProvider: TracingProvider | undefined;
     private supportConnection: SupportConnection | undefined;
     private navigationLogger: NavigationLogger | undefined;
+    private idleMonitor: IdleMonitor | undefined;
     private boundFlushFn: (() => void) | undefined;
 
     constructor() {
         this.identity = new IdentityManager();
         this.session = new SessionManager();
-        this.sessionId = this.session.sessionId;
         this.tracer = trace.getTracer('uxrr');
     }
 
@@ -67,6 +74,8 @@ class UXRR implements UxrrInstance {
         if (this.ingestBuffer || this.recorder || this.tracingProvider || this.supportConnection) {
             this.stop();
         }
+
+        this.config = config;
 
         const enabled = config.enabled ?? {};
         const sessionsEnabled = enabled.sessions !== false;
@@ -81,7 +90,7 @@ class UXRR implements UxrrInstance {
         this.consolePrefix = config.logging?.consolePrefix ?? '';
 
         // Unified ingest buffer (handles both events and logs)
-        this.ingestBuffer = new IngestBuffer(this.transport, this.identity, this.session.launchTs, config);
+        this.ingestBuffer = new IngestBuffer(this.transport, this.identity, this.session.launchTs, config, this.session.previousSessionId);
         if (loggingEnabled || sessionsEnabled) {
             this.boundFlushFn = () => this.ingestBuffer!.flushBeacon();
             this.flushCoordinator.register(this.boundFlushFn);
@@ -118,6 +127,57 @@ class UXRR implements UxrrInstance {
         if (tracingEnabled) {
             this.initTracing(config);
         }
+
+        // Idle session reset — server config takes precedence over local config
+        if (sessionsEnabled) {
+            const idleTimeout = config.idleTimeout ?? DEFAULT_IDLE_TIMEOUT;
+            if (idleTimeout > 0) {
+                this.idleMonitor = new IdleMonitor(
+                    idleTimeout,
+                    () => this.ingestBuffer?.flush(),
+                    () => this.resetSession()
+                );
+            }
+
+            this.ingestBuffer.onServerConfig = serverConfig => {
+                if (serverConfig.maxIdleTimeout !== undefined) {
+                    if (this.idleMonitor) {
+                        this.idleMonitor.updateTimeout(serverConfig.maxIdleTimeout);
+                    } else if (serverConfig.maxIdleTimeout > 0) {
+                        this.idleMonitor = new IdleMonitor(
+                            serverConfig.maxIdleTimeout,
+                            () => this.ingestBuffer?.flush(),
+                            () => this.resetSession()
+                        );
+                    }
+                }
+            };
+
+            this.ingestBuffer.onSessionExpired = () => this.resetSession();
+        }
+    }
+
+    private resetSession(): void {
+        // Don't reset during an active live support session
+        if (this.supportConnection?.isConnected) return;
+
+        // Reset session ID
+        const oldSessionId = this.session.reset();
+
+        // Update transport to use new session ID
+        this.transport?.setSessionId(this.sessionId);
+
+        // Update tracing processor to tag spans with new session ID
+        this.tracingProvider?.updateSessionId(this.sessionId);
+
+        // Update ingest buffer with new session timing + link
+        this.ingestBuffer?.resetSession(this.session.launchTs, oldSessionId);
+
+        // Update support connection to use new session ID for future upgrades
+        this.supportConnection?.updateSessionId(this.sessionId);
+
+        // Take a fresh rrweb snapshot for the new session
+        this.recorder?.takeFullSnapshot();
     }
 
     private async initRecording(config: UxrrConfig): Promise<void> {
@@ -149,6 +209,8 @@ class UXRR implements UxrrInstance {
     }
 
     stop(): void {
+        this.idleMonitor?.stop();
+        this.idleMonitor = undefined;
         this.supportConnection?.downgrade();
         this.supportConnection = undefined;
         this.navigationLogger?.stop();
