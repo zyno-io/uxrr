@@ -4,9 +4,9 @@
 
 - Node.js 22+
 - Yarn 4 (corepack)
-- PostgreSQL, Redis, S3-compatible store (LocalStack for local dev)
+- PostgreSQL, Redis, S3-compatible store (MiniStack for local dev)
 
-If you don't have Postgres/Redis/LocalStack running locally, use the provided Docker Compose file:
+If you don't have Postgres/Redis/MiniStack running locally, use the provided Docker Compose file:
 
 ```bash
 docker compose -f docker-compose.test.yml up -d
@@ -71,7 +71,7 @@ yarn test:e2e -- --grep "reconnect"  # filter by test name
 
 #### Prerequisites for live E2E tests
 
-1. **Infrastructure** running (Postgres, Redis, LocalStack)
+1. **Infrastructure** running (Postgres, Redis, MiniStack)
 2. **API server** running: `yarn dev:api`
 3. **Client SDK** built: `yarn build:client` (the script auto-builds if missing)
 

@@ -21,7 +21,7 @@ All server configuration is via environment variables.
 | `S3_BUCKET`            | `uxrr-events` | Bucket name for event storage                              |
 | `S3_ACCESS_KEY_SECRET` | —             | Access key                                                 |
 | `S3_SECRET_KEY_SECRET` | —             | Secret key                                                 |
-| `S3_FORCE_PATH_STYLE`  | `true`        | Use path-style addressing (required for MinIO, LocalStack) |
+| `S3_FORCE_PATH_STYLE`  | `true`        | Use path-style addressing (required for MinIO, MiniStack) |
 
 ## OIDC Authentication
 

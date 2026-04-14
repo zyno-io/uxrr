@@ -1,9 +1,8 @@
-import { createHash } from 'crypto';
-
-import { describe, it } from 'node:test';
-import { strict as assert } from 'node:assert';
-import { TestingHelpers } from '@zyno-io/dk-server-foundation/testing/index.js';
 import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
+import { TestingHelpers } from '@zyno-io/dk-server-foundation/testing/index.js';
+import { createHash } from 'crypto';
+import { strict as assert } from 'node:assert';
+import { describe, it } from 'node:test';
 
 TestingHelpers.setDefaultDatabaseConfig({
     PG_HOST: 'localhost',
@@ -13,25 +12,25 @@ TestingHelpers.setDefaultDatabaseConfig({
 });
 
 import { UxrrConfig } from '../../src/config.js';
+import { IngestController } from '../../src/controllers/ingest.controller.js';
+import { SessionController } from '../../src/controllers/session.controller.js';
 import { UxrrDatabase } from '../../src/database/database.js';
 import { AppEntity } from '../../src/database/entities/app.entity.js';
 import { SessionEntity } from '../../src/database/entities/session.entity.js';
-import { IngestController } from '../../src/controllers/ingest.controller.js';
-import { SessionController } from '../../src/controllers/session.controller.js';
+import { OidcAuthMiddleware } from '../../src/middleware/oidc-auth.middleware.js';
 import { AppGuard } from '../../src/middleware/origin.guard.js';
-import { SessionAuthMiddleware } from '../../src/middleware/session-auth.middleware.js';
 import { SecurityHeadersListener } from '../../src/middleware/security-headers.listener.js';
+import { SessionAuthMiddleware } from '../../src/middleware/session-auth.middleware.js';
+import { ApiKeyService } from '../../src/services/api-key.service.js';
 import { AppResolverService } from '../../src/services/app-resolver.service.js';
 import { IngestService } from '../../src/services/ingest.service.js';
 import { LiveSessionService } from '../../src/services/live-session.service.js';
 import { LokiService } from '../../src/services/loki.service.js';
 import { OidcService } from '../../src/services/oidc.service.js';
-import { OidcAuthMiddleware } from '../../src/middleware/oidc-auth.middleware.js';
 import { PodPresenceService } from '../../src/services/pod-presence.service.js';
 import { RedisService } from '../../src/services/redis.service.js';
 import { RetentionService } from '../../src/services/retention.service.js';
 import { S3Service } from '../../src/services/s3.service.js';
-import { ApiKeyService } from '../../src/services/api-key.service.js';
 import { SessionNotifyService } from '../../src/services/session-notify.service.js';
 import { SessionService } from '../../src/services/session.service.js';
 import { ShareService } from '../../src/services/share.service.js';
@@ -89,7 +88,7 @@ const tf = TestingHelpers.createTestingFacade(
                 })
             );
 
-            // Ensure S3 bucket exists (LocalStack)
+            // Ensure S3 bucket exists (MiniStack)
             const s3 = new S3Client({
                 endpoint: 'http://localhost:4566',
                 region: 'us-east-1',

@@ -340,7 +340,7 @@ Edge cases around concurrent operations and failure modes. The chunk indexing ra
 
 ## Phase 3 — Server Integration Tests (dksf-test + TestingFacade)
 
-Uses dk-server-foundation's `TestingFacade` with `enableDatabase: true` for real Postgres isolation. Each test suite gets its own auto-created/destroyed database. Requires Docker Compose for Postgres, S3 (LocalStack), and Redis.
+Uses dk-server-foundation's `TestingFacade` with `enableDatabase: true` for real Postgres isolation. Each test suite gets its own auto-created/destroyed database. Requires Docker Compose for Postgres, S3 (MiniStack), and Redis.
 
 ### Integration test pattern
 
@@ -415,8 +415,8 @@ services:
         image: redis:7
         ports: ['6379:6379']
 
-    localstack:
-        image: localstack/localstack:latest
+    ministack:
+        image: ministackorg/ministack:latest
         ports:
             - '4566:4566'
 ```
@@ -577,7 +577,7 @@ uxrr/
 │       ├── src/__tests__/       # component tests
 │       ├── playwright.config.ts
 │       └── tests/e2e/           # Playwright E2E tests
-├── docker-compose.test.yml      # Postgres, Redis, LocalStack for integration
+├── docker-compose.test.yml      # Postgres, Redis, MiniStack for integration
 └── .github/workflows/test.yml   # CI pipeline
 ```
 

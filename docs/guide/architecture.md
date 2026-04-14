@@ -65,7 +65,7 @@ When an agent connects to an active session via the dashboard, the server upgrad
 
 uxrr is designed to scale with your infrastructure by building on proven, horizontally scalable storage backends:
 
-- **S3-compatible storage** — Event data is stored as chunks in any S3-compatible object store (AWS S3, MinIO, LocalStack, etc.), which scales independently of the uxrr server.
+- **S3-compatible storage** — Event data is stored as chunks in any S3-compatible object store (AWS S3, MinIO, MiniStack, etc.), which scales independently of the uxrr server.
 - **LGTM stack** — Logs and traces are stored in Grafana's LGTM stack (Loki for logs, Tempo for traces, Grafana for visualization). These are battle-tested, horizontally scalable systems designed for high-volume observability data.
 - **OpenTelemetry** — Network traces are captured via OpenTelemetry and forwarded to Tempo using the standard OTLP protocol. This means uxrr's trace pipeline is compatible with any OpenTelemetry-compatible backend.
 - **Redis pub/sub** — For multi-instance deployments, Redis coordinates live session relay and real-time updates across server instances.

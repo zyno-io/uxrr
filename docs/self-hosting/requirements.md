@@ -9,7 +9,7 @@ uxrr requires the following services:
 | Service                   | Version | Purpose                                                                |
 | ------------------------- | ------- | ---------------------------------------------------------------------- |
 | **PostgreSQL**            | 15+     | Session metadata, app configuration, API keys                          |
-| **S3-compatible storage** | —       | Event chunk storage (AWS S3, MinIO, LocalStack, etc.)                  |
+| **S3-compatible storage** | —       | Event chunk storage (AWS S3, MinIO, MiniStack, etc.)                  |
 | **OIDC provider**         | —       | Authentication for the dashboard (Keycloak, Auth0, Okta, Google, etc.) |
 | **Node.js**               | 22+     | Runtime for the server                                                 |
 

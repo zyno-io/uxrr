@@ -71,7 +71,7 @@ services:
             PG_DATABASE: uxrr
             PG_USER: uxrr
             PG_PASSWORD_SECRET: changeme
-            S3_ENDPOINT: http://localstack:4566
+            S3_ENDPOINT: http://ministack:4566
             S3_ACCESS_KEY_SECRET: test
             S3_SECRET_KEY_SECRET: test
             S3_BUCKET: uxrr-events
@@ -81,7 +81,7 @@ services:
         depends_on:
             postgres:
                 condition: service_healthy
-            localstack:
+            ministack:
                 condition: service_healthy
 
     postgres:
@@ -98,10 +98,10 @@ services:
             timeout: 5s
             retries: 10
 
-    localstack:
-        image: localstack/localstack:latest
+    ministack:
+        image: ministackorg/ministack:latest
         healthcheck:
-            test: ['CMD-SHELL', 'curl -sf http://localhost:4566/_localstack/health || exit 1']
+            test: ['CMD-SHELL', 'curl -sf http://localhost:4566/_ministack/health || exit 1']
             interval: 2s
             timeout: 5s
             retries: 10

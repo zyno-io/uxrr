@@ -28,13 +28,13 @@ services:
       retries: 10
 
   s3:
-    image: localstack/localstack:latest
+    image: ministackorg/ministack:latest
     ports:
       - 4566:4566
     volumes:
-      - s3_data:/var/lib/localstack
+      - s3_data:/var/lib/ministack
     healthcheck:
-      test: curl -sf http://localhost:4566/_localstack/health || exit 1
+      test: curl -sf http://localhost:4566/_ministack/health || exit 1
       interval: 5s
       timeout: 5s
       retries: 10

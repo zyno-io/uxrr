@@ -86,15 +86,15 @@ jobs:
       - run: corepack enable
       - run: yarn --immutable
 
-      - name: Start LocalStack
+      - name: Start MiniStack
         run: |
-          docker run -d --name localstack \
+          docker run -d --name ministack \
             -p 4566:4566 \
-            localstack/localstack:latest
-          echo "Waiting for LocalStack..."
+            ministackorg/ministack:latest
+          echo "Waiting for MiniStack..."
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:4566/_localstack/health > /dev/null 2>&1; then
-              echo "LocalStack ready"
+            if curl -sf http://localhost:4566/_ministack/health > /dev/null 2>&1; then
+              echo "MiniStack ready"
               break
             fi
             sleep 1
@@ -141,15 +141,15 @@ jobs:
       - run: corepack enable
       - run: yarn --immutable
 
-      - name: Start LocalStack
+      - name: Start MiniStack
         run: |
-          docker run -d --name localstack \
+          docker run -d --name ministack \
             -p 4566:4566 \
-            localstack/localstack:latest
-          echo "Waiting for LocalStack..."
+            ministackorg/ministack:latest
+          echo "Waiting for MiniStack..."
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:4566/_localstack/health > /dev/null 2>&1; then
-              echo "LocalStack ready"
+            if curl -sf http://localhost:4566/_ministack/health > /dev/null 2>&1; then
+              echo "MiniStack ready"
               break
             fi
             sleep 1

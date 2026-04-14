@@ -39,8 +39,8 @@ stages:
         POSTGRES_USER: uxrr
         POSTGRES_PASSWORD: test
     - name: redis:alpine
-    - name: localstack/localstack:latest
-      alias: localstack
+    - name: ministackorg/ministack:latest
+      alias: ministack
   variables:
     APP_ENV: test
     PG_HOST: postgres
@@ -49,7 +49,7 @@ stages:
     PG_PASSWORD_SECRET: test
     PG_DATABASE: uxrr_test
     REDIS_HOST: redis
-    S3_ENDPOINT: http://localstack:4566
+    S3_ENDPOINT: http://ministack:4566
     S3_ACCESS_KEY_SECRET: test
     S3_SECRET_KEY_SECRET: test
     S3_BUCKET: uxrr-events
@@ -92,16 +92,16 @@ test:
   script: |
     set -e
 
-    echo "--- Waiting for LocalStack S3 ---"
+    echo "--- Waiting for MiniStack S3 ---"
     for i in $(seq 1 30); do
-      if curl -sf http://localstack:4566/_localstack/health > /dev/null 2>&1; then
-        echo "LocalStack ready (attempt $i)"
+      if curl -sf http://ministack:4566/_ministack/health > /dev/null 2>&1; then
+        echo "MiniStack ready (attempt $i)"
         break
       fi
-      if [ $i -eq 30 ]; then echo "WARNING: LocalStack not ready after 30s"; fi
+      if [ $i -eq 30 ]; then echo "WARNING: MiniStack not ready after 30s"; fi
       sleep 1
     done
-    curl -sf -X PUT http://localstack:4566/uxrr-events > /dev/null
+    curl -sf -X PUT http://ministack:4566/uxrr-events > /dev/null
     echo "Created S3 bucket: uxrr-events"
 
     # --- API integration tests ---
