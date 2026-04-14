@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
-import type { ILogEntry } from '@/openapi-client-generated';
+
 import type { GrafanaConfig } from '@/auth';
+import type { ILogEntry } from '@/openapi-client-generated';
+
 import { buildGrafanaTraceUrl } from '@/grafana';
 
 interface NetworkData {
@@ -304,7 +306,7 @@ tr.expanded td {
 }
 
 tr.future td {
-    opacity: 0.2;
+    opacity: 0.5;
     transition: opacity 0.15s;
 }
 

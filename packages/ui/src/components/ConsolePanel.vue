@@ -381,7 +381,7 @@ function setFilter(level: number | null) {
     }
 
     &.future {
-        opacity: 0.2;
+        opacity: 0.5;
     }
 
     &.level-debug {
