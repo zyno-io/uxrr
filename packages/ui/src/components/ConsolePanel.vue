@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
-import type { ILogEntry } from '@/openapi-client-generated';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import type { GrafanaConfig } from '@/auth';
+import type { ILogEntry } from '@/openapi-client-generated';
+
 import { buildGrafanaTraceUrl } from '@/grafana';
+
+const VIRTUAL_THRESHOLD = 200;
 
 const LOG_LEVELS: Record<number, { label: string; cssClass: string }> = {
     0: { label: 'DEBUG', cssClass: 'level-debug' },
@@ -27,6 +32,7 @@ function seekToEntry(entry: ILogEntry) {
 }
 
 const containerRef = ref<HTMLDivElement>();
+const scrollerRef = ref<{ $el?: HTMLElement; scrollToBottom?: () => void } | null>(null);
 const levelFilter = ref<number | null>(null);
 const includeNetwork = ref(true);
 const autoScroll = ref(true);
@@ -46,33 +52,62 @@ const visibleLogs = computed(() => {
     return entries;
 });
 
+const useVirtual = computed(() => visibleLogs.value.length > VIRTUAL_THRESHOLD);
+
+const scrollerItems = computed(() => visibleLogs.value.map((entry, idx) => ({ entry, id: idx })));
+
+function getScrollerEl(): HTMLElement | null {
+    const inst = scrollerRef.value as unknown as { $el?: HTMLElement } | null;
+    return inst?.$el ?? null;
+}
+
 watch(
     visibleLogs,
     () => {
         if (!autoScroll.value) return;
         ignoreNextScroll = true;
-        if (containerRef.value) {
+        if (useVirtual.value) {
+            scrollerRef.value?.scrollToBottom?.();
+        } else if (containerRef.value) {
             containerRef.value.scrollTop = containerRef.value.scrollHeight;
         }
     },
     { flush: 'post' }
 );
 
-function onScroll() {
+function onScroll(e: Event) {
     if (ignoreNextScroll) {
         ignoreNextScroll = false;
         return;
     }
-    if (!containerRef.value) return;
-    const el = containerRef.value;
+    const el = (e.currentTarget as HTMLElement | null) ?? containerRef.value ?? getScrollerEl();
+    if (!el) return;
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
     if (!atBottom && autoScroll.value) {
         autoScroll.value = false;
     }
 }
 
-onMounted(() => containerRef.value?.addEventListener('scroll', onScroll, { passive: true }));
-onBeforeUnmount(() => containerRef.value?.removeEventListener('scroll', onScroll));
+let virtualScrollEl: HTMLElement | null = null;
+
+onMounted(() => {
+    containerRef.value?.addEventListener('scroll', onScroll, { passive: true });
+    virtualScrollEl = getScrollerEl();
+    virtualScrollEl?.addEventListener('scroll', onScroll, { passive: true });
+});
+onBeforeUnmount(() => {
+    containerRef.value?.removeEventListener('scroll', onScroll);
+    virtualScrollEl?.removeEventListener('scroll', onScroll);
+});
+
+watch(useVirtual, () => {
+    virtualScrollEl?.removeEventListener('scroll', onScroll);
+    virtualScrollEl = null;
+    queueMicrotask(() => {
+        virtualScrollEl = getScrollerEl();
+        virtualScrollEl?.addEventListener('scroll', onScroll, { passive: true });
+    });
+});
 
 function isFuture(entry: ILogEntry): boolean {
     return entry.t > cutoffMs.value;
@@ -166,7 +201,7 @@ function setFilter(level: number | null) {
                 Auto-scroll
             </label>
         </div>
-        <div ref="containerRef" class="console-entries">
+        <div v-if="!useVirtual" ref="containerRef" class="console-entries">
             <div v-if="visibleLogs.length === 0" class="console-empty">No log entries yet</div>
             <template v-for="(entry, i) in visibleLogs" :key="i">
                 <div v-if="isNetworkEntry(entry)" :class="['console-entry', 'level-debug', 'net-entry', { future: isFuture(entry) }]">
@@ -206,6 +241,51 @@ function setFilter(level: number | null) {
                 </div>
             </template>
         </div>
+        <DynamicScroller v-else ref="scrollerRef" :items="scrollerItems" :min-item-size="24" key-field="id" class="console-entries">
+            <template #default="{ item, active }">
+                <DynamicScrollerItem :item="item" :active="active" :size-dependencies="[item.entry.m, item.entry.d, item.entry.v, item.entry.c]">
+                    <div v-if="isNetworkEntry(item.entry)" :class="['console-entry', 'level-debug', 'net-entry', { future: isFuture(item.entry) }]">
+                        <span class="entry-time entry-time--clickable" @click="seekToEntry(item.entry)">{{ formatTime(item.entry.t) }}</span>
+                        <span class="entry-net-icon" title="Network request">&#8644;</span>
+                        <span :class="['entry-method', statusClass(formatNetworkEntry(item.entry).status)]">{{
+                            formatNetworkEntry(item.entry).method
+                        }}</span>
+                        <span class="entry-url" :title="formatNetworkEntry(item.entry).url">{{
+                            truncateUrl(formatNetworkEntry(item.entry).url)
+                        }}</span>
+                        <span :class="['entry-status', statusClass(formatNetworkEntry(item.entry).status)]">{{
+                            formatNetworkEntry(item.entry).status || '-'
+                        }}</span>
+                        <span class="entry-duration">{{ formatNetworkEntry(item.entry).duration }}ms</span>
+                        <a
+                            v-if="grafana && getTraceId(item.entry)"
+                            :href="buildGrafanaTraceUrl(grafana.baseUrl, grafana.datasource, getTraceId(item.entry)!)"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="entry-trace"
+                            title="View trace in Grafana"
+                            >trace</a
+                        >
+                    </div>
+                    <div v-else :class="['console-entry', getLevelInfo(item.entry.v).cssClass, { future: isFuture(item.entry) }]">
+                        <span class="entry-time entry-time--clickable" @click="seekToEntry(item.entry)">{{ formatTime(item.entry.t) }}</span>
+                        <span class="entry-level">{{ getLevelInfo(item.entry.v).label }}</span>
+                        <span class="entry-scope">{{ item.entry.c }}</span>
+                        <span class="entry-msg">{{ item.entry.m }}</span>
+                        <span v-if="formatData(item.entry.d)" class="entry-data">{{ formatData(item.entry.d) }}</span>
+                        <a
+                            v-if="grafana && getTraceId(item.entry)"
+                            :href="buildGrafanaTraceUrl(grafana.baseUrl, grafana.datasource, getTraceId(item.entry)!)"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="entry-trace"
+                            title="View trace in Grafana"
+                            >trace</a
+                        >
+                    </div>
+                </DynamicScrollerItem>
+            </template>
+        </DynamicScroller>
     </div>
 </template>
 

@@ -25,10 +25,10 @@
         "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && oxfmt"
     },
     "devDependencies": {
-        "lefthook": "^2.1.1",
-        "oxfmt": "^0.36.0",
-        "oxlint": "^1.47.0",
-        "typescript": "~5.9",
+        "lefthook": "^2.1.5",
+        "oxfmt": "^0.45.0",
+        "oxlint": "^1.60.0",
+        "typescript": "~6.0",
         "vitepress": "^1.6.4"
     },
     "resolutions": {
