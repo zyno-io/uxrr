@@ -1,18 +1,20 @@
 import type { Tracer } from '@opentelemetry/api';
+
 import { trace } from '@opentelemetry/api';
 
-import { IdleMonitor } from './idle-monitor';
-import { IdentityManager } from './identity';
-import { NavigationLogger } from './logging/navigation';
-import { ScopedLogger } from './logging/logger';
 import type { Recorder } from './recording/recorder';
+import type { TracingProvider } from './tracing/provider';
+import type { UxrrConfig, UxrrIdentity, UxrrInstance, UxrrLogger } from './types';
+
+import { IdentityManager } from './identity';
+import { IdleMonitor } from './idle-monitor';
+import { ScopedLogger } from './logging/logger';
+import { NavigationLogger } from './logging/navigation';
 import { SessionManager } from './session';
 import { SupportConnection } from './support/connection';
 import { FlushCoordinator } from './transport/flush';
 import { HttpTransport } from './transport/http';
 import { IngestBuffer } from './transport/ingest-buffer';
-import type { TracingProvider } from './tracing/provider';
-import type { UxrrConfig, UxrrIdentity, UxrrInstance, UxrrLogger } from './types';
 
 let _activeTracer: Tracer = trace.getTracer('uxrr');
 let _uxrr: UXRR | undefined;
@@ -66,7 +68,29 @@ class UXRR implements UxrrInstance {
     constructor() {
         this.identity = new IdentityManager();
         this.session = new SessionManager();
+        this.session.setOnSessionReset(() => this.handleDuplicateTabDetected());
         this.tracer = trace.getTracer('uxrr');
+    }
+
+    private handleDuplicateTabDetected(): void {
+        // Called when BroadcastChannel detects another tab using the same session ID.
+        // session.reset() has already been called, so we just need to update subsystems.
+
+        // Update transport to use new session ID
+        this.transport?.setSessionId(this.sessionId);
+
+        // Update tracing processor to tag spans with new session ID
+        this.tracingProvider?.updateSessionId(this.sessionId);
+
+        // Update ingest buffer with new session timing + link
+        // previousSessionId is guaranteed to be set since reset() was called
+        this.ingestBuffer?.resetSession(this.session.launchTs, this.session.previousSessionId!);
+
+        // Update support connection to use new session ID for future upgrades
+        this.supportConnection?.updateSessionId(this.sessionId);
+
+        // Take a fresh rrweb snapshot for the new session
+        this.recorder?.takeFullSnapshot();
     }
 
     init(config: UxrrConfig): void {
@@ -211,6 +235,7 @@ class UXRR implements UxrrInstance {
     stop(): void {
         this.idleMonitor?.stop();
         this.idleMonitor = undefined;
+        this.session.stop();
         this.supportConnection?.downgrade();
         this.supportConnection = undefined;
         this.navigationLogger?.stop();
