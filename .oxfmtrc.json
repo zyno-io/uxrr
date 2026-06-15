@@ -15,7 +15,7 @@
             "unknown"
         ]
     },
-    "ignorePatterns": ["dist/**"],
+    "ignorePatterns": ["dist/**", "resources/helm/chart/templates/**"],
     "overrides": [
         {
             "files": ["*.yaml", "*.yml"],

@@ -257,19 +257,17 @@ build:
 # ---------- Deploy ----------
 deploy:
   stage: deploy
-  before_script: []
   only:
     refs:
       - main
-  tags:
-    - clusterwide
-    - s24-ova-devops-k3s-0
-  image:
-    name: bitnami/kubectl:latest
+  image: ghcr.io/zyno-io/dag/cli:latest
   script: |
-    kubectl -n uxrr rollout restart deployment uxrr
-    kubectl -n uxrr rollout status deployment uxrr
-    kubectl -n uxrr exec deployment/uxrr -- node . migration:run
+    cd resources/helm/chart
+    dag-deploy . \
+      --server ${DAG_SERVER_URL} \
+      --deploy-version ${BUILD_VERSION} \
+      --set version=${BUILD_VERSION} \
+      --set image=${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}
 
 # ---------- Mirror to GitHub ----------
 mirror to github:

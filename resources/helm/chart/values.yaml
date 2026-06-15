@@ -1,0 +1,61 @@
+# Container image, e.g. gcr.s24.dev/signal24/products/uxrr:26.615.1432-abc123.
+# Typically passed at deploy time via `--set image=...`.
+image: ''
+
+# Application version label, surfaced on Pod metadata for observability.
+# Typically passed at deploy time via `--set version=...`.
+version: ''
+
+imagePullSecrets:
+  - name: s24-gcr
+
+replicas: 1
+
+ingress:
+  enabled: true
+  host: uxrr.s24.dev
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-buffering: 'off'
+  tls:
+    enabled: true
+    secretName: s24dev-wildcard-tls
+
+env:
+  APP_ENV: production
+  USE_REAL_IP_HEADER: 'true'
+
+  PG_HOST: pdp-devops-db-ha.db
+  PG_PORT: '5432'
+  PG_USER: uxrr
+  PG_DATABASE: uxrr
+  PG_SSL: 'true'
+  PG_SSL_REJECT_UNAUTHORIZED: 'false'
+
+  REDIS_SENTINEL_HOST: redis.redis.svc.cluster.local
+  REDIS_SENTINEL_NAME: redis
+
+  S3_ENDPOINT: https://s3.us-east-va.io.cloud.ovh.us
+  S3_BUCKET: s24-uxrr
+
+  OTLP_TRACES_URL: http://tempo-distributor.lgtm:4318/v1/traces
+  LOKI_URL: http://loki-gateway.lgtm.svc.cluster.local
+  GRAFANA_URL: https://grafana.s24.dev
+
+  OIDC_ISSUER_URL: https://login.microsoftonline.com/234dbf24-3b6c-444f-a266-686da86b2d66/v2.0
+  OIDC_CLIENT_ID: bd6b76fa-6398-4003-9122-5f42daeadd89
+  OIDC_SCOPES: openid profile email api://bd6b76fa-6398-4003-9122-5f42daeadd89/access
+  OIDC_AUDIENCE: api://bd6b76fa-6398-4003-9122-5f42daeadd89
+  OIDC_ISSUER: https://sts.windows.net/234dbf24-3b6c-444f-a266-686da86b2d66/
+
+secret:
+  # Name of the Kubernetes Secret to mount into the container as env vars.
+  # Defaults to the release name when unset; here it matches the OnePasswordItem.
+  name: uxrr-envsecrets
+
+  # Set `values` to have the chart create the Secret for you.
+  # Leave commented to mount an existing Secret with `name` above.
+  # values:
+
+resources: {}
