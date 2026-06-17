@@ -1,16 +1,18 @@
-import { describe, it, mock } from 'node:test';
-import { strict as assert } from 'node:assert';
+import type { HttpRequest } from '@deepkit/http';
+import type { ScopedLogger } from '@deepkit/logger';
 
-import { IngestController } from '../src/controllers/ingest.controller';
-import { APP_KEY_KEY, APP_UUID_KEY, APP_MAX_IDLE_TIMEOUT_KEY } from '../src/middleware/origin.guard';
-import { SessionEntity } from '../src/database/entities/session.entity';
+import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
 import type { UxrrConfig } from '../src/config';
 import type { UxrrDatabase } from '../src/database/database';
 import type { IngestService } from '../src/services/ingest.service';
 import type { IngestDataPayload } from '../src/services/ingest.service';
 import type { LiveSessionService } from '../src/services/live-session.service';
-import type { HttpRequest } from '@deepkit/http';
-import type { ScopedLogger } from '@deepkit/logger';
+
+import { IngestController } from '../src/controllers/ingest.controller';
+import { SessionEntity } from '../src/database/entities/session.entity';
+import { APP_KEY_KEY, APP_UUID_KEY, APP_MAX_IDLE_TIMEOUT_KEY, APP_MAX_SESSION_DURATION_KEY } from '../src/middleware/origin.guard';
 
 function makeConfig(overrides: Partial<UxrrConfig> = {}): UxrrConfig {
     return {
@@ -20,7 +22,7 @@ function makeConfig(overrides: Partial<UxrrConfig> = {}): UxrrConfig {
     } as UxrrConfig;
 }
 
-function makeRequest(appKey: string, opts: { body?: Buffer; maxIdleTimeout?: number } = {}): HttpRequest {
+function makeRequest(appKey: string, opts: { body?: Buffer; maxIdleTimeout?: number; maxSessionDuration?: number } = {}): HttpRequest {
     const req: Record<string | symbol, unknown> = {
         [APP_KEY_KEY]: appKey,
         [APP_UUID_KEY]: `uuid-${appKey}`,
@@ -29,6 +31,9 @@ function makeRequest(appKey: string, opts: { body?: Buffer; maxIdleTimeout?: num
     };
     if (opts.maxIdleTimeout !== undefined) {
         req[APP_MAX_IDLE_TIMEOUT_KEY] = opts.maxIdleTimeout;
+    }
+    if (opts.maxSessionDuration !== undefined) {
+        req[APP_MAX_SESSION_DURATION_KEY] = opts.maxSessionDuration;
     }
     return req as unknown as HttpRequest;
 }
@@ -140,6 +145,7 @@ describe('IngestController', () => {
                 () => controller.ingestData('app-1', VALID_SESSION_ID, request, {} as unknown as IngestDataPayload),
                 (err: unknown) => {
                     assert.match((err as Error).message, /Payload too large/);
+                    assert.equal((err as { httpCode?: number }).httpCode, 413);
                     return true;
                 }
             );
@@ -158,6 +164,7 @@ describe('IngestController', () => {
                     } as unknown as IngestDataPayload),
                 (err: unknown) => {
                     assert.match((err as Error).message, /Too many events/);
+                    assert.equal((err as { httpCode?: number }).httpCode, 413);
                     return true;
                 }
             );
@@ -176,6 +183,7 @@ describe('IngestController', () => {
                     } as unknown as IngestDataPayload),
                 (err: unknown) => {
                     assert.match((err as Error).message, /Too many logs/);
+                    assert.equal((err as { httpCode?: number }).httpCode, 413);
                     return true;
                 }
             );
@@ -270,6 +278,62 @@ describe('IngestController', () => {
 
             const result = await controller.ingestData('app-1', VALID_SESSION_ID, request, {} as unknown as IngestDataPayload);
             assert.deepEqual(result, { ok: true, config: { maxIdleTimeout: 300000 } });
+        });
+    });
+
+    describe('max session duration enforcement', () => {
+        it('allows ingest when session is within max session duration', async () => {
+            const now = new Date();
+            const session = {
+                id: VALID_SESSION_ID,
+                startedAt: new Date(now.getTime() - 1000),
+                lastActivityAt: now
+            } as SessionEntity;
+            const { db, ingestSvc, liveSvc } = createMocks({ existingSession: session });
+            const controller = new IngestController(makeConfig(), db, ingestSvc, liveSvc, mockLogger);
+            const request = makeRequest('app-1', { maxSessionDuration: 60000 });
+
+            const result = await controller.ingestData('app-1', VALID_SESSION_ID, request, {} as unknown as IngestDataPayload);
+            assert.ok(result.ok);
+        });
+
+        it('throws HttpGoneError (410) when session exceeds max session duration', async () => {
+            const now = new Date();
+            const session = {
+                id: VALID_SESSION_ID,
+                startedAt: new Date(now.getTime() - 120000),
+                lastActivityAt: now
+            } as SessionEntity;
+            const { db, ingestSvc, liveSvc } = createMocks({ existingSession: session });
+            const controller = new IngestController(makeConfig(), db, ingestSvc, liveSvc, mockLogger);
+            const request = makeRequest('app-1', { maxSessionDuration: 60000 });
+
+            await assert.rejects(
+                () => controller.ingestData('app-1', VALID_SESSION_ID, request, {} as unknown as IngestDataPayload),
+                (err: unknown) => {
+                    assert.match((err as Error).message, /Session exceeded max session duration/);
+                    assert.equal((err as { httpCode?: number }).httpCode, 410);
+                    return true;
+                }
+            );
+        });
+
+        it('returns config with maxSessionDuration when set', async () => {
+            const { db, ingestSvc, liveSvc } = createMocks();
+            const controller = new IngestController(makeConfig(), db, ingestSvc, liveSvc, mockLogger);
+            const request = makeRequest('app-1', { maxSessionDuration: 300000 });
+
+            const result = await controller.ingestData('app-1', VALID_SESSION_ID, request, {} as unknown as IngestDataPayload);
+            assert.deepEqual(result, { ok: true, config: { maxSessionDuration: 300000 } });
+        });
+
+        it('returns both timeout config values when both are set', async () => {
+            const { db, ingestSvc, liveSvc } = createMocks();
+            const controller = new IngestController(makeConfig(), db, ingestSvc, liveSvc, mockLogger);
+            const request = makeRequest('app-1', { maxIdleTimeout: 60000, maxSessionDuration: 300000 });
+
+            const result = await controller.ingestData('app-1', VALID_SESSION_ID, request, {} as unknown as IngestDataPayload);
+            assert.deepEqual(result, { ok: true, config: { maxIdleTimeout: 60000, maxSessionDuration: 300000 } });
         });
     });
 });

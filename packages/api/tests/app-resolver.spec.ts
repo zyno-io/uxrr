@@ -1,16 +1,20 @@
-import { describe, it, mock } from 'node:test';
-import { strict as assert } from 'node:assert';
+import type { Logger } from '@deepkit/logger';
+
 import { createHash } from 'crypto';
+import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
+import type { UxrrDatabase } from '../src/database/database';
 
 import { AppResolverService } from '../src/services/app-resolver.service';
-import type { UxrrDatabase } from '../src/database/database';
-import type { Logger } from '@deepkit/logger';
 
 function makeLogger(): Logger {
     return { warn: mock.fn(), error: mock.fn(), info: mock.fn(), debug: mock.fn() } as unknown as Logger;
 }
 
-function createMocks(apps: { id: string; appKey: string; origins: string[]; apiKey?: string; isActive: boolean }[] = []) {
+function createMocks(
+    apps: { id: string; appKey: string; origins: string[]; apiKey?: string; isActive: boolean; maxSessionDuration?: number }[] = []
+) {
     const findFn = mock.fn(async () => apps);
     const filterFn = mock.fn(function (this: unknown) {
         return this;
@@ -52,6 +56,24 @@ describe('AppResolverService', () => {
 
             assert.equal((await resolver.resolveByOrigin('https://a.com'))?.appKey, 'app-1');
             assert.equal((await resolver.resolveByOrigin('https://b.com'))?.appKey, 'app-1');
+        });
+
+        it('does not add an implicit max session duration when app override is unset', async () => {
+            const { db } = createMocks([{ id: 'uuid-1', appKey: 'app-1', origins: ['https://example.com'], isActive: true }]);
+            const resolver = new AppResolverService(db, makeLogger());
+
+            const result = await resolver.resolveByOrigin('https://example.com');
+            assert.equal(result?.maxSessionDuration, undefined);
+        });
+
+        it('includes max session duration when app override is set', async () => {
+            const { db } = createMocks([
+                { id: 'uuid-1', appKey: 'app-1', origins: ['https://example.com'], isActive: true, maxSessionDuration: 60000 }
+            ]);
+            const resolver = new AppResolverService(db, makeLogger());
+
+            const result = await resolver.resolveByOrigin('https://example.com');
+            assert.equal(result?.maxSessionDuration, 60000);
         });
     });
 

@@ -1,9 +1,8 @@
+import { ScopedLogger } from '@deepkit/logger';
 import { createHash } from 'crypto';
 
-import { ScopedLogger } from '@deepkit/logger';
-
-import { AppEntity } from '../database/entities/app.entity';
 import { UxrrDatabase } from '../database/database';
+import { AppEntity } from '../database/entities/app.entity';
 
 const CACHE_TTL_MS = 60_000; // 1 minute
 
@@ -11,6 +10,7 @@ export interface ResolvedApp {
     uuid: string;
     appKey: string;
     maxIdleTimeout?: number;
+    maxSessionDuration?: number;
 }
 
 export class AppResolverService {
@@ -78,7 +78,12 @@ export class AppResolverService {
             const newUuidToAppKey = new Map<string, string>();
 
             for (const app of apps) {
-                const resolved: ResolvedApp = { uuid: app.id, appKey: app.appKey, maxIdleTimeout: app.maxIdleTimeout };
+                const resolved: ResolvedApp = {
+                    uuid: app.id,
+                    appKey: app.appKey,
+                    maxIdleTimeout: app.maxIdleTimeout,
+                    maxSessionDuration: app.maxSessionDuration
+                };
                 newAppKeyToUuid.set(app.appKey, app.id);
                 newUuidToAppKey.set(app.id, app.appKey);
 

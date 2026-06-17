@@ -10,6 +10,8 @@ export const APP_KEY_KEY = Symbol('appKey');
 export const APP_UUID_KEY = Symbol('appUuid');
 /** Max idle timeout (ms) for the resolved app, attached to request by the guard */
 export const APP_MAX_IDLE_TIMEOUT_KEY = Symbol('appMaxIdleTimeout');
+/** Max total session duration (ms) for the resolved app, attached to request by the guard */
+export const APP_MAX_SESSION_DURATION_KEY = Symbol('appMaxSessionDuration');
 
 export function getAppKey(request: HttpRequest): string {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,6 +26,11 @@ export function getAppUuid(request: HttpRequest): string {
 export function getAppMaxIdleTimeout(request: HttpRequest): number | undefined {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (request as any)[APP_MAX_IDLE_TIMEOUT_KEY];
+}
+
+export function getAppMaxSessionDuration(request: HttpRequest): number | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (request as any)[APP_MAX_SESSION_DURATION_KEY];
 }
 
 export class AppGuard {
@@ -65,5 +72,7 @@ export class AppGuard {
         (event.request as any)[APP_UUID_KEY] = resolved.uuid;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (event.request as any)[APP_MAX_IDLE_TIMEOUT_KEY] = resolved.maxIdleTimeout;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (event.request as any)[APP_MAX_SESSION_DURATION_KEY] = resolved.maxSessionDuration;
     }
 }

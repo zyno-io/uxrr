@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { dataFrom } from '@zyno-io/openapi-client-codegen';
 import { VfModal, vfModalRef } from '@zyno-io/vue-foundation';
+import { ref } from 'vue';
+
 import type { AppResponse } from '@/openapi-client-generated';
+
 import { AdminApi } from '@/openapi-client-generated';
 
 const props = defineProps<{
@@ -16,6 +18,7 @@ const formId = ref('');
 const formName = ref(props.app?.name ?? '');
 const formOrigins = ref(props.app?.origins.join(', ') ?? '');
 const formMaxIdleMinutes = ref(props.app?.maxIdleTimeout ? String(props.app.maxIdleTimeout / 60000) : '');
+const formMaxSessionMinutes = ref(props.app?.maxSessionDuration ? String(props.app.maxSessionDuration / 60000) : '');
 
 async function submit() {
     modalError.value = null;
@@ -26,23 +29,22 @@ async function submit() {
             .map(s => s.trim())
             .filter(Boolean);
 
-        const maxIdleTimeout = formMaxIdleMinutes.value.trim()
-            ? Math.round(parseFloat(formMaxIdleMinutes.value) * 60000)
-            : undefined;
+        const maxIdleTimeout = formMaxIdleMinutes.value.trim() ? Math.round(parseFloat(formMaxIdleMinutes.value) * 60000) : undefined;
+        const maxSessionDuration = formMaxSessionMinutes.value.trim() ? Math.round(parseFloat(formMaxSessionMinutes.value) * 60000) : undefined;
 
         let result: AppResponse;
         if (props.app) {
             result = dataFrom(
                 await AdminApi.patchAdminUpdateApp({
                     path: { appKey: props.app.appKey },
-                    body: { name: formName.value, origins, maxIdleTimeout: maxIdleTimeout ?? null }
+                    body: { name: formName.value, origins, maxIdleTimeout: maxIdleTimeout ?? null, maxSessionDuration: maxSessionDuration ?? null }
                 })
             ) as unknown as AppResponse;
         } else {
             const name = formName.value || formId.value;
             result = dataFrom(
                 await AdminApi.postAdminCreateApp({
-                    body: { appKey: formId.value, name, origins, maxIdleTimeout }
+                    body: { appKey: formId.value, name, origins, maxIdleTimeout, maxSessionDuration }
                 })
             ) as unknown as AppResponse;
         }
@@ -79,6 +81,11 @@ async function submit() {
                 Max Idle Timeout (minutes)
                 <input v-model="formMaxIdleMinutes" type="number" min="0" step="1" placeholder="30 (default)" />
                 <span class="field-hint">Session resets after this many minutes of inactivity. Leave blank for default (30 min).</span>
+            </label>
+            <label>
+                Max Session Duration (minutes)
+                <input v-model="formMaxSessionMinutes" type="number" min="0" step="1" placeholder="720 (default)" />
+                <span class="field-hint">Session resets after this many total minutes. Leave blank for default (12 hours).</span>
             </label>
         </div>
 

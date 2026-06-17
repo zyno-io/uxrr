@@ -2,8 +2,8 @@ import type { eventWithTime } from '@rrweb/types';
 
 import type { IdentityManager } from '../identity';
 import type { SupportConnection } from '../support/connection';
-import type { HttpTransport } from './http';
 import type { UxrrConfig } from '../types';
+import type { HttpTransport } from './http';
 
 export interface LogEntry {
     t: number; // timestamp
@@ -27,6 +27,7 @@ export class IngestBuffer {
     private liveMode = false;
     private consecutiveFailures = 0;
     private sessionGeneration = 0;
+    private rotationSnapshotRequested = false;
 
     private readonly flushInterval: number;
     private readonly eventBufferSize: number;
@@ -38,7 +39,7 @@ export class IngestBuffer {
 
     private supportConnection: SupportConnection | null = null;
     onNeedFullSnapshot: (() => void) | null = null;
-    onServerConfig: ((config: { maxIdleTimeout?: number }) => void) | null = null;
+    onServerConfig: ((config: { maxIdleTimeout?: number; maxSessionDuration?: number }) => void) | null = null;
     onSessionExpired: (() => void) | null = null;
 
     constructor(
@@ -180,6 +181,25 @@ export class IngestBuffer {
         });
     }
 
+    async flushForSessionRotation(): Promise<boolean> {
+        if (this.isFlushing) return false;
+        if (this.events.length === 0 && this.logs.length === 0) return true;
+
+        this.rotationSnapshotRequested = false;
+        try {
+            const flushed = await this.flushRotationBatch();
+            if (!flushed) return false;
+
+            if (this.rotationSnapshotRequested && (this.events.length > 0 || this.logs.length > 0)) {
+                return await this.flushRotationBatch();
+            }
+
+            return true;
+        } finally {
+            this.rotationSnapshotRequested = false;
+        }
+    }
+
     flushBeacon(): void {
         if (this.events.length === 0 && this.logs.length === 0) return;
 
@@ -210,12 +230,7 @@ export class IngestBuffer {
         this.flushBeacon();
     }
 
-    private handlePayloadTooLarge(
-        events: eventWithTime[],
-        logs: LogEntry[],
-        basePayload: Record<string, unknown>,
-        generation: number
-    ): void {
+    private handlePayloadTooLarge(events: eventWithTime[], logs: LogEntry[], basePayload: Record<string, unknown>, generation: number): void {
         const sendSplit = async () => {
             // try events alone
             if (events.length > 0) {
@@ -264,6 +279,120 @@ export class IngestBuffer {
         };
 
         sendSplit();
+    }
+
+    private async flushRotationBatch(): Promise<boolean> {
+        if (this.isFlushing) return false;
+        if (this.events.length === 0 && this.logs.length === 0) return true;
+
+        this.isFlushing = true;
+
+        const events = this.events.splice(0);
+        const logs = this.logs.splice(0);
+        const generation = this.sessionGeneration;
+
+        const payload: Record<string, unknown> = {
+            identity: this.identity.toPayload(),
+            meta: this.meta,
+            launchTs: this.launchTs
+        };
+        if (this.previousSessionId) payload.previousSessionId = this.previousSessionId;
+        if (events.length > 0) payload.events = events;
+        if (logs.length > 0) payload.logs = logs;
+
+        try {
+            const result = await this.transport.postJSON('data', payload);
+            if (result.ok) {
+                this.consecutiveFailures = 0;
+                this.handleFlushSuccess();
+                if (result.ws && this.supportConnection && !this.supportConnection.isConnected) {
+                    this.supportConnection.upgrade();
+                }
+                return true;
+            }
+
+            if (result.status === 410) {
+                console.warn('[uxrr] session expired server-side while rotating');
+                this.needsFullSnapshot = true;
+                return true;
+            }
+
+            if (result.status === 413) {
+                return await this.flushOversizedRotationBatch(events, logs, payload, generation);
+            }
+
+            this.requeueRotationBatch(events, logs, generation);
+            return false;
+        } finally {
+            this.isFlushing = false;
+        }
+    }
+
+    private async flushOversizedRotationBatch(
+        events: eventWithTime[],
+        logs: LogEntry[],
+        basePayload: Record<string, unknown>,
+        generation: number
+    ): Promise<boolean> {
+        if (events.length > 0) {
+            const eventsPayload = { ...basePayload, events, logs: undefined };
+            delete eventsPayload.logs;
+            const eventsResult = await this.transport.postJSON('data', eventsPayload);
+            if (eventsResult.status === 413) {
+                console.warn('[uxrr] dropping %d events: payload too large', events.length);
+                this.needsFullSnapshot = true;
+                if (!this.rotationSnapshotRequested) {
+                    this.rotationSnapshotRequested = true;
+                    this.handleFlushSuccess();
+                }
+            } else if (eventsResult.status === 410) {
+                console.warn('[uxrr] session expired server-side while rotating');
+                this.needsFullSnapshot = true;
+                return true;
+            } else if (!eventsResult.ok) {
+                this.requeueRotationBatch(events, logs, generation);
+                return false;
+            } else {
+                this.consecutiveFailures = 0;
+                this.handleFlushSuccess();
+                if (eventsResult.ws && this.supportConnection && !this.supportConnection.isConnected) {
+                    this.supportConnection.upgrade();
+                }
+            }
+        }
+
+        if (logs.length > 0) {
+            const logsPayload = { ...basePayload, logs, events: undefined };
+            delete logsPayload.events;
+            const logsResult = await this.transport.postJSON('data', logsPayload);
+            if (logsResult.status === 413) {
+                console.warn('[uxrr] dropping %d logs: payload too large', logs.length);
+            } else if (logsResult.status === 410) {
+                console.warn('[uxrr] session expired server-side while rotating');
+                this.needsFullSnapshot = true;
+                return true;
+            } else if (!logsResult.ok) {
+                this.requeueRotationBatch([], logs, generation);
+                return false;
+            } else {
+                this.consecutiveFailures = 0;
+                this.handleFlushSuccess();
+                if (logsResult.ws && this.supportConnection && !this.supportConnection.isConnected) {
+                    this.supportConnection.upgrade();
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private requeueRotationBatch(events: eventWithTime[], logs: LogEntry[], generation: number): void {
+        if (generation !== this.sessionGeneration) return;
+        this.events.unshift(...events);
+        this.logs.unshift(...logs);
+        while (this.logs.length > this.maxLogQueue) {
+            this.logs.shift();
+        }
     }
 
     private applyResultConfig(result: import('./http').PostResult): void {

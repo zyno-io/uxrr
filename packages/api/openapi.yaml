@@ -206,6 +206,8 @@ paths:
                     properties:
                       maxIdleTimeout:
                         type: number
+                      maxSessionDuration:
+                        type: number
                 required:
                   - ok
   /v1/ng/{appKey}/{sessionId}/t:
@@ -813,6 +815,8 @@ components:
             type: string
         maxIdleTimeout:
           type: number
+        maxSessionDuration:
+          type: number
         isActive:
           type: boolean
         createdAt:
@@ -840,6 +844,8 @@ components:
             type: string
         maxIdleTimeout:
           type: number
+        maxSessionDuration:
+          type: number
       required:
         - appKey
         - name
@@ -854,6 +860,9 @@ components:
           items:
             type: string
         maxIdleTimeout:
+          type: number
+          nullable: true
+        maxSessionDuration:
           type: number
           nullable: true
         isActive:

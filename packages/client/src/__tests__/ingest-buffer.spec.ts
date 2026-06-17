@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { eventWithTime } from '@rrweb/types';
 
-import { IngestBuffer, type LogEntry } from '../transport/ingest-buffer';
-import type { HttpTransport, PostResult } from '../transport/http';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import type { IdentityManager } from '../identity';
 import type { SupportConnection } from '../support/connection';
+import type { HttpTransport, PostResult } from '../transport/http';
 import type { UxrrConfig } from '../types';
+
+import { IngestBuffer, type LogEntry } from '../transport/ingest-buffer';
 
 function makeEvent(ts = Date.now()): eventWithTime {
     return { type: 3, data: {}, timestamp: ts } as eventWithTime;
@@ -506,6 +508,101 @@ describe('IngestBuffer', () => {
             buffer.flush();
             // The third call was for logs-only 413, fourth call should not happen
             expect(postJSONFn).toHaveBeenCalledTimes(3);
+        });
+
+        it('splits oversized rotation flushes before returning success', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // combined
+            postJSONFn.mockResolvedValueOnce({ ok: true }); // events-only
+            postJSONFn.mockResolvedValueOnce({ ok: true }); // logs-only
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+
+            buffer.pushEvent(makeEvent());
+            buffer.pushLog(makeLog());
+
+            await expect(buffer.flushForSessionRotation()).resolves.toBe(true);
+
+            expect(postJSONFn).toHaveBeenCalledTimes(3);
+            const eventsPayload = postJSONFn.mock.calls[1][1] as Record<string, unknown>;
+            expect(eventsPayload.events).toBeDefined();
+            expect(eventsPayload.logs).toBeUndefined();
+            const logsPayload = postJSONFn.mock.calls[2][1] as Record<string, unknown>;
+            expect(logsPayload.logs).toBeDefined();
+            expect(logsPayload.events).toBeUndefined();
+        });
+
+        it('leaves activity queued during rotation for the next session', async () => {
+            let buffer: IngestBuffer | undefined;
+            const newSessionEvent = makeEvent(2);
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockImplementationOnce(async () => {
+                buffer!.pushEvent(newSessionEvent);
+                return { ok: true };
+            });
+            postJSONFn.mockResolvedValue({ ok: true });
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+            buffer.pushEvent(makeEvent(1));
+
+            await expect(buffer.flushForSessionRotation()).resolves.toBe(true);
+            expect(postJSONFn).toHaveBeenCalledOnce();
+
+            buffer.resetSession(2000, 'old-session-id');
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(postJSONFn).toHaveBeenCalledTimes(2);
+            const nextPayload = postJSONFn.mock.calls[1][1] as Record<string, unknown>;
+            expect(nextPayload.launchTs).toBe(2000);
+            expect(nextPayload.events).toEqual([newSessionEvent]);
+        });
+
+        it('flushes a full snapshot under the old session when rotation drops oversized events', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // combined
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // events-only
+            postJSONFn.mockResolvedValueOnce({ ok: true }); // logs-only
+            postJSONFn.mockResolvedValueOnce({ ok: true }); // full snapshot
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+            const snapshotEvent = makeEvent(2);
+            buffer.onNeedFullSnapshot = vi.fn(() => buffer.pushEvent(snapshotEvent));
+
+            buffer.pushEvent(makeEvent(1));
+            buffer.pushLog(makeLog());
+
+            await expect(buffer.flushForSessionRotation()).resolves.toBe(true);
+
+            expect(buffer.onNeedFullSnapshot).toHaveBeenCalledOnce();
+            expect(postJSONFn).toHaveBeenCalledTimes(4);
+            const snapshotPayload = postJSONFn.mock.calls[3][1] as Record<string, unknown>;
+            expect(snapshotPayload.events).toEqual([snapshotEvent]);
+            expect(snapshotPayload.logs).toBeUndefined();
+        });
+
+        it('does not repeatedly request snapshots when a rotation snapshot is oversized', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // combined
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // events-only
+            postJSONFn.mockResolvedValueOnce({ ok: true }); // logs-only
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // snapshot batch
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 413 }); // snapshot events-only
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+            buffer.onNeedFullSnapshot = vi.fn(() => buffer.pushEvent(makeEvent(2)));
+
+            buffer.pushEvent(makeEvent(1));
+            buffer.pushLog(makeLog());
+
+            await expect(buffer.flushForSessionRotation()).resolves.toBe(true);
+
+            expect(buffer.onNeedFullSnapshot).toHaveBeenCalledOnce();
+            expect(postJSONFn).toHaveBeenCalledTimes(5);
         });
     });
 

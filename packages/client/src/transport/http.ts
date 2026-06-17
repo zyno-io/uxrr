@@ -2,7 +2,7 @@ export interface PostResult {
     ok: boolean;
     status?: number;
     ws?: boolean;
-    config?: { maxIdleTimeout?: number };
+    config?: { maxIdleTimeout?: number; maxSessionDuration?: number };
 }
 
 export class HttpTransport {
@@ -10,11 +10,7 @@ export class HttpTransport {
     private readonly appKey: string;
     private sessionId: string;
 
-    constructor(
-        endpoint: string,
-        appKey: string,
-        sessionId: string
-    ) {
+    constructor(endpoint: string, appKey: string, sessionId: string) {
         this.baseUrl = endpoint.replace(/\/$/, '');
         this.appKey = encodeURIComponent(appKey);
         this.sessionId = sessionId;

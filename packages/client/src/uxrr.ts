@@ -43,6 +43,7 @@ export const uxrr: UxrrInstance = new Proxy({} as UxrrInstance, {
 });
 
 const DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const DEFAULT_MAX_SESSION_DURATION = 12 * 60 * 60 * 1000; // 12 hours
 
 class UXRR implements UxrrInstance {
     get sessionId(): string {
@@ -63,6 +64,8 @@ class UXRR implements UxrrInstance {
     private supportConnection: SupportConnection | undefined;
     private navigationLogger: NavigationLogger | undefined;
     private idleMonitor: IdleMonitor | undefined;
+    private maxSessionDuration: number | undefined;
+    private maxSessionTimer: ReturnType<typeof setTimeout> | undefined;
     private boundFlushFn: (() => void) | undefined;
 
     constructor() {
@@ -91,6 +94,8 @@ class UXRR implements UxrrInstance {
 
         // Take a fresh rrweb snapshot for the new session
         this.recorder?.takeFullSnapshot();
+
+        this.armMaxSessionTimer();
     }
 
     init(config: UxrrConfig): void {
@@ -99,6 +104,7 @@ class UXRR implements UxrrInstance {
             this.stop();
         }
 
+        this.session.start();
         this.config = config;
 
         const enabled = config.enabled ?? {};
@@ -152,7 +158,28 @@ class UXRR implements UxrrInstance {
             this.initTracing(config);
         }
 
-        // Idle session reset — server config takes precedence over local config
+        // Server config applies to the shared /data ingest path, including logging-only clients.
+        this.ingestBuffer.onServerConfig = serverConfig => {
+            if (sessionsEnabled && serverConfig.maxIdleTimeout !== undefined) {
+                if (this.idleMonitor) {
+                    this.idleMonitor.updateTimeout(serverConfig.maxIdleTimeout);
+                } else if (serverConfig.maxIdleTimeout > 0) {
+                    this.idleMonitor = new IdleMonitor(
+                        serverConfig.maxIdleTimeout,
+                        () => this.ingestBuffer?.flush(),
+                        () => this.resetSession()
+                    );
+                }
+            }
+            if (serverConfig.maxSessionDuration !== undefined) {
+                this.updateMaxSessionDuration(serverConfig.maxSessionDuration);
+            }
+        };
+
+        this.ingestBuffer.onSessionExpired = () => this.resetSession();
+        this.updateMaxSessionDuration(config.maxSessionDuration ?? DEFAULT_MAX_SESSION_DURATION);
+
+        // Idle session reset uses DOM activity and only applies when rrweb sessions are enabled.
         if (sessionsEnabled) {
             const idleTimeout = config.idleTimeout ?? DEFAULT_IDLE_TIMEOUT;
             if (idleTimeout > 0) {
@@ -162,28 +189,15 @@ class UXRR implements UxrrInstance {
                     () => this.resetSession()
                 );
             }
-
-            this.ingestBuffer.onServerConfig = serverConfig => {
-                if (serverConfig.maxIdleTimeout !== undefined) {
-                    if (this.idleMonitor) {
-                        this.idleMonitor.updateTimeout(serverConfig.maxIdleTimeout);
-                    } else if (serverConfig.maxIdleTimeout > 0) {
-                        this.idleMonitor = new IdleMonitor(
-                            serverConfig.maxIdleTimeout,
-                            () => this.ingestBuffer?.flush(),
-                            () => this.resetSession()
-                        );
-                    }
-                }
-            };
-
-            this.ingestBuffer.onSessionExpired = () => this.resetSession();
         }
     }
 
     private resetSession(): void {
         // Don't reset during an active live support session
-        if (this.supportConnection?.isConnected) return;
+        if (this.supportConnection?.isConnected) {
+            this.armMaxSessionTimer(60_000);
+            return;
+        }
 
         // Reset session ID
         const oldSessionId = this.session.reset();
@@ -202,12 +216,55 @@ class UXRR implements UxrrInstance {
 
         // Take a fresh rrweb snapshot for the new session
         this.recorder?.takeFullSnapshot();
+
+        this.armMaxSessionTimer();
+    }
+
+    private async rotateMaxDurationSession(): Promise<void> {
+        if (this.supportConnection?.isConnected) {
+            this.armMaxSessionTimer(60_000);
+            return;
+        }
+
+        const drained = (await this.ingestBuffer?.flushForSessionRotation()) ?? true;
+        if (!drained) {
+            this.armMaxSessionTimer(60_000);
+            return;
+        }
+
+        this.resetSession();
+    }
+
+    private updateMaxSessionDuration(maxSessionDuration: number): void {
+        this.maxSessionDuration = maxSessionDuration;
+        this.armMaxSessionTimer();
+    }
+
+    private armMaxSessionTimer(retryDelay?: number): void {
+        this.clearMaxSessionTimer();
+        if (!this.maxSessionDuration || this.maxSessionDuration <= 0) return;
+        const delay = retryDelay ?? Math.max(0, this.session.launchTs + this.maxSessionDuration - Date.now());
+        this.maxSessionTimer = setTimeout(() => {
+            void this.rotateMaxDurationSession();
+        }, delay);
+    }
+
+    private clearMaxSessionTimer(): void {
+        if (this.maxSessionTimer) {
+            clearTimeout(this.maxSessionTimer);
+            this.maxSessionTimer = undefined;
+        }
     }
 
     private async initRecording(config: UxrrConfig): Promise<void> {
         const { createRecorder } = await import('./recording/recorder');
         if (!this.ingestBuffer) return; // guard against stop() called before load
-        this.recorder = await createRecorder(this.ingestBuffer, config);
+        const recorder = await createRecorder(this.ingestBuffer, config);
+        if (!this.ingestBuffer) {
+            recorder.stop();
+            return;
+        }
+        this.recorder = recorder;
         this.ingestBuffer.onNeedFullSnapshot = () => this.recorder?.takeFullSnapshot();
     }
 
@@ -233,6 +290,8 @@ class UXRR implements UxrrInstance {
     }
 
     stop(): void {
+        this.clearMaxSessionTimer();
+        this.maxSessionDuration = undefined;
         this.idleMonitor?.stop();
         this.idleMonitor = undefined;
         this.session.stop();

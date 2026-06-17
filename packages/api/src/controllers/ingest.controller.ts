@@ -1,12 +1,20 @@
-import { http, HttpBody, HttpRequest, HttpResponse } from '@deepkit/http';
-import { HttpAccessDeniedError, HttpBadRequestError, HttpGoneError, HttpTooManyRequestsError } from '@deepkit/http';
+import {
+    http,
+    HttpBody,
+    HttpRequest,
+    HttpResponse,
+    HttpAccessDeniedError,
+    HttpGoneError,
+    HttpTooManyRequestsError,
+    createHttpError
+} from '@deepkit/http';
 import { ScopedLogger } from '@deepkit/logger';
 import { HttpCors } from '@zyno-io/dk-server-foundation/http/cors.js';
 
 import { UxrrConfig } from '../config';
-import { SessionEntity } from '../database/entities/session.entity';
 import { UxrrDatabase } from '../database/database';
-import { getAppKey, getAppUuid, getAppMaxIdleTimeout } from '../middleware/origin.guard';
+import { SessionEntity } from '../database/entities/session.entity';
+import { getAppKey, getAppUuid, getAppMaxIdleTimeout, getAppMaxSessionDuration } from '../middleware/origin.guard';
 import { IngestService, IngestDataPayload } from '../services/ingest.service';
 import { LiveSessionService } from '../services/live-session.service';
 import { RateLimiter } from '../util/rate-limiter';
@@ -15,6 +23,7 @@ import { validateSessionId } from '../util/validation';
 const MAX_BODY_SIZE = 5 * 1024 * 1024; // 5MB
 const ingestRateLimiter = new RateLimiter(60, 60_000); // 60 req/min per IP
 const otlpRateLimiter = new RateLimiter(30, 60_000); // 30 req/min per IP
+const HttpPayloadTooLargeError = createHttpError(413, 'Payload too large');
 
 @http.controller('v1/ng')
 export class IngestController {
@@ -42,7 +51,7 @@ export class IngestController {
         sessionId: string,
         request: HttpRequest,
         body: HttpBody<IngestDataPayload>
-    ): Promise<{ ok: true; ws?: true; config?: { maxIdleTimeout?: number } }> {
+    ): Promise<{ ok: true; ws?: true; config?: { maxIdleTimeout?: number; maxSessionDuration?: number } }> {
         const { appKey: resolvedAppKey, appUuid } = this.validateAppKey(request, appKey);
         validateSessionId(sessionId);
         if (body.previousSessionId) {
@@ -55,34 +64,40 @@ export class IngestController {
         }
 
         if (request.body && request.body.length > MAX_BODY_SIZE) {
-            throw new HttpBadRequestError('Payload too large');
+            throw new HttpPayloadTooLargeError('Payload too large');
         }
         if (body.events && body.events.length > this.config.UXRR_MAX_EVENT_BATCH_SIZE) {
-            throw new HttpBadRequestError(`Too many events (max ${this.config.UXRR_MAX_EVENT_BATCH_SIZE})`);
+            throw new HttpPayloadTooLargeError(`Too many events (max ${this.config.UXRR_MAX_EVENT_BATCH_SIZE})`);
         }
         if (body.logs && body.logs.length > this.config.UXRR_MAX_LOG_BATCH_SIZE) {
-            throw new HttpBadRequestError(`Too many logs (max ${this.config.UXRR_MAX_LOG_BATCH_SIZE})`);
+            throw new HttpPayloadTooLargeError(`Too many logs (max ${this.config.UXRR_MAX_LOG_BATCH_SIZE})`);
         }
 
-        // Reject events past the idle threshold for this session
+        // Reject events past the idle or total-duration threshold for this session.
         const maxIdleTimeout = getAppMaxIdleTimeout(request);
-        if (maxIdleTimeout) {
+        const maxSessionDuration = getAppMaxSessionDuration(request);
+        if (maxIdleTimeout || maxSessionDuration) {
             const existingSession = await this.db.query(SessionEntity).filter({ id: sessionId }).findOneOrUndefined();
             if (existingSession) {
-                const idleMs = Date.now() - existingSession.lastActivityAt.getTime();
-                if (idleMs > maxIdleTimeout) {
+                const now = Date.now();
+                if (maxIdleTimeout && now - existingSession.lastActivityAt.getTime() > maxIdleTimeout) {
                     throw new HttpGoneError('Session exceeded max idle timeout');
+                }
+                if (maxSessionDuration && now - existingSession.startedAt.getTime() > maxSessionDuration) {
+                    throw new HttpGoneError('Session exceeded max session duration');
                 }
             }
         }
 
         await this.ingestSvc.ingestData(appUuid, resolvedAppKey, sessionId, body, ipAddress);
-        const result: { ok: true; ws?: true; config?: { maxIdleTimeout?: number } } = { ok: true };
+        const result: { ok: true; ws?: true; config?: { maxIdleTimeout?: number; maxSessionDuration?: number } } = { ok: true };
         if (this.liveSvc.isAgentConnected(sessionId)) {
             result.ws = true;
         }
-        if (maxIdleTimeout) {
-            result.config = { maxIdleTimeout };
+        if (maxIdleTimeout || maxSessionDuration) {
+            result.config = {};
+            if (maxIdleTimeout) result.config.maxIdleTimeout = maxIdleTimeout;
+            if (maxSessionDuration) result.config.maxSessionDuration = maxSessionDuration;
         }
         return result;
     }

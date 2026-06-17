@@ -1,6 +1,6 @@
 import { http, HttpBody, HttpRequest, HttpAccessDeniedError, HttpBadRequestError, HttpNotFoundError } from '@deepkit/http';
-import { HttpUserError } from '@zyno-io/dk-server-foundation';
 import { ScopedLogger } from '@deepkit/logger';
+import { HttpUserError } from '@zyno-io/dk-server-foundation';
 
 import { UxrrDatabase } from '../database/database';
 import { AppEntity } from '../database/entities/app.entity';
@@ -16,6 +16,7 @@ interface CreateAppBody {
     name: string;
     origins: string[];
     maxIdleTimeout?: number;
+    maxSessionDuration?: number;
 }
 
 interface UpdateAppBody {
@@ -23,6 +24,7 @@ interface UpdateAppBody {
     origins?: string[];
     isActive?: boolean;
     maxIdleTimeout?: number | null;
+    maxSessionDuration?: number | null;
 }
 
 interface AppResponse {
@@ -31,6 +33,7 @@ interface AppResponse {
     name: string;
     origins: string[];
     maxIdleTimeout?: number;
+    maxSessionDuration?: number;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
@@ -71,6 +74,7 @@ export class AdminController {
         this.validateAppName(body.name);
         this.validateOrigins(body.origins);
         this.validateMaxIdleTimeout(body.maxIdleTimeout);
+        this.validateMaxSessionDuration(body.maxSessionDuration);
 
         const appKey = body.appKey.trim();
         if (!appKey) {
@@ -88,6 +92,7 @@ export class AdminController {
         app.name = body.name.trim();
         app.origins = body.origins.map(o => o.trim());
         app.maxIdleTimeout = body.maxIdleTimeout;
+        app.maxSessionDuration = body.maxSessionDuration;
         app.isActive = true;
         app.createdAt = new Date();
         app.updatedAt = new Date();
@@ -104,6 +109,7 @@ export class AdminController {
         if (body.name !== undefined) this.validateAppName(body.name);
         if (body.origins !== undefined) this.validateOrigins(body.origins);
         this.validateMaxIdleTimeout(body.maxIdleTimeout);
+        this.validateMaxSessionDuration(body.maxSessionDuration);
 
         const app = await this.db.query(AppEntity).filter({ appKey }).findOneOrUndefined();
         if (!app) throw new HttpNotFoundError(`App "${appKey}" not found`);
@@ -111,6 +117,7 @@ export class AdminController {
         if (body.origins !== undefined) app.origins = body.origins.map(o => o.trim());
         if (body.isActive !== undefined) app.isActive = body.isActive;
         if (body.maxIdleTimeout !== undefined) app.maxIdleTimeout = body.maxIdleTimeout ?? undefined;
+        if (body.maxSessionDuration !== undefined) app.maxSessionDuration = body.maxSessionDuration ?? undefined;
         app.updatedAt = new Date();
         await this.db.persist(app);
         this.appResolver.invalidateCache();
@@ -177,6 +184,16 @@ export class AdminController {
         }
     }
 
+    private validateMaxSessionDuration(value: number | null | undefined): void {
+        if (value === undefined || value === null) return;
+        if (!Number.isInteger(value) || value <= 0) {
+            throw new HttpBadRequestError('maxSessionDuration must be a positive integer (milliseconds)');
+        }
+        if (value > 24 * 60 * 60 * 1000) {
+            throw new HttpBadRequestError('maxSessionDuration cannot exceed 24 hours');
+        }
+    }
+
     private validateOrigins(origins: string[]): void {
         for (const origin of origins) {
             const trimmed = origin.trim();
@@ -200,6 +217,7 @@ export class AdminController {
             name: app.name,
             origins: app.origins,
             maxIdleTimeout: app.maxIdleTimeout,
+            maxSessionDuration: app.maxSessionDuration,
             isActive: app.isActive,
             createdAt: app.createdAt.toISOString(),
             updatedAt: app.updatedAt.toISOString()

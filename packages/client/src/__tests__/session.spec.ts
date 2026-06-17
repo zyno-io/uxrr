@@ -5,21 +5,26 @@ import { SessionManager } from '../session';
 describe('SessionManager', () => {
     beforeEach(() => {
         sessionStorage.clear();
+        localStorage.clear();
     });
 
     afterEach(() => {
         vi.useRealTimers();
+        sessionStorage.clear();
+        localStorage.clear();
     });
 
-    it('reuses sessionId from sessionStorage across constructions', () => {
+    it('reuses sessionId from sessionStorage after the previous manager stops', () => {
         const s1 = new SessionManager();
+        const sessionId = s1.sessionId;
+        s1.stop();
+
         const s2 = new SessionManager();
 
         expect(s1.sessionId).toMatch(/^[0-9a-f-]{36}$/);
         expect(s2.sessionId).toMatch(/^[0-9a-f-]{36}$/);
-        expect(s1.sessionId).toBe(s2.sessionId);
+        expect(s2.sessionId).toBe(sessionId);
 
-        s1.stop();
         s2.stop();
     });
 
@@ -94,16 +99,16 @@ describe('SessionManager', () => {
             const mgr1 = new SessionManager();
             mgr1.reset();
             const expectedPrevious = mgr1.previousSessionId;
+            mgr1.stop();
 
             const mgr2 = new SessionManager();
             expect(mgr2.previousSessionId).toBe(expectedPrevious);
-            mgr1.stop();
             mgr2.stop();
         });
     });
 
     describe('duplicate tab detection', () => {
-        it('detects duplicate session and resets when another tab responds', async () => {
+        it('detects duplicate session and resets when another live tab owns it', async () => {
             // First tab - the "original"
             const mgr1 = new SessionManager();
             const originalSessionId = mgr1.sessionId;
@@ -111,9 +116,6 @@ describe('SessionManager', () => {
             // Simulate a duplicate tab scenario: mgr2 loads with the same sessionStorage
             // (In real browser, window.open copies sessionStorage)
             const mgr2 = new SessionManager();
-
-            // Both should initially have the same session ID
-            expect(mgr2.sessionId).toBe(originalSessionId);
 
             // Wait for BroadcastChannel messages to propagate
             await new Promise(r => setTimeout(r, 150));
@@ -130,20 +132,21 @@ describe('SessionManager', () => {
         });
 
         it('calls onSessionReset callback when duplicate is detected', async () => {
-            const mgr1 = new SessionManager();
-            const originalSessionId = mgr1.sessionId;
-
-            const mgr2 = new SessionManager();
+            const mgr = new SessionManager();
+            const originalSessionId = mgr.sessionId;
             const resetCallback = vi.fn();
-            mgr2.setOnSessionReset(resetCallback);
+            mgr.setOnSessionReset(resetCallback);
+
+            const testChannel = new BroadcastChannel('uxrr:session');
+            testChannel.postMessage({ type: 'session-in-use', sessionId: originalSessionId });
 
             await new Promise(r => setTimeout(r, 150));
 
             expect(resetCallback).toHaveBeenCalledTimes(1);
-            expect(mgr2.sessionId).not.toBe(originalSessionId);
+            expect(mgr.sessionId).not.toBe(originalSessionId);
 
-            mgr1.stop();
-            mgr2.stop();
+            testChannel.close();
+            mgr.stop();
         });
 
         it('does not trigger reset for fresh session (no existing sessionStorage)', async () => {
