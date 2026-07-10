@@ -1,18 +1,20 @@
-import { describe, it, mock } from 'node:test';
-import { strict as assert } from 'node:assert';
+import type { Logger } from '@zyno-io/ts-server-foundation';
 
-import { WebSocketService } from '../src/services/websocket.service';
+import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
 import type { UxrrConfig } from '../src/config';
-import { signWsToken } from '../src/util/ws-token';
-import type { AppResolverService } from '../src/services/app-resolver.service';
-import type { OidcService } from '../src/services/oidc.service';
 import type { ApiKeyService } from '../src/services/api-key.service';
+import type { AppResolverService } from '../src/services/app-resolver.service';
+import type { LiveSessionService } from '../src/services/live-session.service';
+import type { OidcService } from '../src/services/oidc.service';
+import type { SessionNotifyService } from '../src/services/session-notify.service';
 import type { SessionService } from '../src/services/session.service';
 import type { ShareService } from '../src/services/share.service';
-import type { LiveSessionService } from '../src/services/live-session.service';
-import type { SessionNotifyService } from '../src/services/session-notify.service';
 import type { UserService } from '../src/services/user.service';
-import type { Logger } from '@deepkit/logger';
+
+import { WebSocketService } from '../src/services/websocket.service';
+import { signWsToken } from '../src/util/ws-token';
 
 /**
  * WebSocketService constructor calls resolve(ApplicationServer) which requires

@@ -1,13 +1,15 @@
-import { describe, it, mock } from 'node:test';
-import { strict as assert } from 'node:assert';
-import { EventEmitter } from 'events';
+import type { Logger } from '@zyno-io/ts-server-foundation';
 import type { WebSocket } from 'ws';
 
-import { SessionNotifyService } from '../src/services/session-notify.service';
+import { EventEmitter } from 'events';
+import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
 import type { SessionEntity } from '../src/database/entities/session.entity';
-import type { RedisService } from '../src/services/redis.service';
 import type { PodPresenceService } from '../src/services/pod-presence.service';
-import type { Logger } from '@deepkit/logger';
+import type { RedisService } from '../src/services/redis.service';
+
+import { SessionNotifyService } from '../src/services/session-notify.service';
 
 function makeLogger(): Logger {
     return { warn: mock.fn(), error: mock.fn(), info: mock.fn(), debug: mock.fn() } as unknown as Logger;

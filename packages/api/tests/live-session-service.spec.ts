@@ -1,16 +1,18 @@
-import { describe, it, mock } from 'node:test';
-import { strict as assert } from 'node:assert';
-import { EventEmitter } from 'events';
+import type { Logger } from '@zyno-io/ts-server-foundation';
 import type { WebSocket } from 'ws';
 
-import { LiveSessionService } from '../src/services/live-session.service';
-import type { RedisService } from '../src/services/redis.service';
-import type { PodPresenceService } from '../src/services/pod-presence.service';
-import type { SessionNotifyService } from '../src/services/session-notify.service';
-import type { S3Service } from '../src/services/s3.service';
-import type { LokiService } from '../src/services/loki.service';
+import { EventEmitter } from 'events';
+import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
 import type { UxrrDatabase } from '../src/database/database';
-import type { Logger } from '@deepkit/logger';
+import type { LokiService } from '../src/services/loki.service';
+import type { PodPresenceService } from '../src/services/pod-presence.service';
+import type { RedisService } from '../src/services/redis.service';
+import type { S3Service } from '../src/services/s3.service';
+import type { SessionNotifyService } from '../src/services/session-notify.service';
+
+import { LiveSessionService } from '../src/services/live-session.service';
 
 function makeLogger(): Logger {
     return {

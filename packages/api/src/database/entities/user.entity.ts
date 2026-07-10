@@ -1,5 +1,5 @@
-import { BaseEntity } from '@zyno-io/dk-server-foundation';
-import { entity, Index, PrimaryKey, Unique, UUID } from '@deepkit/type';
+import { BaseEntity } from '@zyno-io/ts-server-foundation';
+import { entity, Index, PrimaryKey, Unique, UUID } from '@zyno-io/ts-server-foundation';
 
 @entity.name('users')
 export class UserEntity extends BaseEntity {

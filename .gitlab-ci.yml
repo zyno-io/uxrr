@@ -1,10 +1,5 @@
 default:
   interruptible: true
-  before_script:
-    - |
-      BUILD_VERSION=${CI_PIPELINE_CREATED_AT:2:2}.${CI_PIPELINE_CREATED_AT:5:2}${CI_PIPELINE_CREATED_AT:8:2}.${CI_PIPELINE_CREATED_AT:11:2}${CI_PIPELINE_CREATED_AT:14:2}
-      BUILD_VERSION=$(echo -n ${BUILD_VERSION} | sed -E 's/\.0+/./g')
-      echo "Build version: ${BUILD_VERSION}"
 
 stages:
   - test
@@ -13,6 +8,21 @@ stages:
   - mirror
 
 # ---------- Templates ----------
+
+prepare build:
+  needs: []
+  stage: build
+  image:
+    name: alpine/git
+    entrypoint: ['']
+  script: |
+    BUILD_VERSION=$(TZ=UTC0 git show -s --format=%cd --date=format-local:'%y.%-m%d.%-H%M' HEAD)
+    echo Build version: $BUILD_VERSION
+    echo "BUILD_VERSION=$BUILD_VERSION" >> ci.env
+  artifacts:
+    reports:
+      dotenv: ci.env
+
 .test-base:
   stage: test
   rules:
@@ -82,8 +92,8 @@ unit test:
 
     echo "--- API unit tests ---"
     pushd packages/api
-    # Run only non-integration tests (dksf-dev test accepts file arguments)
-    npx dksf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)
+    # Run only non-integration tests (tsf-dev test accepts file arguments)
+    npx tsf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)
     popd
 
 # ---------- Integration + E2E + VRT screenshots ----------
@@ -106,7 +116,7 @@ test:
 
     # --- API integration tests ---
     pushd packages/api
-    npx dksf-dev test tests/integration/
+    npx tsf-dev test tests/integration/
     popd
 
     # --- Build client SDK (needed for E2E fixture page) ---
@@ -191,6 +201,8 @@ visual regression test:
 
 # ---------- Build & publish client SDK canary ----------
 publish client canary:
+  needs:
+    - prepare build
   dependencies: []
   only:
     refs:
@@ -198,9 +210,6 @@ publish client canary:
   stage: build
   image: node:24
   before_script:
-    - |
-      BUILD_VERSION=${CI_PIPELINE_CREATED_AT:2:2}.${CI_PIPELINE_CREATED_AT:5:2}${CI_PIPELINE_CREATED_AT:8:2}.${CI_PIPELINE_CREATED_AT:11:2}${CI_PIPELINE_CREATED_AT:14:2}
-      BUILD_VERSION=$(echo -n ${BUILD_VERSION} | sed -E 's/\.0+/./g')
     - corepack enable
     - |
       yarn config set --home 'npmScopes.zyno-io.npmRegistryServer' "https://${PRIVATE_NPM_HOST}/"
@@ -220,24 +229,30 @@ publish client canary:
 
 # ---------- Build canary container ----------
 build:
+  needs:
+    - prepare build
   dependencies: []
   only:
     refs:
       - main
   stage: build
-  image: quay.io/containers/buildah
+  image: ghcr.io/zyno-io/container-tooling:latest
   script: |
-    export BUILDAH_ISOLATION=chroot
-    export STORAGE_DRIVER=vfs
 
     buildah login \
-      --username=${CI_REGISTRY_USER} \
-      --password=${CI_REGISTRY_PASSWORD} \
-      ${CI_REGISTRY}
+      --username="${CI_REGISTRY_USER}" \
+      --password="${CI_REGISTRY_PASSWORD}" \
+      "${CI_REGISTRY}"
 
-    STATUS=$(buildah manifest inspect ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA} 2>&1 || true)
-    if [[ "$STATUS" =~ "schemaVersion" ]] || [[ "$STATUS" =~ "Error: manifest is of type application/vnd.oci.image.manifest.v1+json" ]]; then
-      echo "Image already exists, skipping build"
+    image_exists() {
+      image="$1"
+      skopeo inspect \
+        --creds "${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD}" \
+        "docker://${image}" >/dev/null 2>&1
+    }
+
+    if image_exists "${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}"; then
+      echo "Image already exists: ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}"
       exit 0
     fi
 
@@ -256,6 +271,8 @@ build:
 
 # ---------- Deploy ----------
 deploy:
+  needs:
+    - prepare build
   stage: deploy
   only:
     refs:

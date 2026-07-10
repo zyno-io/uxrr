@@ -1,4 +1,4 @@
-import { createPostgresDatabase } from '@zyno-io/dk-server-foundation';
+import { createPostgresDatabase } from '@zyno-io/ts-server-foundation';
 
 import { ApiKeyEntity } from './entities/api-key.entity';
 import { AppEntity } from './entities/app.entity';

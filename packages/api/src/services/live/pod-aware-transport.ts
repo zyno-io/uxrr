@@ -1,9 +1,10 @@
-import { ScopedLogger } from '@deepkit/logger';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import type { PodPresenceService } from '../pod-presence.service';
 import type { RedisService } from '../redis.service';
 import type { ISessionTransport } from './interfaces';
 import type { AgentPublicInfo, LiveMessage, RedisSessionMessage, SessionConnections } from './types';
+
 import { CHANNEL_DATA_PREFIX } from './types';
 
 /**

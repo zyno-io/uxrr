@@ -1,5 +1,5 @@
-import type { HttpRequest } from '@deepkit/http';
-import type { ScopedLogger } from '@deepkit/logger';
+import type { HttpRequest } from '@zyno-io/ts-server-foundation';
+import type { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { strict as assert } from 'node:assert';
 import { describe, it, mock } from 'node:test';

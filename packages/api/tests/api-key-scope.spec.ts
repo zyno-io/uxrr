@@ -1,10 +1,12 @@
-import { describe, it, mock } from 'node:test';
+import type { Logger } from '@zyno-io/ts-server-foundation';
+
 import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
+import type { UxrrDatabase } from '../src/database/database';
+import type { ApiKeyEntity } from '../src/database/entities/api-key.entity';
 
 import { ApiKeyService } from '../src/services/api-key.service';
-import type { ApiKeyEntity } from '../src/database/entities/api-key.entity';
-import type { UxrrDatabase } from '../src/database/database';
-import type { Logger } from '@deepkit/logger';
 
 function makeLogger(): Logger {
     return { warn: mock.fn(), error: mock.fn(), info: mock.fn() } as unknown as Logger;

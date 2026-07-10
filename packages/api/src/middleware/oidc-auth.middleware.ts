@@ -1,7 +1,8 @@
-import { HttpAccessDeniedError, HttpRequest, HttpResponse, HttpUnauthorizedError } from '@deepkit/http';
-import { HttpMiddleware } from '@zyno-io/dk-server-foundation';
-import { ScopedLogger } from '@deepkit/logger';
 import type { JWTPayload } from 'jose';
+
+import { HttpAccessDeniedError, HttpRequest, HttpResponse, HttpUnauthorizedError } from '@zyno-io/ts-server-foundation';
+import { HttpMiddleware } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { UxrrConfig } from '../config';
 import { OidcService } from '../services/oidc.service';

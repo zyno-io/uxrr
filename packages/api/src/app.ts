@@ -1,18 +1,18 @@
-import { createApp } from '@zyno-io/dk-server-foundation';
-import type { HttpCorsOptions } from '@zyno-io/dk-server-foundation/http/cors.js';
+import type { HttpCorsOptions } from '@zyno-io/ts-server-foundation';
+
+import { createApp } from '@zyno-io/ts-server-foundation';
 
 import { UxrrConfig } from './config';
-import { UxrrDatabase } from './database/database';
 import { AdminController } from './controllers/admin.controller';
 import { ApiKeyController } from './controllers/api-key.controller';
 import { AuthController } from './controllers/auth.controller';
 import { IngestController } from './controllers/ingest.controller';
 import { SessionController } from './controllers/session.controller';
 import { ShareController } from './controllers/share.controller';
-import { StaticContentListener } from './listener';
+import { UxrrDatabase } from './database/database';
+import { OidcAuthMiddleware } from './middleware/oidc-auth.middleware';
 import { AppGuard } from './middleware/origin.guard';
 import { SecurityHeadersListener } from './middleware/security-headers.listener';
-import { OidcAuthMiddleware } from './middleware/oidc-auth.middleware';
 import { SessionAuthMiddleware } from './middleware/session-auth.middleware';
 import { ApiKeyService } from './services/api-key.service';
 import { AppResolverService } from './services/app-resolver.service';
@@ -22,8 +22,8 @@ import { LokiService } from './services/loki.service';
 import { OidcService } from './services/oidc.service';
 import { PodPresenceService } from './services/pod-presence.service';
 import { RedisService } from './services/redis.service';
-import { S3Service } from './services/s3.service';
 import { RetentionService } from './services/retention.service';
+import { S3Service } from './services/s3.service';
 import { SessionNotifyService } from './services/session-notify.service';
 import { SessionService } from './services/session.service';
 import { ShareService } from './services/share.service';
@@ -33,6 +33,7 @@ import { WebSocketService } from './services/websocket.service';
 const app = createApp({
     config: UxrrConfig,
     frameworkConfig: { port: 8977 },
+    staticFiles: true,
     db: UxrrDatabase,
     controllers: [AdminController, AuthController, IngestController, SessionController, ShareController, ApiKeyController],
     providers: [
@@ -54,7 +55,7 @@ const app = createApp({
         UserService,
         WebSocketService
     ],
-    listeners: [AppGuard, SecurityHeadersListener, StaticContentListener],
+    listeners: [AppGuard, SecurityHeadersListener],
     cors: (): HttpCorsOptions => ({
         hosts: ['*'],
         paths: [/^\/v1\/ingest/, /^\/v1\/ng\//],

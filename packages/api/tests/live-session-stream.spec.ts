@@ -1,10 +1,12 @@
-import { describe, it, mock } from 'node:test';
-import { strict as assert } from 'node:assert';
+import type { Logger } from '@zyno-io/ts-server-foundation';
 
-import { LiveSessionStream } from '../src/services/live/live-session-stream';
+import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
 import type { ISessionTransport, IBufferPersistence } from '../src/services/live/interfaces';
 import type { AgentPublicInfo, LiveMessage } from '../src/services/live/types';
-import type { Logger } from '@deepkit/logger';
+
+import { LiveSessionStream } from '../src/services/live/live-session-stream';
 
 function makeLogger(): Logger {
     return { warn: mock.fn(), error: mock.fn(), info: mock.fn(), debug: mock.fn() } as unknown as Logger;

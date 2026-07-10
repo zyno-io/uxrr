@@ -1,13 +1,13 @@
-import { HttpNotFoundError } from '@deepkit/http';
-import { ScopedLogger } from '@deepkit/logger';
 import type { JWTPayload } from 'jose';
 
-import { uuidv7 } from '../util/uuid';
+import { HttpNotFoundError } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { UxrrConfig } from '../config';
 import { UxrrDatabase } from '../database/database';
 import { UserEntity } from '../database/entities/user.entity';
 import { extractOidcScope } from '../util/oidc-scope';
+import { uuidv7 } from '../util/uuid';
 
 export class UserService {
     constructor(

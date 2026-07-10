@@ -1,5 +1,5 @@
-import { http, HttpAccessDeniedError, HttpQueries, HttpRequest } from '@deepkit/http';
-import { EntityFields } from '@zyno-io/dk-server-foundation';
+import { http, HttpAccessDeniedError, HttpQueries, HttpRequest } from '@zyno-io/ts-server-foundation';
+import { EntityFields } from '@zyno-io/ts-server-foundation';
 
 import { SessionEntity } from '../database/entities/session.entity';
 import { SessionAuthMiddleware, getAuthContext } from '../middleware/session-auth.middleware';

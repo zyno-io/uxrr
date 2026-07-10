@@ -1,5 +1,5 @@
-import { BaseAppConfig } from '@zyno-io/dk-server-foundation';
-import { MinLength } from '@deepkit/type';
+import { BaseAppConfig } from '@zyno-io/ts-server-foundation';
+import { MinLength } from '@zyno-io/ts-server-foundation';
 
 export class UxrrConfig extends BaseAppConfig {
     // S3

@@ -1,6 +1,6 @@
-import { eventDispatcher } from '@deepkit/event';
-import { HttpAccessDeniedError, HttpRequest, httpWorkflow } from '@deepkit/http';
-import { ScopedLogger } from '@deepkit/logger';
+import { eventDispatcher } from '@zyno-io/ts-server-foundation';
+import { HttpAccessDeniedError, HttpRequest, httpWorkflow } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { AppResolverService, ResolvedApp } from '../services/app-resolver.service';
 

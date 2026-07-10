@@ -1,5 +1,5 @@
-import { eventDispatcher } from '@deepkit/event';
-import { httpWorkflow } from '@deepkit/http';
+import { eventDispatcher } from '@zyno-io/ts-server-foundation';
+import { httpWorkflow } from '@zyno-io/ts-server-foundation';
 
 export class SecurityHeadersListener {
     @eventDispatcher.listen(httpWorkflow.onResponse, 100)

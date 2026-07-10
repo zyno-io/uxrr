@@ -1,5 +1,6 @@
-import { ScopedLogger } from '@deepkit/logger';
 import type WebSocket from 'ws';
+
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { SessionEntity } from '../database/entities/session.entity';
 import { AppResolverService } from './app-resolver.service';

@@ -1,8 +1,7 @@
+import { HttpAccessDeniedError, HttpBadRequestError, HttpNotFoundError } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { Crypto } from '@zyno-io/ts-server-foundation';
 import { randomBytes, createHmac, timingSafeEqual } from 'crypto';
-
-import { HttpAccessDeniedError, HttpBadRequestError, HttpNotFoundError } from '@deepkit/http';
-import { ScopedLogger } from '@deepkit/logger';
-import { Crypto } from '@zyno-io/dk-server-foundation';
 
 import { UxrrDatabase } from '../database/database';
 import { ApiKeyEntity } from '../database/entities/api-key.entity';

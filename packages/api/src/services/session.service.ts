@@ -1,8 +1,8 @@
-import { HttpNotFoundError } from '@deepkit/http';
+import { HttpNotFoundError } from '@zyno-io/ts-server-foundation';
 
+import { UxrrDatabase } from '../database/database';
 import { SessionUserIdEntity } from '../database/entities/session-user-id.entity';
 import { SessionEntity } from '../database/entities/session.entity';
-import { UxrrDatabase } from '../database/database';
 import { AppResolverService } from './app-resolver.service';
 
 interface SessionFilters {

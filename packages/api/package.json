@@ -5,31 +5,31 @@
     "license": "SEE LICENSE IN LICENSE",
     "main": "dist/src/bootstrap.js",
     "scripts": {
-        "clean": "dksf-dev clean",
-        "build": "dksf-dev build",
-        "dev": "dksf-dev run",
+        "clean": "tsf-dev clean",
+        "build": "tsf-dev build",
+        "dev": "tsf-dev run -- server:start",
         "start": "node . server:start",
-        "migrate": "dksf-dev migrate",
-        "test": "dksf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)",
-        "test:int": "UXRR_DEV_MODE=true dksf-dev test tests/integration/",
-        "test:all": "dksf-dev test",
+        "migrate": "tsf-dev migrate",
+        "test": "tsf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)",
+        "test:int": "UXRR_DEV_MODE=true tsf-dev test tests/integration/",
+        "test:all": "tsf-dev test",
         "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && prettier --config ../../.prettierrc.json --ignore-path ../../.gitignore --write ."
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1030.0",
         "@aws-sdk/lib-storage": "^3.1030.0",
-        "@deepkit/postgres": "1.0.19",
-        "@zyno-io/dk-server-foundation": "26.412.2137",
-        "ioredis": "^5.10.1",
-        "jose": "^6.2.2",
+        "@zyno-io/ts-server-foundation": "portal:/Users/sean/Work/Signal24/OSS/ts-server-foundation",
+        "ioredis": "^5.11.1",
+        "jose": "^6.2.3",
         "mime-types": "^3.0.2"
     },
     "devDependencies": {
         "@types/lodash": "^4.17.24",
         "@types/mime-types": "^3.0.1",
-        "@types/node": "^25.6.0",
+        "@types/node": "^26.1.1",
         "patch-package": "^8.0.1",
         "tslib": "^2.8.1",
-        "typescript": "~6.0"
+        "ttsc": "0.16.7",
+        "typescript": "^7.0.2"
     }
 }

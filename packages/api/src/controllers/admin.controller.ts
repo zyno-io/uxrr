@@ -1,6 +1,6 @@
-import { http, HttpBody, HttpRequest, HttpAccessDeniedError, HttpBadRequestError, HttpNotFoundError } from '@deepkit/http';
-import { ScopedLogger } from '@deepkit/logger';
-import { HttpUserError } from '@zyno-io/dk-server-foundation';
+import { http, HttpBody, HttpRequest, HttpAccessDeniedError, HttpBadRequestError, HttpNotFoundError } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { HttpUserError } from '@zyno-io/ts-server-foundation';
 
 import { UxrrDatabase } from '../database/database';
 import { AppEntity } from '../database/entities/app.entity';

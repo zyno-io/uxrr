@@ -1,4 +1,4 @@
-import { http, HttpRequest, HttpInternalServerError } from '@deepkit/http';
+import { http, HttpRequest, HttpInternalServerError } from '@zyno-io/ts-server-foundation';
 
 import { UxrrConfig } from '../config';
 import { SessionAuthMiddleware } from '../middleware/session-auth.middleware';

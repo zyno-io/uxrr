@@ -1,5 +1,5 @@
-import { BaseEntity } from '@zyno-io/dk-server-foundation';
-import { entity, Index, PrimaryKey, UUID } from '@deepkit/type';
+import { BaseEntity } from '@zyno-io/ts-server-foundation';
+import { entity, Index, PrimaryKey, UUID } from '@zyno-io/ts-server-foundation';
 
 @entity.name('share_links')
 export class ShareLinkEntity extends BaseEntity {

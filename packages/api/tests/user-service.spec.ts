@@ -1,11 +1,13 @@
-import { describe, it, mock } from 'node:test';
+import type { Logger } from '@zyno-io/ts-server-foundation';
+import type { JWTPayload } from 'jose';
+
 import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
+import type { UxrrConfig } from '../src/config';
+import type { UxrrDatabase } from '../src/database/database';
 
 import { UserService } from '../src/services/user.service';
-import type { UxrrDatabase } from '../src/database/database';
-import type { UxrrConfig } from '../src/config';
-import type { Logger } from '@deepkit/logger';
-import type { JWTPayload } from 'jose';
 
 function makeConfig(overrides: Partial<UxrrConfig> = {}): UxrrConfig {
     return {

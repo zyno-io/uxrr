@@ -1,5 +1,7 @@
-import { http, HttpQueries } from '@deepkit/http';
-import { EntityFields } from '@zyno-io/dk-server-foundation';
+import { http, HttpQueries } from '@zyno-io/ts-server-foundation';
+import { EntityFields } from '@zyno-io/ts-server-foundation';
+
+import type { IRrwebEvent, ILogEntry, IChatMessage } from './session.controller';
 
 import { SessionEntity } from '../database/entities/session.entity';
 import { AppResolverService } from '../services/app-resolver.service';
@@ -7,7 +9,6 @@ import { LokiService } from '../services/loki.service';
 import { S3Service } from '../services/s3.service';
 import { SessionService } from '../services/session.service';
 import { ShareService } from '../services/share.service';
-import type { IRrwebEvent, ILogEntry, IChatMessage } from './session.controller';
 
 const LIVE_THRESHOLD_MS = 30_000;
 

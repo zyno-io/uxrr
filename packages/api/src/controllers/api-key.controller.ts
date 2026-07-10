@@ -1,4 +1,4 @@
-import { http, HttpBody, HttpRequest, HttpAccessDeniedError, HttpBadRequestError } from '@deepkit/http';
+import { http, HttpBody, HttpRequest, HttpAccessDeniedError, HttpBadRequestError } from '@zyno-io/ts-server-foundation';
 
 import { UxrrConfig } from '../config';
 import { UxrrDatabase } from '../database/database';

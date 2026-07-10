@@ -1,14 +1,19 @@
 import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
-import { TestingHelpers } from '@zyno-io/dk-server-foundation/testing/index.js';
+import { Env, TestingHelpers } from '@zyno-io/ts-server-foundation';
 import { createHash } from 'crypto';
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
+const TEST_S3_ENDPOINT = Env.S3_ENDPOINT ?? 'http://localhost:54566';
+Env.S3_ENDPOINT ??= TEST_S3_ENDPOINT;
+Env.S3_ACCESS_KEY_SECRET ??= 'dev';
+Env.S3_SECRET_KEY_SECRET ??= 'dev';
+
 TestingHelpers.setDefaultDatabaseConfig({
     PG_HOST: 'localhost',
-    PG_PORT: 5432,
-    PG_USER: 'root',
-    PG_PASSWORD_SECRET: 'secret'
+    PG_PORT: 55432,
+    PG_USER: 'uxrr',
+    PG_PASSWORD_SECRET: 'test'
 });
 
 import { UxrrConfig } from '../../src/config.js';
@@ -90,7 +95,7 @@ const tf = TestingHelpers.createTestingFacade(
 
             // Ensure S3 bucket exists (MiniStack)
             const s3 = new S3Client({
-                endpoint: 'http://localhost:4566',
+                endpoint: TEST_S3_ENDPOINT,
                 region: 'us-east-1',
                 credentials: { accessKeyId: 'dev', secretAccessKey: 'dev' },
                 forcePathStyle: true

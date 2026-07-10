@@ -1,10 +1,8 @@
-import { ApplicationServer } from '@deepkit/framework';
-import { ScopedLogger } from '@deepkit/logger';
 import type { IncomingMessage } from 'http';
-import type { Duplex } from 'stream';
-import WebSocket from 'ws';
+import type { Socket } from 'net';
 
-import { AutoStart, resolve } from '@zyno-io/dk-server-foundation';
+import { App, AutoConstruct, ScopedLogger } from '@zyno-io/ts-server-foundation';
+import WebSocket from 'ws';
 
 import { UxrrConfig } from '../config';
 import { verifyWsToken } from '../util/ws-token';
@@ -17,11 +15,12 @@ import { SessionService } from './session.service';
 import { ShareService } from './share.service';
 import { UserService } from './user.service';
 
-@AutoStart()
+@AutoConstruct()
 export class WebSocketService {
     private readonly devModeAllowed: boolean;
 
     constructor(
+        private readonly app: App,
         private readonly config: UxrrConfig,
         private readonly logger: ScopedLogger,
         private readonly liveSvc: LiveSessionService,
@@ -34,8 +33,6 @@ export class WebSocketService {
         private readonly userSvc: UserService
     ) {
         this.devModeAllowed = this.config.UXRR_DEV_MODE && process.env.NODE_ENV !== 'production';
-        const app = resolve(ApplicationServer);
-        const httpServer = (app.getHttpWorker() as unknown as { server: import('http').Server })['server'];
 
         // Client WebSocket — ingest path (large payloads: rrweb event batches)
         const clientWss = new WebSocket.Server({ noServer: true, maxPayload: 1024 * 1024 });
@@ -44,7 +41,7 @@ export class WebSocketService {
         // Session list watcher WebSocket (filter updates only)
         const watchWss = new WebSocket.Server({ noServer: true, maxPayload: 16 * 1024 });
 
-        httpServer.on('upgrade', (request: IncomingMessage, socket: Duplex, head: Buffer) => {
+        this.app.http.registerUpgradeHandler((request: IncomingMessage, socket: Socket, head: Buffer) => {
             const url = request.url ?? '';
 
             const clientMatch = url.match(/^\/v1\/ng\/([^/]+)\/ws/);
@@ -84,7 +81,7 @@ export class WebSocketService {
         wss: WebSocket.Server,
         sessionId: string,
         request: IncomingMessage,
-        socket: Duplex,
+        socket: Socket,
         head: Buffer
     ): Promise<void> {
         try {
@@ -126,7 +123,7 @@ export class WebSocketService {
         wss: WebSocket.Server,
         sessionId: string,
         request: IncomingMessage,
-        socket: Duplex,
+        socket: Socket,
         head: Buffer
     ): Promise<void> {
         try {
@@ -218,7 +215,7 @@ export class WebSocketService {
         wss: WebSocket.Server,
         token: string,
         request: IncomingMessage,
-        socket: Duplex,
+        socket: Socket,
         head: Buffer
     ): Promise<void> {
         try {
@@ -234,7 +231,7 @@ export class WebSocketService {
         }
     }
 
-    private async handleWatchUpgrade(wss: WebSocket.Server, request: IncomingMessage, socket: Duplex, head: Buffer): Promise<void> {
+    private async handleWatchUpgrade(wss: WebSocket.Server, request: IncomingMessage, socket: Socket, head: Buffer): Promise<void> {
         try {
             const url = new URL(request.url ?? '', `http://${request.headers.host}`);
             let authenticated = false;

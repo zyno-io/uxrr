@@ -1,12 +1,12 @@
-import { HttpRequest, HttpResponse, HttpUnauthorizedError } from '@deepkit/http';
-import { HttpMiddleware } from '@zyno-io/dk-server-foundation';
-import { ScopedLogger } from '@deepkit/logger';
+import { HttpRequest, HttpResponse, HttpUnauthorizedError } from '@zyno-io/ts-server-foundation';
+import { HttpMiddleware } from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { JWTExpired } from 'jose/errors';
 
 import { UxrrConfig } from '../config';
-import { OidcService } from '../services/oidc.service';
 import { ApiKeyService } from '../services/api-key.service';
+import { OidcService } from '../services/oidc.service';
 import { UserService } from '../services/user.service';
-import { JWTExpired } from 'jose/errors';
 
 export const AUTH_CONTEXT_KEY = Symbol('authContext');
 

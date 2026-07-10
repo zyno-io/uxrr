@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 yarn build                  # Build all packages
 yarn build:client           # Build @zyno-io/uxrr-client (tsup → dist/)
-yarn build:api              # Build @zyno-io/uxrr-api (dksf-dev build)
+yarn build:api              # Build @zyno-io/uxrr-api (tsf-dev build)
 yarn build:ui               # Build @zyno-io/uxrr-ui (vite build)
-yarn dev:api                # Run server in dev mode (dksf-dev run, port 8977)
+yarn dev:api                # Run server in dev mode (tsf-dev run, port 8977)
 yarn dev:ui                 # Run UI in dev mode (vite on :8978, proxies /v1 → localhost:8977)
 yarn format                 # Prettier (4-space indent, single quotes, no trailing commas)
 ```
@@ -18,7 +18,7 @@ yarn format                 # Prettier (4-space indent, single quotes, no traili
 
 ```bash
 cd packages/api
-yarn migrate                # Run database migrations (dksf-dev migrate)
+yarn migrate                # Run database migrations (tsf-dev migrate)
 ```
 
 **After modifying `@zyno-io/uxrr-client`**, always rebuild it — downstream consumers (like zynosuite-spa) use the built output, not source.
@@ -48,7 +48,7 @@ Embeds in web apps. Records sessions (rrweb), captures logs, instruments HTTP vi
 
 ### `@zyno-io/uxrr-api` — Backend
 
-Deepkit HTTP framework + `@zyno-io/dk-server-foundation`. Config via environment variables mapped to `UxrrConfig`.
+Deepkit HTTP framework + `@zyno-io/ts-server-foundation`. Config via environment variables mapped to `UxrrConfig`.
 
 **Ingest pipeline:** Single `POST :appId/:sessionId/data` endpoint → `IngestService.ingestData()`:
 
@@ -59,7 +59,7 @@ Deepkit HTTP framework + `@zyno-io/dk-server-foundation`. Config via environment
 
 **Live sessions:** `WebSocketService` handles WS upgrades for three connection types: client (browser SDK), agent (UI viewer), and watch (session list WebSocket). `LiveSessionService` relays events/logs between client↔agent in real-time.
 
-**CORS note:** dk-server-foundation handles CORS for normal responses, but when using `writeHead`/`end` directly (e.g., OTLP forwarding), you must manually include `HttpCors.getResponseHeaders(response)`.
+**CORS note:** ts-server-foundation handles CORS for normal responses, but when using `writeHead`/`end` directly (e.g., OTLP forwarding), you must manually include `HttpCors.getResponseHeaders(response)`.
 
 ### `@zyno-io/uxrr-ui` — Admin Dashboard
 
@@ -68,5 +68,5 @@ Vue 3 + Vite. Session list with real-time updates (WebSocket), session detail wi
 ## Key Patterns
 
 - **Deepkit DI:** Server uses Deepkit's dependency injection. Controllers, services, and middleware are registered in `app.ts` via `createApp()`. Constructor injection — just declare dependencies as constructor params.
-- **Database migrations:** Located in `packages/api/src/migrations/`. Numbered sequentially (`0001-initial.ts`, etc.). Run with `dksf-dev migrate`.
+- **Database migrations:** Located in `packages/api/src/migrations/`. Numbered sequentially (`0001-initial.ts`, etc.). Run with `tsf-dev migrate`.
 - **OpenAPI → codegen:** `packages/api/openapi.yaml` is the source of truth for the UI's API client. Changes to server endpoints should be reflected there, then regenerated.

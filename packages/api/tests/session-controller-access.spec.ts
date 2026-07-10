@@ -1,17 +1,18 @@
-import { describe, it, mock } from 'node:test';
-import { strict as assert } from 'node:assert';
+import type { HttpRequest } from '@zyno-io/ts-server-foundation';
 
-import { AUTH_CONTEXT_KEY, type AuthContext } from '../src/middleware/session-auth.middleware';
-import type { SessionService } from '../src/services/session.service';
-import type { S3Service } from '../src/services/s3.service';
+import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
 import type { LokiService } from '../src/services/loki.service';
-import type { ShareService } from '../src/services/share.service';
 import type { RetentionService } from '../src/services/retention.service';
-import type { HttpRequest } from '@deepkit/http';
+import type { S3Service } from '../src/services/s3.service';
+import type { SessionService } from '../src/services/session.service';
+import type { ShareService } from '../src/services/share.service';
 
 // Test the access control logic by importing the controller and calling methods with mock auth context.
 // SessionController uses Deepkit decorators, so we construct it directly with mock services.
 import { SessionController } from '../src/controllers/session.controller';
+import { AUTH_CONTEXT_KEY, type AuthContext } from '../src/middleware/session-auth.middleware';
 
 function makeRequest(auth: AuthContext): HttpRequest {
     return { [AUTH_CONTEXT_KEY]: auth } as unknown as HttpRequest;

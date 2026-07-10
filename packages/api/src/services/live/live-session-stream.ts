@@ -1,9 +1,10 @@
-import type { ScopedLogger } from '@deepkit/logger';
+import type { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
-import { RateLimiter } from '../../util/rate-limiter';
 import type { IngestLogEntry } from '../ingest.service';
 import type { ISessionTransport, IBufferPersistence } from './interfaces';
 import type { AgentPublicInfo, IChatMessage, LiveMessage } from './types';
+
+import { RateLimiter } from '../../util/rate-limiter';
 import { CHAT_PERSIST_DELAY_MS, FLUSH_EVENT_THRESHOLD, FLUSH_LOG_THRESHOLD } from './types';
 
 // ── Per-session state (no WebSocket references, no Redis, no network) ──

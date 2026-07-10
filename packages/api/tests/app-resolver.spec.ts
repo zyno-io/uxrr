@@ -1,4 +1,4 @@
-import type { Logger } from '@deepkit/logger';
+import type { Logger } from '@zyno-io/ts-server-foundation';
 
 import { createHash } from 'crypto';
 import { strict as assert } from 'node:assert';

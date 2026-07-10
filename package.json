@@ -25,14 +25,14 @@
         "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && oxfmt"
     },
     "devDependencies": {
-        "lefthook": "^2.1.5",
-        "oxfmt": "^0.45.0",
-        "oxlint": "^1.60.0",
-        "typescript": "~6.0",
+        "lefthook": "^2.1.10",
+        "oxfmt": "^0.58.0",
+        "oxlint": "^1.73.0",
+        "typescript": "~7.0",
         "vitepress": "^1.6.4"
     },
     "resolutions": {
         "deepkit-openapi-core": "0.0.9"
     },
-    "packageManager": "yarn@4.12.0"
+    "packageManager": "yarn@4.17.1"
 }

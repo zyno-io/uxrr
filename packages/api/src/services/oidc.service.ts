@@ -1,8 +1,8 @@
-import { ScopedLogger } from '@deepkit/logger';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
+import { memoize } from 'lodash';
 
 import { UxrrConfig } from '../config';
-import { memoize } from 'lodash';
 
 export class OidcService {
     private jwks?: JWTVerifyGetKey;

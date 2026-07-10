@@ -1,5 +1,5 @@
-import { ScopedLogger } from '@deepkit/logger';
-import { createRedis, disconnectAllRedis } from '@zyno-io/dk-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { createRedis, disconnectAllRedis } from '@zyno-io/ts-server-foundation';
 import Redis from 'ioredis';
 
 import { UxrrConfig } from '../config';

@@ -1,7 +1,8 @@
-import { ScopedLogger } from '@deepkit/logger';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+
+import type { StoredLogEntry } from './ingest.service';
 
 import { UxrrConfig } from '../config';
-import type { StoredLogEntry } from './ingest.service';
 
 const LOG_LEVEL_MAP: Record<number, string> = {
     0: 'debug',

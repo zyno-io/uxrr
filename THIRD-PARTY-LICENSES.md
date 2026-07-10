@@ -196,8 +196,8 @@ https://github.com/getsentry/sentry-javascript
 https://github.com/getsentry/sentry-javascript
 @sentry/opentelemetry@10.38.0
 https://github.com/getsentry/sentry-javascript
-@zyno-io/dk-server-foundation@26.215.315
-https://github.com/zyno-io/dk-server-foundation
+@zyno-io/ts-server-foundation@26.215.315
+https://github.com/zyno-io/ts-server-foundation
 @zyno-io/openapi-client-codegen@2.6.2
 @zyno-io/vue-foundation@4.32.0
 https://github.com/zyno-io/vue-foundation

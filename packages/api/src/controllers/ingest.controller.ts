@@ -7,9 +7,9 @@ import {
     HttpGoneError,
     HttpTooManyRequestsError,
     createHttpError
-} from '@deepkit/http';
-import { ScopedLogger } from '@deepkit/logger';
-import { HttpCors } from '@zyno-io/dk-server-foundation/http/cors.js';
+} from '@zyno-io/ts-server-foundation';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { HttpCors } from '@zyno-io/ts-server-foundation';
 
 import { UxrrConfig } from '../config';
 import { UxrrDatabase } from '../database/database';

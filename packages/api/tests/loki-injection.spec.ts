@@ -1,9 +1,11 @@
-import { describe, it, mock, beforeEach } from 'node:test';
+import type { Logger } from '@zyno-io/ts-server-foundation';
+
 import { strict as assert } from 'node:assert';
+import { describe, it, mock, beforeEach } from 'node:test';
+
+import type { UxrrConfig } from '../src/config';
 
 import { LokiService } from '../src/services/loki.service';
-import type { UxrrConfig } from '../src/config';
-import type { Logger } from '@deepkit/logger';
 
 function makeLogger(): Logger {
     return { warn: mock.fn(), error: mock.fn(), info: mock.fn() } as unknown as Logger;

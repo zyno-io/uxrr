@@ -1,9 +1,11 @@
-import { describe, it, mock } from 'node:test';
+import type { ScopedLogger } from '@zyno-io/ts-server-foundation';
+
 import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
+
+import type { AppResolverService } from '../src/services/app-resolver.service';
 
 import { AppGuard, APP_KEY_KEY, APP_UUID_KEY, getAppKey } from '../src/middleware/origin.guard';
-import type { AppResolverService } from '../src/services/app-resolver.service';
-import type { ScopedLogger } from '@deepkit/logger';
 import { validateSessionId } from '../src/util/validation';
 
 const mockLogger = { warn: mock.fn() } as unknown as ScopedLogger;

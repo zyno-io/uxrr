@@ -4,8 +4,11 @@
         "outDir": "./dist",
         "rootDir": ".",
         "lib": ["ES2021"],
-        "jsx": "react-jsx",
-        "jsxImportSource": "@deepkit/template"
+        "plugins": [
+            {
+                "transform": "./node_modules/@zyno-io/ts-server-foundation/dist/src/type-compiler/index.cjs"
+            }
+        ]
     },
     "include": ["src/**/*"],
     "reflection": true

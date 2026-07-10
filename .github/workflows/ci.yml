@@ -49,7 +49,7 @@ jobs:
 
       - name: API unit tests
         working-directory: packages/api
-        run: npx dksf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)
+        run: npx tsf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)
 
   test-integration:
     runs-on: ubuntu-latest
@@ -104,7 +104,7 @@ jobs:
 
       - name: API integration tests
         working-directory: packages/api
-        run: npx dksf-dev test tests/integration/
+        run: npx tsf-dev test tests/integration/
 
   test-e2e:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-import { ScopedLogger } from '@deepkit/logger';
+import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { uuidv7 } from '../util/uuid';
 import { RedisService } from './redis.service';
