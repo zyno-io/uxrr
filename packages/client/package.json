@@ -42,7 +42,7 @@
         "@opentelemetry/resources": "^2.9.0",
         "@opentelemetry/sdk-trace-base": "^2.9.0",
         "@opentelemetry/sdk-trace-web": "^2.9.0",
-        "@opentelemetry/semantic-conventions": "^1.42.0",
+        "@opentelemetry/semantic-conventions": "^1.43.0",
         "@rrweb/rrweb-plugin-console-record": "^2.1.0",
         "@rrweb/types": "^2.1.0",
         "rrweb": "^2.1.0"

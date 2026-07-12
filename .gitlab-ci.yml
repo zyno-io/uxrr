@@ -2,6 +2,7 @@ default:
   interruptible: true
 
 stages:
+  - prepare
   - test
   - build
   - deploy
@@ -10,8 +11,7 @@ stages:
 # ---------- Templates ----------
 
 prepare build:
-  needs: []
-  stage: build
+  stage: prepare
   image:
     name: alpine/git
     entrypoint: ['']
@@ -201,9 +201,8 @@ visual regression test:
 
 # ---------- Build & publish client SDK canary ----------
 publish client canary:
-  needs:
+  dependencies:
     - prepare build
-  dependencies: []
   only:
     refs:
       - main
@@ -218,6 +217,7 @@ publish client canary:
       yarn --immutable
   script: |
     set -e
+    : "${BUILD_VERSION:?BUILD_VERSION must be provided by prepare build}"
 
     cd packages/client
     yarn build
@@ -229,15 +229,16 @@ publish client canary:
 
 # ---------- Build canary container ----------
 build:
-  needs:
+  dependencies:
     - prepare build
-  dependencies: []
   only:
     refs:
       - main
   stage: build
   image: ghcr.io/zyno-io/container-tooling:latest
   script: |
+    set -e
+    : "${BUILD_VERSION:?BUILD_VERSION must be provided by prepare build}"
 
     buildah login \
       --username="${CI_REGISTRY_USER}" \
@@ -257,21 +258,21 @@ build:
     fi
 
     buildah bud \
-      --build-arg=BUILD_VERSION=${BUILD_VERSION} \
-      --build-arg=PRIVATE_NPM_HOST=${PRIVATE_NPM_HOST} \
-      --build-arg=PRIVATE_NPM_TOKEN=${PRIVATE_NPM_TOKEN} \
-      -t ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA} \
+      --build-arg=BUILD_VERSION="${BUILD_VERSION}" \
+      --build-arg=PRIVATE_NPM_HOST="${PRIVATE_NPM_HOST}" \
+      --build-arg=PRIVATE_NPM_TOKEN="${PRIVATE_NPM_TOKEN}" \
+      -t "${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}" \
       .
 
-    buildah push ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}
-    buildah tag ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:canary
-    buildah push ${CI_REGISTRY_IMAGE}:canary
+    buildah push "${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}"
+    buildah tag "${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}" "${CI_REGISTRY_IMAGE}:canary"
+    buildah push "${CI_REGISTRY_IMAGE}:canary"
 
     echo "Published ${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA} (canary)"
 
 # ---------- Deploy ----------
 deploy:
-  needs:
+  dependencies:
     - prepare build
   stage: deploy
   only:
@@ -279,12 +280,15 @@ deploy:
       - main
   image: ghcr.io/zyno-io/dag/cli:latest
   script: |
+    set -e
+    : "${BUILD_VERSION:?BUILD_VERSION must be provided by prepare build}"
+
     cd resources/helm/chart
     dag-deploy . \
-      --server ${DAG_SERVER_URL} \
-      --deploy-version ${BUILD_VERSION} \
-      --set version=${BUILD_VERSION} \
-      --set image=${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}
+      --server "${DAG_SERVER_URL}" \
+      --deploy-version "${BUILD_VERSION}" \
+      --set "version=${BUILD_VERSION}" \
+      --set "image=${CI_REGISTRY_IMAGE}:${BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}"
 
 # ---------- Mirror to GitHub ----------
 mirror to github:
