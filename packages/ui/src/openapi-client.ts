@@ -1,6 +1,7 @@
-import { configureVfOpenApiClient } from '@zyno-io/vue-foundation';
-import { OpenApiError } from '@zyno-io/openapi-client-codegen';
 import type { OpenApiClient } from '@zyno-io/openapi-client-codegen';
+
+import { OpenApiError } from '@zyno-io/openapi-client-codegen';
+import { configureVfOpenApiClient } from '@zyno-io/vue-foundation';
 
 import { authState, getAccessToken, handleUnauthorized } from './auth';
 import { getEmbedToken } from './embed';
@@ -24,7 +25,7 @@ configureVfOpenApiClient(client as unknown as OpenApiClient, {
     },
 
     onError(err) {
-        if (authState.oidcEnabled && !getEmbedToken() && err instanceof OpenApiError && err.response.status === 401) {
+        if (authState.oidcEnabled && !getEmbedToken() && err instanceof OpenApiError && err.response?.status === 401) {
             log.warn('intercepted 401 response, triggering re-auth');
             handleUnauthorized();
             return null;
