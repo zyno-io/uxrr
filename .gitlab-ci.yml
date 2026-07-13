@@ -130,7 +130,7 @@ test:
     pushd packages/api
     yarn build
     echo "--- Running migrations ---"
-    node . migration:run
+    node . migrate:run
     echo "--- Migrations complete ---"
     echo "--- Starting server ---"
     node . server:start &
