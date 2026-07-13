@@ -1,5 +1,7 @@
-import { ref } from 'vue';
 import type { Ref } from 'vue';
+
+import { ref } from 'vue';
+
 import { createLogger } from '@/logger';
 
 /**
@@ -171,6 +173,15 @@ export function useLivePlayerController(loggerScope: string): LivePlayerControll
     /** Forward buffered events that arrived during async mount. */
     function drainBuffer(): void {
         if (eventBuffer.length === 0 || !player) return;
+
+        // A fresh snapshot replaces the Replayer's mirror baseline. Remount it
+        // instead of forwarding later mutations against the previous mirror.
+        if (eventBuffer.some(event => (event as { type?: number })?.type === 2)) {
+            ready.value = false;
+            remount();
+            return;
+        }
+
         const pending = eventBuffer.splice(0);
         for (const event of pending) {
             const type = (event as { type?: number })?.type;
@@ -189,6 +200,18 @@ export function useLivePlayerController(loggerScope: string): LivePlayerControll
         }
 
         if (ready.value && player) {
+            // Stable rrweb emits a fresh FullSnapshot when another viewer asks
+            // the client to synchronize. It must replace the player's mirror
+            // baseline or subsequent mutations can reference the wrong nodes.
+            // Replayer.addEvent() cannot safely consume FullSnapshot itself, so
+            // remount the player through its constructor path instead.
+            if (events.some(event => (event as { type?: number })?.type === 2)) {
+                eventBuffer.push(...events);
+                ready.value = false;
+                remount();
+                return;
+            }
+
             // Already live — forward only incremental events.
             // rrweb's Replayer.addEvent() does not support FullSnapshot (type 2)
             // or Meta (type 4) in live mode: it tears down the iframe DOM but

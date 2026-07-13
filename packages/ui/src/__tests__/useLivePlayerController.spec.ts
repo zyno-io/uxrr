@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+
 import { useLivePlayerController, type PlayerHandle } from '@/composables/useLivePlayerController';
 
 vi.mock('@/logger', () => ({
@@ -90,8 +91,8 @@ describe('useLivePlayerController', () => {
             expect(addEventSpy).toHaveBeenCalledWith({ type: 3, data: { source: 1 } });
         });
 
-        it('filters FullSnapshot and Meta from drain buffer', async () => {
-            const { controller, addEventSpy } = createController();
+        it('remounts a FullSnapshot buffered during the initial mount', async () => {
+            const { controller, mountSpy, addEventSpy } = createController();
 
             controller.onClientConnected();
             controller.onEvents([{ type: 4, data: { width: 800, height: 600 } }, { type: 2 }]);
@@ -100,14 +101,18 @@ describe('useLivePlayerController', () => {
             controller.onEvents([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }, { type: 3, data: { source: 5 } }]);
 
             await flushMicrotasks();
-            // Only incremental should be forwarded
-            expect(addEventSpy).toHaveBeenCalledTimes(1);
-            expect(addEventSpy).toHaveBeenCalledWith({ type: 3, data: { source: 5 } });
+            expect(mountSpy).toHaveBeenCalledTimes(2);
+            expect(mountSpy).toHaveBeenLastCalledWith([
+                { type: 4, data: { width: 1024, height: 768 } },
+                { type: 2 },
+                { type: 3, data: { source: 5 } }
+            ]);
+            expect(addEventSpy).not.toHaveBeenCalled();
         });
     });
 
     describe('live event filtering (share viewer join scenario)', () => {
-        it('filters FullSnapshot and Meta from addEvent when already live', async () => {
+        it('remounts a FullSnapshot instead of forwarding it through addEvent', async () => {
             const { controller, mountSpy, addEventSpy } = createController();
 
             // Bootstrap to live state
@@ -118,18 +123,20 @@ describe('useLivePlayerController', () => {
             expect(controller.state.value).toBe('live');
 
             // Simulate snapshot burst from request_snapshot (triggered by share viewer joining).
-            // rrweb's Replayer.addEvent() cannot handle FullSnapshot — it tears down
-            // the iframe DOM but fails to rebuild, producing a black screen.
             controller.onEvents([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }, { type: 3, data: { source: 0 } }]);
+            await flushMicrotasks();
 
-            // Only incremental event should reach addEvent
-            expect(addEventSpy).toHaveBeenCalledTimes(1);
-            expect(addEventSpy).toHaveBeenCalledWith({ type: 3, data: { source: 0 } });
-            // Should NOT remount — already live
-            expect(mountSpy).toHaveBeenCalledTimes(1);
+            expect(mountSpy).toHaveBeenCalledTimes(2);
+            expect(mountSpy).toHaveBeenLastCalledWith([
+                { type: 4, data: { width: 1024, height: 768 } },
+                { type: 2 },
+                { type: 3, data: { source: 0 } }
+            ]);
+            expect(addEventSpy).not.toHaveBeenCalled();
+            expect(controller.ready.value).toBe(true);
         });
 
-        it('filters multiple snapshot bursts without disrupting live state', async () => {
+        it('remounts again when another snapshot arrives during a remount', async () => {
             const { controller, mountSpy, addEventSpy } = createController();
 
             controller.onClientConnected();
@@ -140,10 +147,15 @@ describe('useLivePlayerController', () => {
             controller.onEvents([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }]);
             controller.onEvents([{ type: 4, data: { width: 1280, height: 720 } }, { type: 2 }]);
             controller.onEvents([{ type: 3, data: { source: 1 } }]);
+            await flushMicrotasks();
 
-            expect(mountSpy).toHaveBeenCalledTimes(1);
-            expect(addEventSpy).toHaveBeenCalledTimes(1);
-            expect(addEventSpy).toHaveBeenCalledWith({ type: 3, data: { source: 1 } });
+            expect(mountSpy).toHaveBeenCalledTimes(3);
+            expect(mountSpy).toHaveBeenLastCalledWith([
+                { type: 4, data: { width: 1280, height: 720 } },
+                { type: 2 },
+                { type: 3, data: { source: 1 } }
+            ]);
+            expect(addEventSpy).not.toHaveBeenCalled();
             expect(controller.ready.value).toBe(true);
             expect(controller.state.value).toBe('live');
         });

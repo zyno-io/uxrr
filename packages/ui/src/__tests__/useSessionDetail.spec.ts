@@ -1,9 +1,11 @@
+import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { defineComponent, h } from 'vue';
-import { mount } from '@vue/test-utils';
-import type { ISession } from '@/openapi-client-generated';
-import { useSessionDetail, type SessionDetailReturn } from '@/composables/useSessionDetail';
+
 import type { LiveStreamCallbacks, LiveStreamHandle } from '@/live-stream';
+import type { ISession } from '@/openapi-client-generated';
+
+import { useSessionDetail, type SessionDetailReturn } from '@/composables/useSessionDetail';
 
 vi.mock('@/logger', () => ({
     createLogger: () => ({ log: () => {}, warn: () => {}, error: () => {} })
@@ -232,7 +234,7 @@ describe('useSessionDetail live reconnect', () => {
         wrapper.unmount();
     });
 
-    it('filters out FullSnapshot and Meta from live player but keeps incrementals', async () => {
+    it('remounts the live player from a fresh FullSnapshot', async () => {
         let state!: SessionDetailReturn;
         let callbacks!: LiveStreamCallbacks;
         const mountSpy = vi.fn();
@@ -273,21 +275,19 @@ describe('useSessionDetail live reconnect', () => {
         expect(mountSpy).toHaveBeenCalledTimes(1);
 
         // Snapshot refresh while still connected (e.g. another viewer joins
-        // and server sends request_snapshot). rrweb's Replayer.addEvent()
-        // cannot handle FullSnapshot/Meta in live mode — they must be filtered.
+        // and the server sends request_snapshot).
         callbacks.onEvents([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }, { type: 3, data: { source: 0 } }]);
         await flushPromises();
 
-        expect(mountSpy).toHaveBeenCalledTimes(1);
-        expect(addEventSpy).toHaveBeenCalledWith({ type: 3, data: { source: 0 } });
-        expect(addEventSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 2 }));
-        expect(addEventSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 4 }));
+        expect(mountSpy).toHaveBeenCalledTimes(2);
+        expect(mountSpy).toHaveBeenLastCalledWith([{ type: 4, data: { width: 1024, height: 768 } }, { type: 2 }, { type: 3, data: { source: 0 } }]);
+        expect(addEventSpy).not.toHaveBeenCalled();
         expect(state.livePlayerReady.value).toBe(true);
 
         wrapper.unmount();
     });
 
-    it('filters duplicate snapshot bursts while already live', async () => {
+    it('remounts the latest snapshot burst while already live', async () => {
         let state!: SessionDetailReturn;
         let callbacks!: LiveStreamCallbacks;
         const mountSpy = vi.fn();
@@ -332,9 +332,9 @@ describe('useSessionDetail live reconnect', () => {
         callbacks.onEvents([{ type: 3, data: { source: 0 } }]);
         await flushPromises();
 
-        expect(mountSpy).toHaveBeenCalledTimes(1);
-        expect(addEventSpy).toHaveBeenCalledWith({ type: 3, data: { source: 0 } });
-        expect(addEventSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 2 }));
+        expect(mountSpy).toHaveBeenCalledTimes(3);
+        expect(mountSpy).toHaveBeenLastCalledWith([{ type: 4, data: { width: 1280, height: 720 } }, { type: 2 }, { type: 3, data: { source: 0 } }]);
+        expect(addEventSpy).not.toHaveBeenCalled();
         expect(state.livePlayerReady.value).toBe(true);
 
         wrapper.unmount();
