@@ -8,6 +8,7 @@ ARG PRIVATE_NPM_TOKEN
 RUN corepack enable
 
 COPY package.json yarn.lock .yarnrc.yml tsconfig.base.json ./
+COPY .yarn/patches .yarn/patches
 COPY packages/client/package.json packages/client/package.json
 COPY packages/api/package.json packages/api/package.json
 COPY packages/ui/package.json packages/ui/package.json
