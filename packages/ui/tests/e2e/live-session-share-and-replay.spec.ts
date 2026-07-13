@@ -230,6 +230,38 @@ async function getReplayCounter(page: Page): Promise<number | null> {
     });
 }
 
+function getSnapshotCounter(event: unknown): number | null {
+    if (!event || typeof event !== 'object') return null;
+    const rrwebEvent = event as { type?: unknown; data?: { node?: unknown } };
+    if (rrwebEvent.type !== 2) return null;
+
+    function findCounter(node: unknown): number | null {
+        if (!node || typeof node !== 'object') return null;
+        const serializedNode = node as {
+            attributes?: { id?: unknown };
+            childNodes?: unknown[];
+            textContent?: unknown;
+        };
+
+        if (serializedNode.attributes?.id === 'counter') {
+            const textNode = serializedNode.childNodes?.find(child => {
+                if (!child || typeof child !== 'object') return false;
+                return typeof (child as { textContent?: unknown }).textContent === 'string';
+            }) as { textContent?: string } | undefined;
+            const parsed = Number.parseInt(textNode?.textContent ?? '', 10);
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        for (const child of serializedNode.childNodes ?? []) {
+            const counter = findCounter(child);
+            if (counter !== null) return counter;
+        }
+        return null;
+    }
+
+    return findCounter(rrwebEvent.data?.node);
+}
+
 async function waitForReplayCounterValue(page: Page, expected: number, timeout = 15000): Promise<void> {
     await page.waitForFunction(
         value => {
@@ -527,6 +559,7 @@ test.describe('Live Session Share & Post-Live Replay (E2E)', () => {
             await new Promise(resolve => setTimeout(resolve, 3000));
 
             let lastEventCount = 0;
+            let lastSnapshotCounters: number[] = [];
             let stableSince = Date.now();
             let ready = false;
             for (let i = 0; i < 90; i++) {
@@ -539,26 +572,25 @@ test.describe('Live Session Share & Post-Live Replay (E2E)', () => {
                         stableSince = Date.now();
                     }
 
-                    const snapshotCount = events.filter((e: any) => e && typeof e === 'object' && e.type === 2).length;
+                    const snapshotCounters = events.map(getSnapshotCounter).filter((counter): counter is number => counter !== null);
+                    lastSnapshotCounters = snapshotCounters;
                     const isStable = Date.now() - stableSince >= 5000 && events.length > 0;
 
-                    // Need at least 10 events and 2 FullSnapshots (pre + post refresh)
-                    if (snapshotCount >= 2 && events.length >= 10 && isStable) {
-                        console.log(`[${elapsed(t0)}] Events persisted: ${events.length} events, ${snapshotCount} snapshots (poll ${i})`);
-                        ready = true;
-                        break;
-                    }
-
-                    // Fall back: if events are stable for a long time with at least 1 snapshot,
-                    // proceed anyway (server may have merged events into fewer chunks)
-                    if (snapshotCount >= 1 && events.length >= 5 && Date.now() - stableSince >= 15000) {
-                        console.log(`[${elapsed(t0)}] Events stable (fallback): ${events.length} events, ${snapshotCount} snapshots (poll ${i})`);
+                    // Wait for both fixture states used below. The normal ingest path
+                    // flushes independently from the live-session path, so a stable
+                    // chunk count alone does not mean the initial snapshot is present.
+                    if (snapshotCounters.includes(0) && snapshotCounters.includes(3) && events.length >= 10 && isStable) {
+                        console.log(
+                            `[${elapsed(t0)}] Events persisted: ${events.length} events, snapshot counters [${snapshotCounters.join(', ')}] (poll ${i})`
+                        );
                         ready = true;
                         break;
                     }
 
                     if (i % 5 === 4) {
-                        console.log(`[${elapsed(t0)}] Waiting... count=${events.length}, snapshots=${snapshotCount}, stable=${isStable} (poll ${i})`);
+                        console.log(
+                            `[${elapsed(t0)}] Waiting... count=${events.length}, snapshot counters=[${snapshotCounters.join(', ')}], stable=${isStable} (poll ${i})`
+                        );
                     }
                 } catch {
                     // keep polling
@@ -566,7 +598,7 @@ test.describe('Live Session Share & Post-Live Replay (E2E)', () => {
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
             if (!ready) {
-                throw new Error(`Events not ready for replay (count=${lastEventCount})`);
+                throw new Error(`Events not ready for replay (count=${lastEventCount}, snapshot counters=[${lastSnapshotCounters.join(', ')}])`);
             }
 
             // Phase 5: Open session detail — it will enter live/waiting mode since
