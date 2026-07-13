@@ -3526,9 +3526,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@zyno-io/ts-server-foundation@npm:^26.712.36":
-  version: 26.712.36
-  resolution: "@zyno-io/ts-server-foundation@npm:26.712.36"
+"@zyno-io/ts-server-foundation@npm:^26.712.2244":
+  version: 26.712.2244
+  resolution: "@zyno-io/ts-server-foundation@npm:26.712.2244"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.12.1"
     "@opentelemetry/api": "npm:^1.9.1"
@@ -3581,7 +3581,7 @@ __metadata:
     tsf-migrate: dist/src/cli/tsf-migrate.js
     tsf-test: dist/src/cli/tsf-test.js
     tsf-update: dist/src/cli/tsf-update.js
-  checksum: 10c0/afdfdc668f6b44e70a5b1455dac1eb1796b4c57c0370700b7e539d41cdcf37288e7cce12811177b05f718af0a9042488cdff047d155c24ea409238413d844801
+  checksum: 10c0/3c973520b5845749c2519415de1e504c684798fdfd190506eb4269d963aa736d2a96f8db1cee89f93568bec3a609122187342bafe28169e09aab63cef70474ff
   languageName: node
   linkType: hard
 
@@ -3594,7 +3594,7 @@ __metadata:
     "@types/lodash": "npm:^4.17.24"
     "@types/mime-types": "npm:^3.0.1"
     "@types/node": "npm:^26.1.1"
-    "@zyno-io/ts-server-foundation": "npm:^26.712.36"
+    "@zyno-io/ts-server-foundation": "npm:^26.712.2244"
     ioredis: "npm:^5.11.1"
     jose: "npm:^6.2.3"
     mime-types: "npm:^3.0.2"
@@ -3943,8 +3943,8 @@ __metadata:
   linkType: hard
 
 "bullmq@npm:^5.79.3":
-  version: 5.80.1
-  resolution: "bullmq@npm:5.80.1"
+  version: 5.80.2
+  resolution: "bullmq@npm:5.80.2"
   dependencies:
     cron-parser: "npm:4.9.0"
     ioredis: "npm:5.10.1"
@@ -3957,7 +3957,7 @@ __metadata:
   peerDependenciesMeta:
     redis:
       optional: true
-  checksum: 10c0/24de05ab26c93d8df816e2f65b4989f6a93586afcc4ef476ad8ba5051415600a29207d04f270f2f2bfea8c651ae4ae94047c19fb031522e0d4f2d421385f67d6
+  checksum: 10c0/54015daff2ceafdfbcf70e2b5c7a41328c213adce6d90b6d4ce7c83c1fb2a14553e60f4e654e6f174acbeb0809ae8400a877ed67ef814c533a5df6058c26b253
   languageName: node
   linkType: hard
 
@@ -6753,13 +6753,13 @@ __metadata:
   linkType: hard
 
 "postcss@npm:^8.4.38, postcss@npm:^8.4.43, postcss@npm:^8.5.15, postcss@npm:^8.5.16":
-  version: 8.5.16
-  resolution: "postcss@npm:8.5.16"
+  version: 8.5.17
+  resolution: "postcss@npm:8.5.17"
   dependencies:
     nanoid: "npm:^3.3.12"
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
-  checksum: 10c0/625de7a02f662f3a340964d14b487bd5097adf16f5f171e257d19005ba37aea8768ee446557500e88e91ca46b4d14d6cb4a0bf033c6ec0c8c0b660d85719f1ef
+  checksum: 10c0/5ff97c377a34becb6dc51262eb3f892c474459c682506eff04bac3b65bc6af4451802b40341af4e69956c05665a4a298dec975ba12d75e1310dfa3d89b9f587d
   languageName: node
   linkType: hard
 
@@ -7898,6 +7898,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typescript@npm:~6":
+  version: 6.0.3
+  resolution: "typescript@npm:6.0.3"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10c0/4a25ff5045b984370f48f196b3a0120779b1b343d40b9a68d114ea5e5fff099809b2bb777576991a63a5cd59cf7bffd96ff6fe10afcefbcb8bd6fb96ad4b6606
+  languageName: node
+  linkType: hard
+
 "typescript@patch:typescript@npm%3A^7.0.2#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A~7.0#optional!builtin<compat/typescript>":
   version: 7.0.2
   resolution: "typescript@patch:typescript@npm%3A7.0.2#optional!builtin<compat/typescript>::version=7.0.2&hash=3bafbf"
@@ -7966,6 +7976,16 @@ __metadata:
   bin:
     tsc: bin/tsc
   checksum: 10c0/6b3cdc369cd829d46e00734ea64233ee84419c2825ad8fe408915adde77abced4b7a2401f7eed517d54a7a4f5d1c1869753cb99018df1c2159c761d9f33483a6
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@npm%3A~6#optional!builtin<compat/typescript>":
+  version: 6.0.3
+  resolution: "typescript@patch:typescript@npm%3A6.0.3#optional!builtin<compat/typescript>::version=6.0.3&hash=5786d5"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10c0/2f25c74e65663c248fa1ade2b8459d9ce5372ff9dad07067310f132966ebec1d93f6c42f0baf77a6b6a7a91460463f708e6887013aaade22111037457c6b25df
   languageName: node
   linkType: hard
 
