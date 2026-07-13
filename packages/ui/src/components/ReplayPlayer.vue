@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue';
 import type { eventWithTime } from '@rrweb/types';
+
+import { ref, onBeforeUnmount } from 'vue';
+
 import { createLogger } from '@/logger';
-import { splitIntoSegments, padSegmentEvents, filterValidEvents, findSegmentForTime } from './replay-segments';
+
 import type { Segment } from './replay-segments';
+
+import { splitIntoSegments, padSegmentEvents, filterValidEvents, findSegmentForTime } from './replay-segments';
 
 const log = createLogger('player');
 
@@ -11,7 +15,7 @@ interface RRWebPlayer {
     $set(props: Record<string, unknown>): void;
     triggerResize(): void;
     $destroy(): void;
-    getReplayer(): { addEvent(event: eventWithTime): void; getCurrentTime?(): number };
+    getReplayer(): { addEvent(event: eventWithTime): void; getCurrentTime?(): number } | undefined;
     goto(timeOffset: number, play: boolean): void;
 }
 
@@ -70,26 +74,39 @@ async function mount(events: eventWithTime[]) {
     segmentTransitioning = false;
 
     if (props.liveMode) {
-        createPlayer(validEvents, true, true);
+        await createPlayer(validEvents, true, true);
     } else {
         segments = splitIntoSegments(validEvents);
         if (segments.length > 1) {
             log.log('detected', segments.length, 'recording segments (page refreshes during session)');
             recordingStartTs = validEvents[0]!.timestamp;
             recordingEndTs = validEvents[validEvents.length - 1]!.timestamp;
-            createPlayer(padSegmentEvents(segments[0]!, recordingStartTs, recordingEndTs), false, true);
+            await createPlayer(padSegmentEvents(segments[0]!, recordingStartTs, recordingEndTs), false, true);
         } else {
-            createPlayer(validEvents, false, true);
+            await createPlayer(validEvents, false, true);
         }
     }
 }
 
 /**
- * Create an rrweb-player instance. Synchronous — requires PlayerCtor to already
- * be loaded via the async import in mount().
+ * Wait for rrweb-player's Svelte onMount hook to create its Replayer. The
+ * component constructor returns before that hook has necessarily run.
  */
-function createPlayer(events: eventWithTime[], isLive: boolean, autoPlay: boolean) {
-    if (!containerRef.value || !PlayerCtor) return;
+async function waitForReplayer(instance: RRWebPlayer): Promise<boolean> {
+    const deadline = Date.now() + 2000;
+    while (player === instance && Date.now() < deadline) {
+        if (instance.getReplayer()) return true;
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    if (player === instance) {
+        throw new Error('rrweb-player did not initialize its Replayer');
+    }
+    return false;
+}
+
+/** Create an rrweb-player instance after PlayerCtor has loaded. */
+async function createPlayer(events: eventWithTime[], isLive: boolean, autoPlay: boolean): Promise<RRWebPlayer | null> {
+    if (!containerRef.value || !PlayerCtor) return null;
 
     const metaEvent = events.find(e => e && typeof e === 'object' && e.type === 4);
     if (metaEvent?.data) {
@@ -103,7 +120,7 @@ function createPlayer(events: eventWithTime[], isLive: boolean, autoPlay: boolea
     let playerEvents = events;
     if (isLive && events.length > 0) {
         const firstEvent = events[0];
-        if (!firstEvent) return;
+        if (!firstEvent) return null;
         const firstTs = firstEvent.timestamp;
         const now = Date.now();
         playerEvents = events.map(e => ({
@@ -112,7 +129,7 @@ function createPlayer(events: eventWithTime[], isLive: boolean, autoPlay: boolea
         }));
     }
 
-    player = new PlayerCtor({
+    const instance = new PlayerCtor({
         target: containerRef.value,
         props: {
             events: playerEvents,
@@ -128,17 +145,20 @@ function createPlayer(events: eventWithTime[], isLive: boolean, autoPlay: boolea
             }
         }
     });
+    player = instance;
+
+    if (!(await waitForReplayer(instance)) || !containerRef.value) return null;
 
     resizeObserver = new ResizeObserver(entries => {
-        if (!player || !containerRef.value) return;
+        if (player !== instance || !containerRef.value) return;
         const entry = entries[0];
         if (!entry) return;
         const { width, height } = entry.contentRect;
-        player.$set({
+        instance.$set({
             width: Math.floor(width),
             height: Math.floor(height) - controllerHeight
         });
-        player.triggerResize();
+        instance.triggerResize();
     });
     resizeObserver.observe(containerRef.value);
 
@@ -147,8 +167,7 @@ function createPlayer(events: eventWithTime[], isLive: boolean, autoPlay: boolea
             emit('timeUpdate', Number.MAX_SAFE_INTEGER);
             return;
         }
-        if (!player?.getReplayer) return;
-        const currentTime = player.getReplayer().getCurrentTime?.();
+        const currentTime = instance.getReplayer()?.getCurrentTime?.();
         if (typeof currentTime !== 'number') return;
 
         emit('timeUpdate', currentTime);
@@ -170,9 +189,11 @@ function createPlayer(events: eventWithTime[], isLive: boolean, autoPlay: boolea
             }
         }
     }, 100);
+
+    return instance;
 }
 
-function transitionToSegment(index: number, seekTimeMs?: number) {
+async function transitionToSegment(index: number, seekTimeMs?: number) {
     if (segmentTransitioning || index === currentSegmentIndex) return;
     if (index < 0 || index >= segments.length) return;
 
@@ -182,9 +203,12 @@ function transitionToSegment(index: number, seekTimeMs?: number) {
     log.log('segment transition →', index + 1, '/', segments.length, '(', seg.events.length, 'events)');
 
     destroyPlayer({ invalidateMounts: false });
-    createPlayer(padSegmentEvents(seg, recordingStartTs, recordingEndTs), false, false);
-    player?.goto(seekTimeMs ?? seg.offsetMs, true);
-    segmentTransitioning = false;
+    try {
+        const nextPlayer = await createPlayer(padSegmentEvents(seg, recordingStartTs, recordingEndTs), false, false);
+        nextPlayer?.goto(seekTimeMs ?? seg.offsetMs, true);
+    } finally {
+        segmentTransitioning = false;
+    }
 }
 
 function destroyPlayer(options: { invalidateMounts?: boolean } = {}) {
@@ -210,11 +234,12 @@ function destroyPlayer(options: { invalidateMounts?: boolean } = {}) {
 // ── Event forwarding (live mode) ───────────────────────────────
 
 function addEvent(event: eventWithTime): void {
-    if (!player?.getReplayer) return;
+    const replayer = player?.getReplayer();
+    if (!replayer) return;
     if (event.type === 3 && (!event.data || typeof event.data !== 'object' || !('source' in (event.data as object)))) {
         return;
     }
-    player.getReplayer().addEvent(event);
+    replayer.addEvent(event);
 }
 
 // ── Seeking ────────────────────────────────────────────────────
