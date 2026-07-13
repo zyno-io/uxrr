@@ -18,7 +18,7 @@
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1085.0",
         "@aws-sdk/lib-storage": "^3.1085.0",
-        "@zyno-io/ts-server-foundation": "26.712.2244",
+        "@zyno-io/ts-server-foundation": "26.713.1929",
         "ioredis": "^5.11.1",
         "jose": "^6.2.3",
         "mime-types": "^3.0.2"
@@ -29,7 +29,7 @@
         "@types/node": "^26.1.1",
         "patch-package": "^8.0.1",
         "tslib": "^2.8.1",
-        "ttsc": "0.18.3",
+        "ttsc": "0.18.4",
         "typescript": "7.0.2"
     }
 }
