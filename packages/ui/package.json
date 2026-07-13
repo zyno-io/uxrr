@@ -15,13 +15,13 @@
         "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && prettier --config ../../.prettierrc.json --ignore-path ../../.gitignore --write ."
     },
     "dependencies": {
-        "@rrweb/types": "^2.1.0",
+        "@rrweb/types": "2.0.0-alpha.20",
         "@zyno-io/openapi-client-codegen": "^2.9.0",
         "@zyno-io/vue-foundation": "^4.34.0",
         "date-fns": "^4.4.0",
         "lodash": "^4.18.1",
         "oidc-client-ts": "^3.5.0",
-        "rrweb-player": "^2.1.0",
+        "rrweb-player": "2.0.0-alpha.20",
         "vue": "^3.5.39",
         "vue-router": "^5.1.0",
         "vue-virtual-scroller": "^3.0.4"
