@@ -1,10 +1,12 @@
+import type { Locator, Page, PageScreenshotOptions } from '@playwright/test';
+import type { Server } from 'http';
+
 import { test, expect } from '@playwright/test';
+import { statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { statSync } from 'fs';
+
 import { startStaticServer, getClientSessionId } from './helpers';
-import type { Server } from 'http';
-import type { Locator, Page, PageScreenshotOptions } from '@playwright/test';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -225,6 +227,43 @@ async function getReplayCounter(page: Page): Promise<number | null> {
         if (!counterText) return null;
         const parsed = Number.parseInt(counterText, 10);
         return Number.isFinite(parsed) ? parsed : null;
+    });
+}
+
+async function waitForReplayCounterValue(page: Page, expected: number, timeout = 15000): Promise<void> {
+    await page.waitForFunction(
+        value => {
+            const iframe = document.querySelector('.replayer-wrapper iframe') as HTMLIFrameElement | null;
+            if (!iframe?.contentDocument) return false;
+            const counterText = iframe.contentDocument.querySelector('#counter')?.textContent?.trim();
+            if (!counterText) return false;
+            const parsed = Number.parseInt(counterText, 10);
+            return Number.isFinite(parsed) && parsed === value;
+        },
+        expected,
+        { timeout }
+    );
+}
+
+async function pauseReplay(page: Page): Promise<void> {
+    const toggle = page.locator('.rr-controller__btns button').first();
+    await expect(toggle).toBeVisible({ timeout: 15000 });
+    const iconPath = await toggle.locator('path').getAttribute('d');
+    if (iconPath?.trim().startsWith('M682.65984')) {
+        await toggle.click();
+    }
+}
+
+async function seekReplay(page: Page, percent: number): Promise<void> {
+    const progress = page.locator('.rr-progress');
+    await expect(progress).toBeVisible({ timeout: 15000 });
+    const bounds = await progress.boundingBox();
+    if (!bounds) throw new Error('Replay progress bar has no bounding box');
+    await progress.click({
+        position: {
+            x: Math.min(bounds.width - 1, Math.max(1, bounds.width * percent)),
+            y: bounds.height / 2
+        }
     });
 }
 
@@ -546,6 +585,11 @@ test.describe('Live Session Share & Post-Live Replay (E2E)', () => {
             await waitForReplayFixtureVisible(agentPage);
             console.log(`[${elapsed(t0)}] Replay player mounted with recorded events`);
 
+            // Freeze the replay at a deterministic initial state before capturing.
+            await pauseReplay(agentPage);
+            await seekReplay(agentPage, 0);
+            await waitForReplayCounterValue(agentPage, 0);
+
             // Take screenshot to verify initial content renders (not black)
             const replayMasks: Locator[] = [
                 agentPage.locator('.meta-id'),
@@ -561,6 +605,9 @@ test.describe('Live Session Share & Post-Live Replay (E2E)', () => {
             );
             console.log(`[${elapsed(t0)}] Screenshot: replay start (pre-refresh segment)`);
 
+            // Resume playback for the automatic segment-transition assertion.
+            await agentPage.locator('.rr-controller__btns button').first().click();
+
             // The replay contains events from before AND after the refresh.
             // With segment-based replay, the player should auto-transition through
             // the refresh boundary. Let the replay play for a bit, then check the
@@ -573,17 +620,12 @@ test.describe('Live Session Share & Post-Live Replay (E2E)', () => {
             await waitForReplayFixtureVisible(agentPage);
             console.log(`[${elapsed(t0)}] Replay still has content after playing (not black)`);
 
-            // Seek to 85% of the total timeline to jump past the refresh boundary.
-            await agentPage.evaluate(() => {
-                const controller = document.querySelector('.rr-controller__progress') as HTMLElement | null;
-                if (controller) {
-                    const rect = controller.getBoundingClientRect();
-                    const clickX = rect.left + rect.width * 0.85;
-                    const clickY = rect.top + rect.height / 2;
-                    controller.dispatchEvent(new MouseEvent('click', { clientX: clickX, clientY: clickY, bubbles: true }));
-                }
-            });
-            await agentPage.waitForTimeout(2000);
+            // Seek to a deterministic point after the refresh boundary and pause
+            // once the second segment has rendered its final counter state.
+            await pauseReplay(agentPage);
+            await seekReplay(agentPage, 0.95);
+            await waitForReplayCounterValue(agentPage, 3);
+            await pauseReplay(agentPage);
 
             // After seeking past the refresh point, the player should STILL show content.
             await waitForReplayFixtureVisible(agentPage);
