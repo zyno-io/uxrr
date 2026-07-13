@@ -7,7 +7,7 @@ import { createLogger } from '@/logger';
 
 import type { Segment } from './replay-segments';
 
-import { splitIntoSegments, padSegmentEvents, filterValidEvents, findSegmentForTime } from './replay-segments';
+import { splitIntoSegments, padSegmentEvents, filterValidEvents, findSegmentForTime, sortEventsByTimestamp } from './replay-segments';
 
 const log = createLogger('player');
 
@@ -63,7 +63,7 @@ async function mount(events: eventWithTime[]) {
 
     PlayerCtor = (rrwebPlayer.default ?? rrwebPlayer) as unknown as typeof PlayerCtor;
 
-    const validEvents = filterValidEvents(events);
+    const validEvents = sortEventsByTimestamp(filterValidEvents(events));
     if (validEvents.length < events.length) {
         log.warn('filtered', events.length - validEvents.length, 'malformed events');
     }

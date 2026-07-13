@@ -506,6 +506,7 @@ test.describe('Live Session Share & Post-Live Replay (E2E)', () => {
             // Wait for agent to reconnect and see post-refresh content
             await expect(clientIndicator).toBeVisible({ timeout: 20000 });
             await waitForReplayContent(agentPage);
+            await waitForReplayCounterValue(agentPage, 3, 20000);
             console.log(`[${elapsed(t0)}] Agent reconnected to live stream`);
 
             // Phase 4: End the live session — close client first, then agent.

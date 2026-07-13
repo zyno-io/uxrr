@@ -7,6 +7,14 @@ export interface Segment {
 }
 
 /**
+ * Event chunks can finish persisting in a different order than they were
+ * recorded. Normalize them before calculating replay offsets or segments.
+ */
+export function sortEventsByTimestamp(events: eventWithTime[]): eventWithTime[] {
+    return [...events].sort((a, b) => a.timestamp - b.timestamp);
+}
+
+/**
  * Split an event array into segments at FullSnapshot (type 2) boundaries.
  * Each segment is an independent rrweb recording that can be mounted separately.
  *

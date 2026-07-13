@@ -1,13 +1,19 @@
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
-import type { Ref, ComputedRef } from 'vue';
 import type { eventWithTime } from '@rrweb/types';
-import type { ISession, ILogEntry } from '@/openapi-client-generated';
+import type { Ref, ComputedRef } from 'vue';
+
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
+
 import type { ChatMessage } from '@/components/ChatPanel.vue';
 import type { AgentInfo, LiveStreamCallbacks, LiveStreamHandle } from '@/live-stream';
+import type { ISession, ILogEntry } from '@/openapi-client-generated';
+
+import { sortEventsByTimestamp } from '@/components/replay-segments';
 import ReplayPlayer from '@/components/ReplayPlayer.vue';
 import { createLogger } from '@/logger';
-import { useLivePlayerController } from './useLivePlayerController';
+
 import type { LiveState } from './useLivePlayerController';
+
+import { useLivePlayerController } from './useLivePlayerController';
 
 export interface SessionDetailOptions {
     loggerScope: string;
@@ -208,7 +214,7 @@ export function useSessionDetail(options: SessionDetailOptions): SessionDetailRe
     }
 
     function applyLoadedEvents(events: eventWithTime[]) {
-        loadedEvents = events;
+        loadedEvents = sortEventsByTimestamp(events);
         const firstEvent = loadedEvents.find(ev => ev && typeof ev.timestamp === 'number');
         if (firstEvent) {
             firstEventTs.value = firstEvent.timestamp;

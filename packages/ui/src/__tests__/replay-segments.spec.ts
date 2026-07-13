@@ -1,12 +1,25 @@
-import { describe, it, expect } from 'vitest';
-import { splitIntoSegments, padSegmentEvents, filterValidEvents, findSegmentForTime } from '@/components/replay-segments';
 import type { eventWithTime } from '@rrweb/types';
+
+import { describe, it, expect } from 'vitest';
+
+import { splitIntoSegments, padSegmentEvents, filterValidEvents, findSegmentForTime, sortEventsByTimestamp } from '@/components/replay-segments';
 
 function ev(type: number, timestamp: number, data?: unknown): eventWithTime {
     return { type, timestamp, data: data ?? {} } as unknown as eventWithTime;
 }
 
 describe('replay-segments', () => {
+    describe('sortEventsByTimestamp', () => {
+        it('orders interleaved persisted chunks without mutating the input', () => {
+            const events = [ev(2, 3000), ev(4, 1000), ev(3, 2000, { source: 0 })];
+
+            const sorted = sortEventsByTimestamp(events);
+
+            expect(sorted.map(event => event.timestamp)).toEqual([1000, 2000, 3000]);
+            expect(events.map(event => event.timestamp)).toEqual([3000, 1000, 2000]);
+        });
+    });
+
     describe('splitIntoSegments', () => {
         it('returns single segment when no mid-stream FullSnapshot', () => {
             const events = [ev(4, 1000, { width: 800, height: 600 }), ev(2, 1001), ev(3, 1100, { source: 0 }), ev(3, 1200, { source: 1 })];
