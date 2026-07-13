@@ -1,5 +1,5 @@
 diff --git a/dist/rrweb-player.js b/dist/rrweb-player.js
-index bb8e85f5ccca3a170448413ca8f66e08a88e7dda..d17c289c3f1d0cd35b42a4b2a4e88d2e5bb2a1d3 100644
+index bb8e85f5ccca3a170448413ca8f66e08a88e7dda..a2600d5543eafeeaa64561c3a0985ad7b3018189 100644
 --- a/dist/rrweb-player.js
 +++ b/dist/rrweb-player.js
 @@ -1,3 +1,6 @@
@@ -9,17 +9,20 @@ index bb8e85f5ccca3a170448413ca8f66e08a88e7dda..d17c289c3f1d0cd35b42a4b2a4e88d2e
  var __defProp = Object.defineProperty;
  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-@@ -102,6 +105,9 @@ function get_current_component() {
+@@ -102,6 +105,12 @@ function get_current_component() {
    if (!current_component) throw new Error("Function called outside component initialization");
    return current_component;
  }
 +function onMount(fn) {
 +  get_current_component().$$.on_mount.push(fn);
 +}
++function afterUpdate(fn) {
++  get_current_component().$$.after_update.push(fn);
++}
  function onDestroy(fn) {
    get_current_component().$$.on_destroy.push(fn);
  }
-@@ -8219,6 +8225,34 @@ function isFullscreen() {
+@@ -8219,6 +8228,34 @@ function isFullscreen() {
    });
    return fullscreen;
  }
@@ -54,7 +57,180 @@ index bb8e85f5ccca3a170448413ca8f66e08a88e7dda..d17c289c3f1d0cd35b42a4b2a4e88d2e
  function isUserInteraction(event) {
    if (event.type !== EventType.IncrementalSnapshot) {
      return false;
-@@ -9575,6 +9609,9 @@ function instance($$self, $$props, $$invalidate) {
+@@ -9118,27 +9155,77 @@ function instance$1($$self, $$props, $$invalidate) {
+   let { tags = {} } = $$props;
+   let { inactiveColor } = $$props;
+   let currentTime = 0;
++  let timer = null;
+   let playerState;
+   let speedState;
+   let progress;
++  let finished;
++  let pauseAt = false;
++  let onPauseHook = null;
++  let loop = null;
+   let meta;
+   let percentage;
+   let customEvents;
+   let inactivePeriods;
++  const loopTimer = () => {
++    stopTimer();
++    function update2() {
++      $$invalidate(6, currentTime = replayer.getCurrentTime());
++      if (pauseAt && currentTime >= pauseAt) {
++        if (loop) {
++          playRange(loop.start, loop.end, true, void 0);
++        } else {
++          replayer.pause();
++          if (onPauseHook) {
++            onPauseHook();
++            onPauseHook = null;
++          }
++        }
++      }
++      if (currentTime < meta.totalTime) {
++        timer = requestAnimationFrame(update2);
++      }
++    }
++    timer = requestAnimationFrame(update2);
++  };
++  const stopTimer = () => {
++    if (timer) {
++      cancelAnimationFrame(timer);
++      timer = null;
++    }
++  };
+   const toggle = () => {
++    switch (playerState) {
++      case "playing":
++        pause();
++        break;
++      case "paused":
++        play();
++        break;
++    }
+   };
+   const play = () => {
+-    {
++    if (playerState !== "paused") {
+       return;
+     }
++    if (finished) {
++      replayer.play();
++      finished = false;
++    } else {
++      replayer.play(currentTime);
++    }
+   };
+   const pause = () => {
+-    {
++    if (playerState !== "playing") {
+       return;
+     }
++    replayer.pause();
++    pauseAt = false;
+   };
+   const goto = (timeOffset, play2) => {
+     $$invalidate(6, currentTime = timeOffset);
++    pauseAt = false;
++    finished = false;
+     const resumePlaying = typeof play2 === "boolean" ? play2 : playerState === "playing";
+     if (resumePlaying) {
+       replayer.play(timeOffset);
+@@ -9147,10 +9234,20 @@ function instance$1($$self, $$props, $$invalidate) {
+     }
+   };
+   const playRange = (timeOffset, endTimeOffset, startLooping = false, afterHook = void 0) => {
++    if (startLooping) {
++      loop = { start: timeOffset, end: endTimeOffset };
++    } else {
++      loop = null;
++    }
+     $$invalidate(6, currentTime = timeOffset);
++    pauseAt = endTimeOffset;
++    onPauseHook = afterHook || null;
+     replayer.play(timeOffset);
+   };
+   const handleProgressClick = (event) => {
++    if (speedState === "skipping") {
++      return;
++    }
+     const progressRect = progress.getBoundingClientRect();
+     const x = event.clientX - progressRect.left;
+     let percent = x / progressRect.width;
+@@ -9163,6 +9260,9 @@ function instance$1($$self, $$props, $$invalidate) {
+     goto(timeOffset);
+   };
+   const handleProgressKeydown = (event) => {
++    if (speedState === "skipping") {
++      return;
++    }
+     if (event.key === "ArrowLeft") {
+       goto(currentTime - 5);
+     } else if (event.key === "ArrowRight") {
+@@ -9170,8 +9270,15 @@ function instance$1($$self, $$props, $$invalidate) {
+     }
+   };
+   const setSpeed = (newSpeed) => {
++    const needFreeze = playerState === "playing";
+     $$invalidate(1, speed = newSpeed);
++    if (needFreeze) {
++      replayer.pause();
++    }
+     replayer.setConfig({ speed });
++    if (needFreeze) {
++      replayer.play(currentTime);
++    }
+   };
+   const toggleSkipInactive = () => {
+     $$invalidate(0, skipInactive = !skipInactive);
+@@ -9181,8 +9288,45 @@ function instance$1($$self, $$props, $$invalidate) {
+       $$invalidate(8, meta = replayer.getMetaData());
+     });
+   };
++  onMount(() => {
++    $$invalidate(7, playerState = replayer.service.state.value);
++    $$invalidate(10, speedState = replayer.speedService.state.value);
++    replayer.on("state-change", (states) => {
++      const { player, speed: speed2 } = states;
++      if ((player == null ? void 0 : player.value) && playerState !== player.value) {
++        $$invalidate(7, playerState = player.value);
++        switch (playerState) {
++          case "playing":
++            loopTimer();
++            break;
++          case "paused":
++            stopTimer();
++            break;
++        }
++      }
++      if ((speed2 == null ? void 0 : speed2.value) && speedState !== speed2.value) {
++        $$invalidate(10, speedState = speed2.value);
++      }
++    });
++    replayer.on("finish", () => {
++      finished = true;
++      if (onPauseHook) {
++        onPauseHook();
++        onPauseHook = null;
++      }
++    });
++    if (autoPlay) {
++      replayer.play();
++    }
++  });
++  afterUpdate(() => {
++    if (skipInactive !== replayer.config.skipInactive) {
++      replayer.setConfig({ skipInactive });
++    }
++  });
+   onDestroy(() => {
+     replayer.pause();
++    stopTimer();
+   });
+   function div2_binding($$value) {
+     binding_callbacks[$$value ? "unshift" : "push"](() => {
+@@ -9575,6 +9719,9 @@ function instance($$self, $$props, $$invalidate) {
    const getMirror = () => replayer.getMirror();
    let player;
    let frame;
@@ -64,7 +240,7 @@ index bb8e85f5ccca3a170448413ca8f66e08a88e7dda..d17c289c3f1d0cd35b42a4b2a4e88d2e
    let controller;
    let style;
    let playerStyle;
-@@ -9632,7 +9669,59 @@ function instance($$self, $$props, $$invalidate) {
+@@ -9632,7 +9779,59 @@ function instance($$self, $$props, $$invalidate) {
    const playRange = (timeOffset, endTimeOffset, startLooping = false, afterHook = void 0) => {
      controller.playRange(timeOffset, endTimeOffset, startLooping, afterHook);
    };

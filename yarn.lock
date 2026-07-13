@@ -7179,12 +7179,12 @@ __metadata:
 
 "rrweb-player@patch:rrweb-player@npm%3A2.1.0#~/.yarn/patches/rrweb-player-npm-2.1.0-71ad07e3ec.patch":
   version: 2.1.0
-  resolution: "rrweb-player@patch:rrweb-player@npm%3A2.1.0#~/.yarn/patches/rrweb-player-npm-2.1.0-71ad07e3ec.patch::version=2.1.0&hash=8f3643"
+  resolution: "rrweb-player@patch:rrweb-player@npm%3A2.1.0#~/.yarn/patches/rrweb-player-npm-2.1.0-71ad07e3ec.patch::version=2.1.0&hash=43ff12"
   dependencies:
     "@rrweb/packer": "npm:^2.1.0"
     "@rrweb/replay": "npm:^2.1.0"
     "@tsconfig/svelte": "npm:^1.0.0"
-  checksum: 10c0/776672fcda68be2843674eed07df2abb01331399d6e67bd1df7f9bb462944231e50685f6fb91ac9fb1c246ad69016adb396ec7fd23c35e47f4ccd4263bfc349e
+  checksum: 10c0/d6ffa5b0b30f7e2986941737ebef6ef62101c662990e6dafc90648bf3de2346ff39847734976428b1cea27ea24566c239721f0b04f0ed50abc28d2e6d164fa1d
   languageName: node
   linkType: hard
 

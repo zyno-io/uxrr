@@ -5,7 +5,15 @@ import { describe, expect, it } from 'vitest';
 
 interface RRWebPlayerInstance {
     $destroy(): void;
-    getReplayer(): unknown;
+    getReplayer(): {
+        service: {
+            state: {
+                value: string;
+            };
+        };
+    };
+    pause(): void;
+    play(): void;
 }
 
 const PlayerCtor = Player as unknown as new (options: Record<string, unknown>) => RRWebPlayerInstance;
@@ -47,7 +55,7 @@ const events = [
 ] as eventWithTime[];
 
 describe('rrweb-player package patch', () => {
-    it('initializes the replayer from the published stable bundle', () => {
+    it('initializes and controls playback from the published stable bundle', () => {
         const target = document.createElement('div');
         document.body.append(target);
 
@@ -57,11 +65,17 @@ describe('rrweb-player package patch', () => {
                 events,
                 width: 800,
                 height: 600,
-                autoPlay: false
+                autoPlay: true
             }
         });
 
-        expect(player.getReplayer()).toBeDefined();
+        expect(player.getReplayer().service.state.value).toBe('playing');
+
+        player.pause();
+        expect(player.getReplayer().service.state.value).toBe('paused');
+
+        player.play();
+        expect(player.getReplayer().service.state.value).toBe('playing');
 
         player.$destroy();
         target.remove();
