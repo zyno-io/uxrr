@@ -50,7 +50,7 @@
     "devDependencies": {
         "happy-dom": "^20.10.6",
         "tsup": "^8.5.1",
-        "typescript": "~7.0",
+        "typescript": "~6.0",
         "vitest": "^4.1.10"
     }
 }
