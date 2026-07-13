@@ -32,15 +32,14 @@
         "vitepress": "^1.6.4"
     },
     "resolutions": {
-        "@rrweb/packer": "2.0.0-alpha.20",
-        "@rrweb/replay": "2.0.0-alpha.20",
-        "@rrweb/rrweb-plugin-console-record": "2.0.0-alpha.20",
-        "@rrweb/types": "2.0.0-alpha.20",
-        "@rrweb/utils": "2.0.0-alpha.20",
-        "rrdom": "2.0.0-alpha.20",
-        "rrweb": "2.0.0-alpha.20",
-        "rrweb-player": "2.0.0-alpha.20",
-        "rrweb-snapshot": "2.0.0-alpha.20"
+        "@rrweb/packer": "2.1.0",
+        "@rrweb/replay": "2.1.0",
+        "@rrweb/rrweb-plugin-console-record": "2.1.0",
+        "@rrweb/types": "2.1.0",
+        "@rrweb/utils": "2.1.0",
+        "rrdom": "2.1.0",
+        "rrweb": "2.1.0",
+        "rrweb-snapshot": "2.1.0"
     },
     "packageManager": "yarn@4.17.1"
 }
