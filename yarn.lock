@@ -3597,6 +3597,7 @@ __metadata:
     "@zyno-io/ts-server-foundation": "npm:26.713.1929"
     ioredis: "npm:^5.11.1"
     jose: "npm:^6.2.3"
+    lodash: "npm:^4.18.1"
     mime-types: "npm:^3.0.2"
     patch-package: "npm:^8.0.1"
     tslib: "npm:^2.8.1"
