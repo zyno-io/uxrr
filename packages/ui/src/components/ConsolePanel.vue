@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
+
 import type { GrafanaConfig } from '@/auth';
 import type { ILogEntry } from '@/openapi-client-generated';
 
@@ -36,25 +37,41 @@ const scrollerRef = ref<{ $el?: HTMLElement; scrollToBottom?: () => void } | nul
 const levelFilter = ref<number | null>(null);
 const includeNetwork = ref(true);
 const autoScroll = ref(true);
+const searchQuery = ref('');
 let ignoreNextScroll = false;
 
 // absolute timestamp cutoff: session start + replay offset
 const cutoffMs = computed(() => props.sessionStartMs + props.currentTimeMs);
 
-const visibleLogs = computed(() => {
-    let entries = props.logs.filter((l): l is ILogEntry => !!l && typeof l === 'object');
+interface ConsoleLogItem {
+    entry: ILogEntry;
+    id: string;
+}
+
+const allLogItems = computed<ConsoleLogItem[]>(() =>
+    props.logs.flatMap((entry, index) => (entry && typeof entry === 'object' ? [{ entry, id: `${entry.t}:${index}` }] : []))
+);
+
+const visibleLogItems = computed(() => {
+    let items = allLogItems.value;
     if (!includeNetwork.value) {
-        entries = entries.filter(l => l.c !== 'uxrr:net');
+        items = items.filter(({ entry }) => entry.c !== 'uxrr:net');
     }
     if (levelFilter.value !== null) {
-        entries = entries.filter(l => l.c === 'uxrr:net' || l.v >= levelFilter.value!);
+        items = items.filter(({ entry }) => entry.c === 'uxrr:net' || entry.v >= levelFilter.value!);
     }
-    return entries;
+    const query = searchQuery.value.trim().toLocaleLowerCase();
+    if (query) {
+        items = items.filter(({ entry }) => getSearchableText(entry).includes(query));
+    }
+    return items;
 });
+
+const visibleLogs = computed(() => visibleLogItems.value.map(({ entry }) => entry));
 
 const useVirtual = computed(() => visibleLogs.value.length > VIRTUAL_THRESHOLD);
 
-const scrollerItems = computed(() => visibleLogs.value.map((entry, idx) => ({ entry, id: idx })));
+const scrollerItems = computed(() => visibleLogItems.value);
 
 function getScrollerEl(): HTMLElement | null {
     const inst = scrollerRef.value as unknown as { $el?: HTMLElement } | null;
@@ -126,6 +143,17 @@ function getLevelInfo(v: number) {
     return LOG_LEVELS[v] ?? { label: `L${v}`, cssClass: 'level-debug' };
 }
 
+function getSearchableText(entry: ILogEntry): string {
+    let data = '';
+    try {
+        data = JSON.stringify(entry.d) ?? '';
+    } catch {
+        // Ingested log data should be JSON-safe, but a malformed entry should
+        // not prevent the rest of the console from being searched.
+    }
+    return `${formatTime(entry.t)} ${getLevelInfo(entry.v).label} ${entry.c} ${entry.m} ${data}`.toLocaleLowerCase();
+}
+
 function getTraceId(entry: ILogEntry): string | undefined {
     if (!entry.d || typeof entry.d !== 'object') return undefined;
     const d = entry.d as Record<string, unknown>;
@@ -185,6 +213,20 @@ function setFilter(level: number | null) {
     <div class="console-panel">
         <div class="console-toolbar">
             <span class="console-title">Console</span>
+            <div class="console-search">
+                <input
+                    v-model="searchQuery"
+                    type="search"
+                    class="console-search-input"
+                    placeholder="Search console"
+                    aria-label="Search console"
+                    autocomplete="off"
+                    spellcheck="false"
+                />
+                <button v-if="searchQuery" type="button" class="console-search-clear" aria-label="Clear console search" @click="searchQuery = ''">
+                    &times;
+                </button>
+            </div>
             <div class="console-filters">
                 <button :class="['filter-chip', { active: levelFilter === null }]" @click="setFilter(null)">All</button>
                 <button :class="['filter-chip', { active: levelFilter === 0 }]" @click="setFilter(0)">Debug</button>
@@ -202,7 +244,9 @@ function setFilter(level: number | null) {
             </label>
         </div>
         <div v-if="!useVirtual" ref="containerRef" class="console-entries">
-            <div v-if="visibleLogs.length === 0" class="console-empty">No log entries yet</div>
+            <div v-if="visibleLogs.length === 0" class="console-empty">
+                {{ allLogItems.length === 0 ? 'No log entries yet' : 'No matching log entries' }}
+            </div>
             <template v-for="(entry, i) in visibleLogs" :key="i">
                 <div v-if="isNetworkEntry(entry)" :class="['console-entry', 'level-debug', 'net-entry', { future: isFuture(entry) }]">
                     <span class="entry-time entry-time--clickable" @click="seekToEntry(entry)">{{ formatTime(entry.t) }}</span>
@@ -312,6 +356,57 @@ function setFilter(level: number | null) {
     font-weight: 600;
     font-size: 13px;
     margin-right: auto;
+}
+
+.console-search {
+    position: relative;
+    width: clamp(140px, 20vw, 240px);
+    flex-shrink: 1;
+}
+
+.console-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 24px 4px 8px;
+    border: 1px solid var(--uxrr-border);
+    border-radius: 3px;
+    background: var(--uxrr-bg);
+    color: var(--uxrr-text);
+    font: inherit;
+    font-size: 11px;
+
+    &::placeholder {
+        color: var(--uxrr-text-muted);
+    }
+
+    &:focus {
+        outline: none;
+        border-color: var(--uxrr-accent);
+    }
+
+    &::-webkit-search-cancel-button {
+        appearance: none;
+    }
+}
+
+.console-search-clear {
+    position: absolute;
+    top: 50%;
+    right: 5px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--uxrr-text-muted);
+    font-size: 16px;
+    line-height: 18px;
+    cursor: pointer;
+    transform: translateY(-50%);
+
+    &:hover {
+        color: var(--uxrr-text);
+    }
 }
 
 .console-filters {

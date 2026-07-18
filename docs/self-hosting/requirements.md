@@ -9,7 +9,7 @@ uxrr requires the following services:
 | Service                   | Version | Purpose                                                                |
 | ------------------------- | ------- | ---------------------------------------------------------------------- |
 | **PostgreSQL**            | 15+     | Session metadata, app configuration, API keys                          |
-| **S3-compatible storage** | —       | Event chunk storage (AWS S3, MinIO, MiniStack, etc.)                  |
+| **S3-compatible storage** | —       | Event chunk storage (AWS S3, MinIO, MiniStack, etc.)                   |
 | **OIDC provider**         | —       | Authentication for the dashboard (Keycloak, Auth0, Okta, Google, etc.) |
 | **Node.js**               | 22+     | Runtime for the server                                                 |
 
@@ -21,6 +21,8 @@ uxrr requires the following services:
 | **Tempo**   | Distributed trace storage      | Trace linking and "View in Grafana" links are unavailable — the network panel itself is driven by logs in Loki |
 | **Redis**   | Pub/sub for horizontal scaling | Server is limited to a single instance                                                                         |
 | **Grafana** | Trace visualization links      | "View in Grafana" links in the network panel are hidden                                                        |
+
+Loki deployments must use schema v13 or later with structured metadata enabled.
 
 ## Deployment Options
 

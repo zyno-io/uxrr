@@ -38,7 +38,7 @@ uxrr is a Yarn monorepo with three packages that work together to capture, store
 The browser SDK buffers events and logs together and sends them in a single `POST /v1/ng/{appId}/{sessionId}/data` request. The server splits this payload:
 
 - **Events** → stored as chunks in S3-compatible storage
-- **Logs** → forwarded to Loki with labels for app, device, and user (session ID is included in the log line JSON, not as a Loki label)
+- **Logs** → forwarded to Loki with labels for app, device, and user (session ID is attached to each log entry as structured metadata)
 
 In normal mode, the SDK flushes every 5 seconds (or at 50 events). On page unload, it uses `sendBeacon` for a final flush.
 

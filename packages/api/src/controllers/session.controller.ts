@@ -23,6 +23,10 @@ interface SessionQueryParams {
     offset?: number;
 }
 
+type SessionAutocompleteQueryParams = Pick<SessionQueryParams, 'appKey' | 'userId' | 'deviceId' | 'from' | 'to' | 'hasChat' | 'isLive'> & {
+    q?: string;
+};
+
 type ISession = EntityFields<SessionEntity> & { allUserIds: string[]; isLive: boolean };
 
 export interface ILogEntry {
@@ -81,24 +85,27 @@ export class SessionController {
     }
 
     @http.GET('autocomplete/appKeys')
-    async autocompleteAppKeys(request: HttpRequest, query: HttpQueries<{ q?: string }>): Promise<string[]> {
+    async autocompleteAppKeys(request: HttpRequest, query: HttpQueries<SessionAutocompleteQueryParams>): Promise<string[]> {
         const ctx = getAuthContext(request);
-        return this.sessionSvc.distinctAppKeys(query.q, ctx.appKeys);
+        const { q, appKey: _appKey, ...filters } = query;
+        return this.sessionSvc.distinctAppKeys(q, { ...filters, appKeys: ctx.appKeys });
     }
 
     @http.GET('autocomplete/deviceIds')
-    async autocompleteDeviceIds(request: HttpRequest, query: HttpQueries<{ q?: string }>): Promise<string[]> {
+    async autocompleteDeviceIds(request: HttpRequest, query: HttpQueries<SessionAutocompleteQueryParams>): Promise<string[]> {
         const ctx = getAuthContext(request);
-        return this.sessionSvc.distinctDeviceIds(query.q, ctx.appKeys);
+        const { q, deviceId: _deviceId, ...filters } = query;
+        return this.sessionSvc.distinctDeviceIds(q, { ...filters, appKeys: ctx.appKeys });
     }
 
     @http.GET('autocomplete/users')
     async autocompleteUsers(
         request: HttpRequest,
-        query: HttpQueries<{ q?: string }>
+        query: HttpQueries<SessionAutocompleteQueryParams>
     ): Promise<{ userId: string; userName?: string; userEmail?: string }[]> {
         const ctx = getAuthContext(request);
-        return this.sessionSvc.distinctUsers(query.q, ctx.appKeys);
+        const { q, userId: _userId, ...filters } = query;
+        return this.sessionSvc.distinctUsers(q, { ...filters, appKeys: ctx.appKeys });
     }
 
     @http.GET(':id')

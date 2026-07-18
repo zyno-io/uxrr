@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { describe, it, expect } from 'vitest';
 import { defineComponent, nextTick, ref } from 'vue';
-import ConsolePanel from '../components/ConsolePanel.vue';
+import { DynamicScroller } from 'vue-virtual-scroller';
+
 import type { ILogEntry } from '../openapi-client-generated';
+
+import ConsolePanel from '../components/ConsolePanel.vue';
 
 function makeLog(overrides: Partial<ILogEntry> = {}): ILogEntry {
     return {
@@ -51,6 +54,56 @@ describe('ConsolePanel', () => {
         });
         expect(wrapper.text()).toContain('Hello world');
         expect(wrapper.text()).toContain('app');
+    });
+
+    it('searches console messages, scopes, and structured data case-insensitively', async () => {
+        const logs = [
+            makeLog({ m: 'Payment completed', c: 'checkout' }),
+            makeLog({ m: 'User updated', c: 'profile', d: { accountId: 'ACCT-42' } }),
+            makeLog({ m: 'Unrelated entry', c: 'other' })
+        ];
+        const wrapper = mount(ConsolePanel, {
+            props: { logs, ...defaultProps }
+        });
+
+        const search = wrapper.get<HTMLInputElement>('[aria-label="Search console"]');
+        await search.setValue('CHECKOUT');
+        expect(wrapper.findAll('.console-entry').map(entry => entry.text())).toEqual([expect.stringContaining('Payment completed')]);
+
+        await search.setValue('acct-42');
+        expect(wrapper.findAll('.console-entry').map(entry => entry.text())).toEqual([expect.stringContaining('User updated')]);
+    });
+
+    it('searches network request details and clears the search', async () => {
+        const logs = [makeLog({ m: 'console-msg' }), makeNetLog({ d: { method: 'DELETE', url: '/sales/tabs/123', status: 204, duration: 31 } })];
+        const wrapper = mount(ConsolePanel, {
+            props: { logs, ...defaultProps }
+        });
+
+        await wrapper.get('[aria-label="Search console"]').setValue('sales/tabs');
+        expect(wrapper.findAll('.console-entry')).toHaveLength(1);
+        expect(wrapper.find('.console-entry').classes()).toContain('net-entry');
+
+        await wrapper.get('[aria-label="Clear console search"]').trigger('click');
+        expect(wrapper.findAll('.console-entry')).toHaveLength(2);
+    });
+
+    it('shows a filtered empty state when search has no matches', async () => {
+        const wrapper = mount(ConsolePanel, {
+            props: { logs: [makeLog()], ...defaultProps }
+        });
+
+        await wrapper.get('[aria-label="Search console"]').setValue('not present');
+        expect(wrapper.text()).toContain('No matching log entries');
+    });
+
+    it('uses virtual scrolling for large console histories', () => {
+        const logs = Array.from({ length: 201 }, (_, index) => makeLog({ t: 1700000000000 + index, m: `entry-${index}` }));
+        const wrapper = mount(ConsolePanel, {
+            props: { logs, ...defaultProps }
+        });
+
+        expect(wrapper.findComponent(DynamicScroller).exists()).toBe(true);
     });
 
     it('renders log level labels', () => {

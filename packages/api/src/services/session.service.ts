@@ -19,6 +19,12 @@ interface SessionFilters {
     offset?: number;
 }
 
+interface SqlConditions {
+    conditions: string[];
+    params: unknown[];
+    valid: boolean;
+}
+
 export class SessionService {
     constructor(
         private readonly db: UxrrDatabase,
@@ -114,16 +120,9 @@ export class SessionService {
         return map;
     }
 
-    async distinctAppKeys(prefix?: string, appKeys?: string[]): Promise<string[]> {
-        const conditions: string[] = [];
-        const params: unknown[] = [];
-
-        if (appKeys && appKeys.length > 0) {
-            const uuids = appKeys.map(s => this.appResolver.resolveAppUuid(s)).filter(Boolean) as string[];
-            if (uuids.length === 0) return [];
-            conditions.push(`"appId" IN (${uuids.map(() => '?').join(', ')})`);
-            params.push(...uuids);
-        }
+    async distinctAppKeys(prefix?: string, filters: SessionFilters = {}): Promise<string[]> {
+        const { conditions, params, valid } = this.buildSessionConditions(filters);
+        if (!valid) return [];
 
         const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
         const rows = await this.db.rawFindUnsafe<{ appId: string }>(`SELECT DISTINCT "appId" FROM "sessions" ${where} LIMIT 200`, params);
@@ -138,25 +137,13 @@ export class SessionService {
         return appKeyResults.sort().slice(0, 50);
     }
 
-    private resolveAppUuids(appKeys?: string[]): string[] | undefined {
-        if (!appKeys || appKeys.length === 0) return undefined;
-        const uuids = appKeys.map(s => this.appResolver.resolveAppUuid(s)).filter(Boolean) as string[];
-        return uuids.length > 0 ? uuids : undefined;
-    }
-
-    async distinctDeviceIds(prefix?: string, appKeys?: string[]): Promise<string[]> {
-        const conditions: string[] = [];
-        const params: unknown[] = [];
+    async distinctDeviceIds(prefix?: string, filters: SessionFilters = {}): Promise<string[]> {
+        const { conditions, params, valid } = this.buildSessionConditions(filters);
+        if (!valid) return [];
 
         if (prefix) {
             conditions.push(`"deviceId" ILIKE ?`);
             params.push(`${prefix}%`);
-        }
-        const uuids = this.resolveAppUuids(appKeys);
-        if (appKeys && appKeys.length > 0 && !uuids) return [];
-        if (uuids) {
-            conditions.push(`"appId" IN (${uuids.map(() => '?').join(', ')})`);
-            params.push(...uuids);
         }
 
         const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -167,19 +154,14 @@ export class SessionService {
         return rows.map(r => r.deviceId);
     }
 
-    async distinctUsers(prefix?: string, appKeys?: string[]): Promise<{ userId: string; userName?: string; userEmail?: string }[]> {
-        const conditions: string[] = [`"userId" IS NOT NULL`];
-        const params: unknown[] = [];
+    async distinctUsers(prefix?: string, filters: SessionFilters = {}): Promise<{ userId: string; userName?: string; userEmail?: string }[]> {
+        const { conditions, params, valid } = this.buildSessionConditions(filters);
+        if (!valid) return [];
+        conditions.push(`"userId" IS NOT NULL`);
 
         if (prefix) {
             conditions.push(`("userId" ILIKE ? OR "userName" ILIKE ? OR "userEmail" ILIKE ?)`);
             params.push(`%${prefix}%`, `%${prefix}%`, `%${prefix}%`);
-        }
-        const uuids = this.resolveAppUuids(appKeys);
-        if (appKeys && appKeys.length > 0 && !uuids) return [];
-        if (uuids) {
-            conditions.push(`"appId" IN (${uuids.map(() => '?').join(', ')})`);
-            params.push(...uuids);
         }
 
         const where = `WHERE ${conditions.join(' AND ')}`;
@@ -192,5 +174,53 @@ export class SessionService {
             userName: r.userName ?? undefined,
             userEmail: r.userEmail ?? undefined
         }));
+    }
+
+    private buildSessionConditions(filters: SessionFilters): SqlConditions {
+        const conditions: string[] = [];
+        const params: unknown[] = [];
+
+        if (filters.appKey) {
+            const uuid = this.appResolver.resolveAppUuid(filters.appKey);
+            if (!uuid) return { conditions, params, valid: false };
+            conditions.push(`"appId" = ?`);
+            params.push(uuid);
+        }
+
+        if (filters.appKeys && filters.appKeys.length > 0) {
+            const uuids = filters.appKeys.map(s => this.appResolver.resolveAppUuid(s)).filter(Boolean) as string[];
+            if (uuids.length === 0) return { conditions, params, valid: false };
+            conditions.push(`"appId" IN (${uuids.map(() => '?').join(', ')})`);
+            params.push(...uuids);
+        }
+
+        if (filters.userId) {
+            conditions.push(
+                `EXISTS (SELECT 1 FROM "session_user_ids" WHERE "session_user_ids"."sessionId" = "sessions"."id" AND "session_user_ids"."userId" = ?)`
+            );
+            params.push(filters.userId);
+        }
+        if (filters.deviceId) {
+            conditions.push(`"deviceId" = ?`);
+            params.push(filters.deviceId);
+        }
+        if (filters.from) {
+            conditions.push(`"lastActivityAt" >= ?`);
+            params.push(new Date(filters.from));
+        }
+        if (filters.to) {
+            conditions.push(`"startedAt" <= ?`);
+            params.push(new Date(filters.to));
+        }
+        if (filters.hasChat) {
+            conditions.push(`"hasChatMessages" = ?`);
+            params.push(true);
+        }
+        if (filters.isLive) {
+            conditions.push(`"lastActivityAt" >= ?`);
+            params.push(new Date(Date.now() - 30_000));
+        }
+
+        return { conditions, params, valid: true };
     }
 }

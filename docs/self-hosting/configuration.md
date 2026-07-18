@@ -14,13 +14,13 @@ All server configuration is via environment variables.
 
 ## S3 / Object Storage
 
-| Variable               | Default       | Description                                                |
-| ---------------------- | ------------- | ---------------------------------------------------------- |
-| `S3_ENDPOINT`          | —             | S3-compatible endpoint URL                                 |
-| `S3_REGION`            | `us-east-1`   | S3 region                                                  |
-| `S3_BUCKET`            | `uxrr-events` | Bucket name for event storage                              |
-| `S3_ACCESS_KEY_SECRET` | —             | Access key                                                 |
-| `S3_SECRET_KEY_SECRET` | —             | Secret key                                                 |
+| Variable               | Default       | Description                                               |
+| ---------------------- | ------------- | --------------------------------------------------------- |
+| `S3_ENDPOINT`          | —             | S3-compatible endpoint URL                                |
+| `S3_REGION`            | `us-east-1`   | S3 region                                                 |
+| `S3_BUCKET`            | `uxrr-events` | Bucket name for event storage                             |
+| `S3_ACCESS_KEY_SECRET` | —             | Access key                                                |
+| `S3_SECRET_KEY_SECRET` | —             | Secret key                                                |
 | `S3_FORCE_PATH_STYLE`  | `true`        | Use path-style addressing (required for MinIO, MiniStack) |
 
 ## OIDC Authentication
@@ -44,6 +44,13 @@ See [Authentication](./authentication) for setup instructions.
 | `LOKI_URL`                  | —       | Loki push API URL (e.g., `http://loki:3100`) |
 | `LOKI_AUTH_USER`            | —       | Basic auth username (optional)               |
 | `LOKI_AUTH_PASSWORD_SECRET` | —       | Basic auth password (optional)               |
+
+Loki must use schema v13 or later and have structured metadata enabled:
+
+```yaml
+limits_config:
+    allow_structured_metadata: true
+```
 
 ## Tempo (Traces)
 

@@ -310,6 +310,36 @@ paths:
           required: false
           schema:
             type: string
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: deviceId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: hasChat
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: isLive
+          in: query
+          required: false
+          schema:
+            type: boolean
   /v1/sessions/autocomplete/deviceIds:
     get:
       operationId: getSessionAutocompleteDeviceIds
@@ -330,6 +360,36 @@ paths:
           required: false
           schema:
             type: string
+        - name: appKey
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: hasChat
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: isLive
+          in: query
+          required: false
+          schema:
+            type: boolean
   /v1/sessions/autocomplete/users:
     get:
       operationId: getSessionAutocompleteUsers
@@ -359,6 +419,36 @@ paths:
           required: false
           schema:
             type: string
+        - name: appKey
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: deviceId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: hasChat
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: isLive
+          in: query
+          required: false
+          schema:
+            type: boolean
   /v1/sessions/{id}:
     get:
       operationId: getSessionGetSession

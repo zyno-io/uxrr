@@ -13,9 +13,16 @@ const LOG_LEVEL_MAP: Record<number, string> = {
 
 const LEVEL_REVERSE: Record<string, number> = Object.fromEntries(Object.entries(LOG_LEVEL_MAP).map(([k, v]) => [v, Number(k)]));
 
-/** Escape a value for use inside LogQL double-quoted label matchers or backtick pipeline filters. */
+type LokiPushValue = [string, string, Record<string, string>];
+
+interface LokiQueryStream {
+    stream: Record<string, string>;
+    values: [string, string][];
+}
+
+/** Escape a value for use inside a LogQL double-quoted string. */
 function escapeLogQL(value: string): string {
-    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/`/g, '\\`');
+    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 export class LokiService {
@@ -37,8 +44,9 @@ export class LokiService {
     async pushLogs(entries: StoredLogEntry[]): Promise<void> {
         if (!this.url || entries.length === 0) return;
 
-        // group by label set (appKey + deviceId + userId + sessionId)
-        const streams = new Map<string, { labels: Record<string, string>; values: [string, string][] }>();
+        // Group by the indexed, low-cardinality label set. The high-cardinality
+        // session ID is attached to each entry as structured metadata instead.
+        const streams = new Map<string, { labels: Record<string, string>; values: LokiPushValue[] }>();
 
         for (const entry of entries) {
             const labels: Record<string, string> = {
@@ -61,11 +69,10 @@ export class LokiService {
                 level,
                 scope: entry.c,
                 message: entry.m,
-                sessionId: entry.sessionId,
                 ...(entry.d ? { data: entry.d } : {})
             });
 
-            streams.get(labelKey)!.values.push([tsNano, line]);
+            streams.get(labelKey)!.values.push([tsNano, line, { sessionId: entry.sessionId }]);
         }
 
         const payload = {
@@ -95,9 +102,43 @@ export class LokiService {
     async queryLogs(deviceId: string, sessionId: string, from?: Date, to?: Date): Promise<StoredLogEntry[]> {
         if (!this.config.LOKI_URL) return [];
 
-        // Use a line filter instead of `| json` to avoid Loki flattening/stripping
-        // nested objects (like the `data` field) from the log line content.
-        const query = `{job="uxrr", deviceId="${escapeLogQL(deviceId)}"} |= \`"sessionId":"${escapeLogQL(sessionId)}"\``;
+        const selector = `{job="uxrr", deviceId="${escapeLogQL(deviceId)}"}`;
+        const metadataQuery = `${selector} | sessionId="${escapeLogQL(sessionId)}"`;
+
+        // Keep historical logs readable. Before sessionId became structured
+        // metadata, it was serialized into the JSON log line.
+        const legacyNeedle = `"sessionId":${JSON.stringify(sessionId)}`;
+        const legacyQuery = `${selector} |= "${escapeLogQL(legacyNeedle)}"`;
+
+        const streams = (await Promise.all([this.queryRange(metadataQuery, from, to), this.queryRange(legacyQuery, from, to)])).flat();
+        const entries: StoredLogEntry[] = [];
+
+        for (const stream of streams) {
+            const labels = stream.stream;
+            for (const [tsNano, line] of stream.values) {
+                try {
+                    const parsed = JSON.parse(line);
+                    entries.push({
+                        t: Math.floor(Number(tsNano) / 1_000_000), // ns → ms
+                        v: LEVEL_REVERSE[parsed.level] ?? 1,
+                        c: parsed.scope ?? '',
+                        m: parsed.message ?? '',
+                        d: parsed.data,
+                        appKey: labels.appKey,
+                        deviceId: labels.deviceId,
+                        userId: labels.userId,
+                        sessionId: labels.sessionId ?? parsed.sessionId ?? sessionId
+                    });
+                } catch (err) {
+                    this.logger.warn('Failed to parse Loki log line', { err });
+                }
+            }
+        }
+
+        return entries.sort((a, b) => a.t - b.t);
+    }
+
+    private async queryRange(query: string, from?: Date, to?: Date): Promise<LokiQueryStream[]> {
         const params = new URLSearchParams({ query, direction: 'forward', limit: '5000' });
         if (from) params.set('start', String(from.getTime() * 1_000_000));
         if (to) params.set('end', String(to.getTime() * 1_000_000));
@@ -117,29 +158,9 @@ export class LokiService {
             }
 
             const result = (await response.json()) as {
-                data?: { result?: { stream: Record<string, string>; values: [string, string][] }[] };
+                data?: { result?: LokiQueryStream[] };
             };
-            const entries: StoredLogEntry[] = [];
-
-            for (const stream of result.data?.result ?? []) {
-                const labels = stream.stream;
-                for (const [tsNano, line] of stream.values) {
-                    const parsed = JSON.parse(line);
-                    entries.push({
-                        t: Math.floor(Number(tsNano) / 1_000_000), // ns → ms
-                        v: LEVEL_REVERSE[parsed.level] ?? 1,
-                        c: parsed.scope ?? '',
-                        m: parsed.message ?? '',
-                        d: parsed.data,
-                        appKey: labels.appKey,
-                        deviceId: labels.deviceId,
-                        userId: labels.userId,
-                        sessionId: parsed.sessionId ?? sessionId
-                    });
-                }
-            }
-
-            return entries.sort((a, b) => a.t - b.t);
+            return result.data?.result ?? [];
         } catch (err) {
             this.logger.error('Failed to query Loki', err);
             return [];

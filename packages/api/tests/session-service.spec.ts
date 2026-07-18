@@ -1,9 +1,10 @@
-import { describe, it, mock } from 'node:test';
 import { strict as assert } from 'node:assert';
+import { describe, it, mock } from 'node:test';
 
-import { SessionService } from '../src/services/session.service';
-import { SessionEntity } from '../src/database/entities/session.entity';
 import type { UxrrDatabase } from '../src/database/database';
+
+import { SessionEntity } from '../src/database/entities/session.entity';
+import { SessionService } from '../src/services/session.service';
 
 function makeSessionEntity(overrides: Partial<SessionEntity> = {}): SessionEntity {
     const now = new Date();
@@ -253,6 +254,57 @@ describe('SessionService', () => {
 
             const result = await svc.distinctAppKeys('my');
             assert.deepEqual(result, ['my-app', 'my-thing']);
+        });
+
+        it('applies the active user, device, and chat filters', async () => {
+            const { db, appResolver, rawFindUnsafeFn } = createMocks();
+            const svc = new SessionService(db, appResolver);
+
+            await svc.distinctAppKeys(undefined, { userId: 'user-1', deviceId: 'dev-1', hasChat: true });
+
+            const [sql, params] = rawFindUnsafeFn.mock.calls[0].arguments;
+            assert.match(sql as string, /EXISTS .*session_user_ids/);
+            assert.match(sql as string, /"deviceId" = \?/);
+            assert.match(sql as string, /"hasChatMessages" = \?/);
+            assert.deepEqual(params, ['user-1', 'dev-1', true]);
+        });
+    });
+
+    describe('distinctDeviceIds', () => {
+        it('applies the active app and user filters', async () => {
+            const { db, appResolver, rawFindUnsafeFn } = createMocks();
+            const svc = new SessionService(db, appResolver);
+
+            await svc.distinctDeviceIds('dev', { appKey: 'app-1', userId: 'user-1' });
+
+            const [sql, params] = rawFindUnsafeFn.mock.calls[0].arguments;
+            assert.match(sql as string, /"appId" = \?/);
+            assert.match(sql as string, /EXISTS .*session_user_ids/);
+            assert.match(sql as string, /"deviceId" ILIKE \?/);
+            assert.deepEqual(params, ['app-1', 'user-1', 'dev%']);
+        });
+    });
+
+    describe('distinctUsers', () => {
+        it('applies the active app, device, and date filters', async () => {
+            const { db, appResolver, rawFindUnsafeFn } = createMocks();
+            const svc = new SessionService(db, appResolver);
+
+            await svc.distinctUsers(undefined, {
+                appKey: 'app-1',
+                deviceId: 'dev-1',
+                from: '2026-07-01T00:00:00.000Z',
+                to: '2026-07-18T00:00:00.000Z'
+            });
+
+            const [sql, params] = rawFindUnsafeFn.mock.calls[0].arguments;
+            assert.match(sql as string, /"appId" = \?/);
+            assert.match(sql as string, /"deviceId" = \?/);
+            assert.match(sql as string, /"lastActivityAt" >= \?/);
+            assert.match(sql as string, /"startedAt" <= \?/);
+            assert.equal(params?.[0], 'app-1');
+            assert.equal(params?.[1], 'dev-1');
+            assert.deepEqual(params?.slice(2), [new Date('2026-07-01T00:00:00.000Z'), new Date('2026-07-18T00:00:00.000Z')]);
         });
     });
 });

@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
-import { VfSmartSelect } from '@zyno-io/vue-foundation';
 import { dataFrom } from '@zyno-io/openapi-client-codegen';
+import { VfSmartSelect } from '@zyno-io/vue-foundation';
+import { reactive, ref, watch } from 'vue';
+
 import type { GetSessionListSessionsData } from '@/openapi-client-generated';
-import { SessionApi } from '@/openapi-client-generated';
-import DateRangePicker, { type DateRange } from './DateRangePicker.vue';
+
 import { createLogger } from '@/logger';
+import { SessionApi } from '@/openapi-client-generated';
+
+import DateRangePicker, { type DateRange } from './DateRangePicker.vue';
 
 const log = createLogger('filter-bar');
 
@@ -33,17 +36,65 @@ const filters = reactive({
 
 const dateRange = ref<DateRange>({});
 const datePickerRef = ref<InstanceType<typeof DateRangePicker>>();
+const appOptionsVersion = ref(0);
+const userOptionsVersion = ref(0);
+const deviceOptionsVersion = ref(0);
+
+function sharedAutocompleteFilters() {
+    const current = getFilters();
+    return {
+        from: current.from,
+        to: current.to,
+        isLive: current.isLive,
+        hasChat: current.hasChat
+    };
+}
 
 async function loadAppKeys(searchText: string | null): Promise<string[]> {
-    return dataFrom(await SessionApi.getSessionAutocompleteAppKeys({ query: { q: searchText || undefined } }));
+    const options = dataFrom(
+        await SessionApi.getSessionAutocompleteAppKeys({
+            query: {
+                q: searchText || undefined,
+                userId: filters.userId || undefined,
+                deviceId: filters.deviceId || undefined,
+                ...sharedAutocompleteFilters()
+            }
+        })
+    );
+    if (!searchText && filters.appKey && !options.includes(filters.appKey)) return [filters.appKey, ...options];
+    return options;
 }
 
 async function loadUsers(searchText: string | null): Promise<UserOption[]> {
-    return dataFrom(await SessionApi.getSessionAutocompleteUsers({ query: { q: searchText || undefined } }));
+    const options = dataFrom(
+        await SessionApi.getSessionAutocompleteUsers({
+            query: {
+                q: searchText || undefined,
+                appKey: filters.appKey || undefined,
+                deviceId: filters.deviceId || undefined,
+                ...sharedAutocompleteFilters()
+            }
+        })
+    );
+    if (!searchText && filters.userId && !options.some(option => option.userId === filters.userId)) {
+        return [{ userId: filters.userId }, ...options];
+    }
+    return options;
 }
 
 async function loadDeviceIds(searchText: string | null): Promise<string[]> {
-    return dataFrom(await SessionApi.getSessionAutocompleteDeviceIds({ query: { q: searchText || undefined } }));
+    const options = dataFrom(
+        await SessionApi.getSessionAutocompleteDeviceIds({
+            query: {
+                q: searchText || undefined,
+                appKey: filters.appKey || undefined,
+                userId: filters.userId || undefined,
+                ...sharedAutocompleteFilters()
+            }
+        })
+    );
+    if (!searchText && filters.deviceId && !options.includes(filters.deviceId)) return [filters.deviceId, ...options];
+    return options;
 }
 
 function formatUser(o: UserOption): string {
@@ -92,27 +143,49 @@ function apply() {
     emit('filter', out);
 }
 
+function refreshAutocompleteOptions(except?: 'appKey' | 'userId' | 'deviceId') {
+    if (except !== 'appKey') appOptionsVersion.value++;
+    if (except !== 'userId') userOptionsVersion.value++;
+    if (except !== 'deviceId') deviceOptionsVersion.value++;
+}
+
 watch(
     () => filters.appKey,
-    () => apply()
+    () => {
+        refreshAutocompleteOptions('appKey');
+        apply();
+    }
 );
 watch(
     () => filters.userId,
-    () => apply()
+    () => {
+        refreshAutocompleteOptions('userId');
+        apply();
+    }
 );
 watch(
     () => filters.deviceId,
-    () => apply()
+    () => {
+        refreshAutocompleteOptions('deviceId');
+        apply();
+    }
 );
 
 function onDateChange(range: DateRange) {
     dateRange.value = range;
+    refreshAutocompleteOptions();
+    apply();
+}
+
+function onToggleChange() {
+    refreshAutocompleteOptions();
     apply();
 }
 
 function setFilter(key: string, value: string) {
     if (key in filters) {
         (filters as unknown as Record<string, string>)[key] = value;
+        refreshAutocompleteOptions();
     }
     apply();
 }
@@ -138,6 +211,7 @@ function initFilters(params: Record<string, string>) {
             (filters as unknown as Record<string, string>)[key] = value;
         }
     }
+    refreshAutocompleteOptions();
     apply();
 }
 
@@ -159,6 +233,7 @@ function restoreFromStorage(): boolean {
                 customTo: state.customTo || undefined
             });
         }
+        refreshAutocompleteOptions();
         return true;
     } catch {
         return false;
@@ -171,6 +246,7 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
 <template>
     <div class="filter-bar">
         <VfSmartSelect
+            :key="`app-${appOptionsVersion}`"
             v-model="filters.appKey"
             :load-options="loadAppKeys"
             :formatter="(o: string) => o"
@@ -182,6 +258,7 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
             class="filter-select"
         />
         <VfSmartSelect
+            :key="`user-${userOptionsVersion}`"
             v-model="filters.userId"
             :load-options="loadUsers"
             :formatter="formatUser"
@@ -194,6 +271,7 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
             class="filter-select"
         />
         <VfSmartSelect
+            :key="`device-${deviceOptionsVersion}`"
             v-model="filters.deviceId"
             :load-options="loadDeviceIds"
             :formatter="(o: string) => o.slice(0, 8)"
@@ -206,11 +284,11 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
         />
         <DateRangePicker ref="datePickerRef" @change="onDateChange" />
         <label class="filter-toggle">
-            <input type="checkbox" v-model="filters.isLive" @change="apply" />
+            <input type="checkbox" v-model="filters.isLive" @change="onToggleChange" />
             <span>Live</span>
         </label>
         <label class="filter-toggle">
-            <input type="checkbox" v-model="filters.hasChat" @change="apply" />
+            <input type="checkbox" v-model="filters.hasChat" @change="onToggleChange" />
             <span>Has Chat</span>
         </label>
     </div>

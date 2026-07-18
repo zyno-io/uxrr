@@ -39,13 +39,16 @@ function createMocks() {
     const loadAllUserIdsFn = mock.fn(async (_ids: string[]) => new Map([['sess-1', ['u-1']]]));
     const listFn = mock.fn(async (_filters: unknown) => [makeSession()]);
 
+    const distinctAppKeysFn = mock.fn(async () => ['app-1']);
+    const distinctDeviceIdsFn = mock.fn(async () => ['dev-1']);
+    const distinctUsersFn = mock.fn(async () => []);
     const sessionSvc = {
         getOrThrow: getOrThrowFn,
         loadAllUserIds: loadAllUserIdsFn,
         list: listFn,
-        distinctAppKeys: mock.fn(async () => ['app-1']),
-        distinctDeviceIds: mock.fn(async () => ['dev-1']),
-        distinctUsers: mock.fn(async () => [])
+        distinctAppKeys: distinctAppKeysFn,
+        distinctDeviceIds: distinctDeviceIdsFn,
+        distinctUsers: distinctUsersFn
     } as unknown as SessionService;
 
     const s3Svc = {
@@ -72,7 +75,7 @@ function createMocks() {
     } as any;
 
     const controller = new SessionController(sessionSvc, s3Svc, lokiSvc, shareSvc, retentionSvc, appResolver);
-    return { controller, getOrThrowFn };
+    return { controller, getOrThrowFn, distinctAppKeysFn, distinctDeviceIdsFn, distinctUsersFn };
 }
 
 describe('SessionController — access control', () => {
@@ -179,6 +182,40 @@ describe('SessionController — access control', () => {
 
             const result = await controller.listSessions(request, { appKey: 'app-1' });
             assert.ok(Array.isArray(result));
+        });
+    });
+
+    describe('autocomplete filters', () => {
+        it('passes other active filters and auth app restrictions to each facet', async () => {
+            const { controller, distinctAppKeysFn, distinctDeviceIdsFn, distinctUsersFn } = createMocks();
+            const request = makeRequest({ type: 'api-key', scope: 'readonly', appKeys: ['allowed-app'] });
+
+            await controller.autocompleteAppKeys(request, {
+                q: 'app',
+                appKey: 'ignored-self',
+                userId: 'user-1',
+                deviceId: 'device-1',
+                hasChat: true
+            });
+            await controller.autocompleteDeviceIds(request, {
+                q: 'dev',
+                appKey: 'app-1',
+                userId: 'user-1',
+                deviceId: 'ignored-self'
+            });
+            await controller.autocompleteUsers(request, {
+                q: 'ali',
+                appKey: 'app-1',
+                userId: 'ignored-self',
+                deviceId: 'device-1'
+            });
+
+            assert.deepEqual(distinctAppKeysFn.mock.calls[0].arguments, [
+                'app',
+                { userId: 'user-1', deviceId: 'device-1', hasChat: true, appKeys: ['allowed-app'] }
+            ]);
+            assert.deepEqual(distinctDeviceIdsFn.mock.calls[0].arguments, ['dev', { appKey: 'app-1', userId: 'user-1', appKeys: ['allowed-app'] }]);
+            assert.deepEqual(distinctUsersFn.mock.calls[0].arguments, ['ali', { appKey: 'app-1', deviceId: 'device-1', appKeys: ['allowed-app'] }]);
         });
     });
 });

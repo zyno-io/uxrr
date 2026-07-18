@@ -227,7 +227,7 @@ describe('IngestService', () => {
     });
 
     describe('logs → Loki', () => {
-        it('forwards logs to Loki with correct labels', async () => {
+        it('forwards logs to Loki with the session storage context', async () => {
             const m = createMocks({ existingSession: null });
             const svc = new IngestService(makeConfig(), m.db, m.s3, m.loki, m.live, m.notify, makeLogger());
 
@@ -242,7 +242,7 @@ describe('IngestService', () => {
             assert.equal(decorated[0].sessionId, 'sess-1');
         });
 
-        it('Loki log line includes sessionId (not as label)', async () => {
+        it('decorates every log with sessionId for metadata serialization', async () => {
             const m = createMocks({ existingSession: null });
             const svc = new IngestService(makeConfig(), m.db, m.s3, m.loki, m.live, m.notify, makeLogger());
 
@@ -251,12 +251,18 @@ describe('IngestService', () => {
                 'app-1',
                 'sess-1',
                 makePayload({
-                    logs: [{ t: 1000, v: 1, c: 'scope', m: 'msg' }]
+                    logs: [
+                        { t: 1000, v: 1, c: 'scope', m: 'first' },
+                        { t: 1001, v: 2, c: 'scope', m: 'second' }
+                    ]
                 })
             );
 
             const decorated = m.pushLogsFn.mock.calls[0].arguments[0] as Record<string, unknown>[];
-            assert.equal(decorated[0].sessionId, 'sess-1');
+            assert.deepEqual(
+                decorated.map(entry => entry.sessionId),
+                ['sess-1', 'sess-1']
+            );
         });
     });
 
