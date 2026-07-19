@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { defineComponent, nextTick, ref } from 'vue';
 import { DynamicScroller } from 'vue-virtual-scroller';
 
@@ -86,6 +86,49 @@ describe('ConsolePanel', () => {
 
         await wrapper.get('[aria-label="Clear console search"]').trigger('click');
         expect(wrapper.findAll('.console-entry')).toHaveLength(2);
+    });
+
+    it('keeps one console row highlighted until it is clicked again or another row is clicked', async () => {
+        const wrapper = mount(ConsolePanel, {
+            props: {
+                logs: [makeLog({ m: 'first' }), makeLog({ t: 1700000001000, m: 'second' })],
+                ...defaultProps
+            }
+        });
+
+        const entries = wrapper.findAll('.console-entry');
+        await entries[0]!.trigger('click');
+        expect(entries[0]!.classes()).toContain('selected');
+        expect(entries[1]!.classes()).not.toContain('selected');
+
+        await entries[1]!.trigger('click');
+        expect(entries[0]!.classes()).not.toContain('selected');
+        expect(entries[1]!.classes()).toContain('selected');
+
+        await entries[1]!.trigger('click');
+        expect(entries[1]!.classes()).not.toContain('selected');
+    });
+
+    it('clears search and scrolls the selected row back into view', async () => {
+        const wrapper = mount(ConsolePanel, {
+            props: {
+                logs: [makeLog({ m: 'first' }), makeLog({ t: 1700000001000, m: 'matching row' }), makeLog({ t: 1700000002000, m: 'last' })],
+                ...defaultProps
+            }
+        });
+        const scrollIntoView = vi.spyOn(HTMLElement.prototype, 'scrollIntoView');
+
+        const search = wrapper.get<HTMLInputElement>('[aria-label="Search console"]');
+        await search.setValue('matching');
+        const matchingRow = wrapper.get('.console-entry');
+        const selectedId = matchingRow.attributes('data-log-id');
+        await matchingRow.trigger('click');
+
+        expect(search.element.value).toBe('');
+        expect(wrapper.findAll('.console-entry')).toHaveLength(3);
+        expect(wrapper.get(`[data-log-id="${selectedId}"]`).classes()).toContain('selected');
+        expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
+        scrollIntoView.mockRestore();
     });
 
     it('shows a filtered empty state when search has no matches', async () => {

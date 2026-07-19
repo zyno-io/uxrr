@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 
@@ -33,12 +33,14 @@ function seekToEntry(entry: ILogEntry) {
 }
 
 const containerRef = ref<HTMLDivElement>();
-const scrollerRef = ref<{ $el?: HTMLElement; scrollToBottom?: () => void } | null>(null);
+const scrollerRef = ref<{ $el?: HTMLElement; scrollToBottom?: () => void; scrollToItem?: (index: number) => void } | null>(null);
 const levelFilter = ref<number | null>(null);
 const includeNetwork = ref(true);
 const autoScroll = ref(true);
 const searchQuery = ref('');
+const selectedLogItemId = ref<string | null>(null);
 let ignoreNextScroll = false;
+let suppressAutoScroll = false;
 
 // absolute timestamp cutoff: session start + replay offset
 const cutoffMs = computed(() => props.sessionStartMs + props.currentTimeMs);
@@ -81,7 +83,7 @@ function getScrollerEl(): HTMLElement | null {
 watch(
     visibleLogs,
     () => {
-        if (!autoScroll.value) return;
+        if (!autoScroll.value || suppressAutoScroll) return;
         ignoreNextScroll = true;
         if (useVirtual.value) {
             scrollerRef.value?.scrollToBottom?.();
@@ -207,6 +209,36 @@ function statusClass(status: number): string {
 function setFilter(level: number | null) {
     levelFilter.value = level;
 }
+
+function scrollToLogItem(id: string) {
+    const index = visibleLogItems.value.findIndex(item => item.id === id);
+    if (index < 0) return;
+
+    ignoreNextScroll = true;
+    if (useVirtual.value) {
+        scrollerRef.value?.scrollToItem?.(index);
+        return;
+    }
+
+    const row = Array.from(containerRef.value?.querySelectorAll<HTMLElement>('.console-entry') ?? []).find(element => element.dataset.logId === id);
+    row?.scrollIntoView({ block: 'center' });
+}
+
+async function toggleLogSelection(item: ConsoleLogItem) {
+    const isSelected = selectedLogItemId.value === item.id;
+    selectedLogItemId.value = isSelected ? null : item.id;
+
+    if (!searchQuery.value) return;
+
+    if (!isSelected) suppressAutoScroll = true;
+    searchQuery.value = '';
+    await nextTick();
+
+    if (!isSelected) {
+        scrollToLogItem(item.id);
+        suppressAutoScroll = false;
+    }
+}
 </script>
 
 <template>
@@ -247,19 +279,26 @@ function setFilter(level: number | null) {
             <div v-if="visibleLogs.length === 0" class="console-empty">
                 {{ allLogItems.length === 0 ? 'No log entries yet' : 'No matching log entries' }}
             </div>
-            <template v-for="(entry, i) in visibleLogs" :key="i">
-                <div v-if="isNetworkEntry(entry)" :class="['console-entry', 'level-debug', 'net-entry', { future: isFuture(entry) }]">
-                    <span class="entry-time entry-time--clickable" @click="seekToEntry(entry)">{{ formatTime(entry.t) }}</span>
+            <template v-for="item in visibleLogItems" :key="item.id">
+                <div
+                    v-if="isNetworkEntry(item.entry)"
+                    :class="['console-entry', 'level-debug', 'net-entry', { future: isFuture(item.entry), selected: selectedLogItemId === item.id }]"
+                    :data-log-id="item.id"
+                    @click="toggleLogSelection(item)"
+                >
+                    <span class="entry-time entry-time--clickable" @click="seekToEntry(item.entry)">{{ formatTime(item.entry.t) }}</span>
                     <span class="entry-net-icon" title="Network request">&#8644;</span>
-                    <span :class="['entry-method', statusClass(formatNetworkEntry(entry).status)]">{{ formatNetworkEntry(entry).method }}</span>
-                    <span class="entry-url" :title="formatNetworkEntry(entry).url">{{ truncateUrl(formatNetworkEntry(entry).url) }}</span>
-                    <span :class="['entry-status', statusClass(formatNetworkEntry(entry).status)]">{{
-                        formatNetworkEntry(entry).status || '-'
+                    <span :class="['entry-method', statusClass(formatNetworkEntry(item.entry).status)]">{{
+                        formatNetworkEntry(item.entry).method
                     }}</span>
-                    <span class="entry-duration">{{ formatNetworkEntry(entry).duration }}ms</span>
+                    <span class="entry-url" :title="formatNetworkEntry(item.entry).url">{{ truncateUrl(formatNetworkEntry(item.entry).url) }}</span>
+                    <span :class="['entry-status', statusClass(formatNetworkEntry(item.entry).status)]">{{
+                        formatNetworkEntry(item.entry).status || '-'
+                    }}</span>
+                    <span class="entry-duration">{{ formatNetworkEntry(item.entry).duration }}ms</span>
                     <a
-                        v-if="grafana && getTraceId(entry)"
-                        :href="buildGrafanaTraceUrl(grafana.baseUrl, grafana.datasource, getTraceId(entry)!)"
+                        v-if="grafana && getTraceId(item.entry)"
+                        :href="buildGrafanaTraceUrl(grafana.baseUrl, grafana.datasource, getTraceId(item.entry)!)"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="entry-trace"
@@ -267,15 +306,24 @@ function setFilter(level: number | null) {
                         >trace</a
                     >
                 </div>
-                <div v-else :class="['console-entry', getLevelInfo(entry.v).cssClass, { future: isFuture(entry) }]">
-                    <span class="entry-time entry-time--clickable" @click="seekToEntry(entry)">{{ formatTime(entry.t) }}</span>
-                    <span class="entry-level">{{ getLevelInfo(entry.v).label }}</span>
-                    <span class="entry-scope">{{ entry.c }}</span>
-                    <span class="entry-msg">{{ entry.m }}</span>
-                    <span v-if="formatData(entry.d)" class="entry-data">{{ formatData(entry.d) }}</span>
+                <div
+                    v-else
+                    :class="[
+                        'console-entry',
+                        getLevelInfo(item.entry.v).cssClass,
+                        { future: isFuture(item.entry), selected: selectedLogItemId === item.id }
+                    ]"
+                    :data-log-id="item.id"
+                    @click="toggleLogSelection(item)"
+                >
+                    <span class="entry-time entry-time--clickable" @click="seekToEntry(item.entry)">{{ formatTime(item.entry.t) }}</span>
+                    <span class="entry-level">{{ getLevelInfo(item.entry.v).label }}</span>
+                    <span class="entry-scope">{{ item.entry.c }}</span>
+                    <span class="entry-msg">{{ item.entry.m }}</span>
+                    <span v-if="formatData(item.entry.d)" class="entry-data">{{ formatData(item.entry.d) }}</span>
                     <a
-                        v-if="grafana && getTraceId(entry)"
-                        :href="buildGrafanaTraceUrl(grafana.baseUrl, grafana.datasource, getTraceId(entry)!)"
+                        v-if="grafana && getTraceId(item.entry)"
+                        :href="buildGrafanaTraceUrl(grafana.baseUrl, grafana.datasource, getTraceId(item.entry)!)"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="entry-trace"
@@ -288,7 +336,17 @@ function setFilter(level: number | null) {
         <DynamicScroller v-else ref="scrollerRef" :items="scrollerItems" :min-item-size="24" key-field="id" class="console-entries">
             <template #default="{ item, active }">
                 <DynamicScrollerItem :item="item" :active="active" :size-dependencies="[item.entry.m, item.entry.d, item.entry.v, item.entry.c]">
-                    <div v-if="isNetworkEntry(item.entry)" :class="['console-entry', 'level-debug', 'net-entry', { future: isFuture(item.entry) }]">
+                    <div
+                        v-if="isNetworkEntry(item.entry)"
+                        :class="[
+                            'console-entry',
+                            'level-debug',
+                            'net-entry',
+                            { future: isFuture(item.entry), selected: selectedLogItemId === item.id }
+                        ]"
+                        :data-log-id="item.id"
+                        @click="toggleLogSelection(item)"
+                    >
                         <span class="entry-time entry-time--clickable" @click="seekToEntry(item.entry)">{{ formatTime(item.entry.t) }}</span>
                         <span class="entry-net-icon" title="Network request">&#8644;</span>
                         <span :class="['entry-method', statusClass(formatNetworkEntry(item.entry).status)]">{{
@@ -311,7 +369,16 @@ function setFilter(level: number | null) {
                             >trace</a
                         >
                     </div>
-                    <div v-else :class="['console-entry', getLevelInfo(item.entry.v).cssClass, { future: isFuture(item.entry) }]">
+                    <div
+                        v-else
+                        :class="[
+                            'console-entry',
+                            getLevelInfo(item.entry.v).cssClass,
+                            { future: isFuture(item.entry), selected: selectedLogItemId === item.id }
+                        ]"
+                        :data-log-id="item.id"
+                        @click="toggleLogSelection(item)"
+                    >
                         <span class="entry-time entry-time--clickable" @click="seekToEntry(item.entry)">{{ formatTime(item.entry.t) }}</span>
                         <span class="entry-level">{{ getLevelInfo(item.entry.v).label }}</span>
                         <span class="entry-scope">{{ item.entry.c }}</span>
@@ -468,7 +535,10 @@ function setFilter(level: number | null) {
     padding: 2px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     word-break: break-word;
-    transition: opacity 0.15s;
+    cursor: pointer;
+    transition:
+        opacity 0.15s,
+        background-color 0.15s;
 
     > span,
     > a {
@@ -492,6 +562,11 @@ function setFilter(level: number | null) {
     &.level-error {
         color: var(--uxrr-danger);
         background: rgba(225, 91, 91, 0.06);
+    }
+
+    &.selected {
+        background: rgba(108, 126, 225, 0.2);
+        box-shadow: inset 3px 0 var(--uxrr-accent);
     }
 }
 
