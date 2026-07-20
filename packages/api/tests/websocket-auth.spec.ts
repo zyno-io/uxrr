@@ -1,6 +1,7 @@
 import type { Logger } from '@zyno-io/ts-server-foundation';
 
 import { strict as assert } from 'node:assert';
+import { EventEmitter } from 'node:events';
 import { describe, it, mock } from 'node:test';
 
 import type { UxrrConfig } from '../src/config';
@@ -35,10 +36,14 @@ function makeSocket() {
 }
 
 function makeWss() {
-    const handleUpgradeFn = mock.fn((_req: unknown, _socket: unknown, _head: unknown, _cb: (ws: unknown) => void) => {
-        _cb({ on: mock.fn(), send: mock.fn(), close: mock.fn() });
+    const ws = Object.assign(new EventEmitter(), {
+        send: mock.fn(),
+        close: mock.fn()
     });
-    return { handleUpgrade: handleUpgradeFn };
+    const handleUpgradeFn = mock.fn((_req: unknown, _socket: unknown, _head: unknown, _cb: (ws: unknown) => void) => {
+        _cb(ws);
+    });
+    return { handleUpgrade: handleUpgradeFn, ws };
 }
 
 function makeRequest(url: string, headers: Record<string, string> = {}): Record<string, unknown> {
@@ -77,6 +82,7 @@ function createService(
         userSvcOverrides?: { isAdmin?: boolean; id?: string; email?: string; name?: string };
     } = {}
 ) {
+    const logger = makeLogger();
     const connectClientFn = mock.fn((_sessId: string, _appKey: string, _ws: unknown) => {});
     const connectAgentFn = mock.fn((_sessId: string, _ws: unknown, _email?: string, _name?: string, _userId?: string) => {});
     const connectSharedViewerFn = mock.fn((_sessId: string, _ws: unknown) => {});
@@ -84,7 +90,7 @@ function createService(
 
     const svc = Object.create(WebSocketService.prototype) as Record<string, unknown>;
     svc.config = (overrides.config ?? {}) as UxrrConfig;
-    svc.logger = makeLogger();
+    svc.logger = logger;
     svc.devModeAllowed = overrides.devModeAllowed ?? false;
     svc.appResolver = {
         resolveByOrigin: mock.fn(overrides.resolveByOrigin ?? (async () => undefined)),
@@ -125,7 +131,7 @@ function createService(
         startStaleChecker: mock.fn()
     } as unknown as SessionNotifyService;
 
-    return { svc, connectClientFn, connectAgentFn, connectSharedViewerFn, addWatcherFn };
+    return { svc, logger, connectClientFn, connectAgentFn, connectSharedViewerFn, addWatcherFn };
 }
 
 describe('WebSocket auth — handleClientUpgrade', () => {
@@ -176,6 +182,36 @@ describe('WebSocket auth — handleClientUpgrade', () => {
         assert.equal(connectClientFn.mock.callCount(), 1);
         assert.equal(connectClientFn.mock.calls[0].arguments[0], 'sess-1');
         assert.equal(connectClientFn.mock.calls[0].arguments[1], 'app-1');
+    });
+
+    it('contains client WebSocket errors instead of crashing the process', async () => {
+        const { svc, logger } = createService({
+            resolveByOrigin: async () => ({ uuid: 'app-1', appKey: 'app-1' })
+        });
+        const socket = makeSocket();
+        const wss = makeWss();
+
+        await (svc as TestableWsSvc).handleClientUpgrade(
+            wss,
+            'sess-1',
+            makeRequest('/v1/ng/sess-1/ws', { origin: 'https://example.com' }),
+            socket,
+            Buffer.alloc(0)
+        );
+
+        const error = Object.assign(new RangeError('Max payload size exceeded'), {
+            code: 'WS_ERR_UNSUPPORTED_MESSAGE_LENGTH'
+        });
+        assert.doesNotThrow(() => wss.ws.emit('error', error));
+
+        const warnFn = logger.warn as unknown as ReturnType<typeof mock.fn>;
+        assert.equal(warnFn.mock.callCount(), 1);
+        assert.equal(warnFn.mock.calls[0].arguments[0], 'client WebSocket error');
+        assert.deepEqual(warnFn.mock.calls[0].arguments[1], {
+            sessionId: 'sess-1',
+            code: 'WS_ERR_UNSUPPORTED_MESSAGE_LENGTH',
+            error: 'Max payload size exceeded'
+        });
     });
 
     it('accepts valid API key', async () => {

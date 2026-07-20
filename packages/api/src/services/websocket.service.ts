@@ -15,6 +15,8 @@ import { SessionService } from './session.service';
 import { ShareService } from './share.service';
 import { UserService } from './user.service';
 
+const CLIENT_MAX_PAYLOAD_BYTES = 10 * 1024 * 1024;
+
 @AutoConstruct()
 export class WebSocketService {
     private readonly devModeAllowed: boolean;
@@ -35,7 +37,7 @@ export class WebSocketService {
         this.devModeAllowed = this.config.UXRR_DEV_MODE && process.env.NODE_ENV !== 'production';
 
         // Client WebSocket — ingest path (large payloads: rrweb event batches)
-        const clientWss = new WebSocket.Server({ noServer: true, maxPayload: 1024 * 1024 });
+        const clientWss = new WebSocket.Server({ noServer: true, maxPayload: CLIENT_MAX_PAYLOAD_BYTES });
         // Agent WebSocket — session viewing path (interactive messages)
         const agentWss = new WebSocket.Server({ noServer: true, maxPayload: 256 * 1024 });
         // Session list watcher WebSocket (filter updates only)
@@ -111,6 +113,7 @@ export class WebSocketService {
             }
 
             wss.handleUpgrade(request, socket, head, ws => {
+                this.guardSocketErrors(ws, 'client', sessionId);
                 this.liveSvc.connectClient(sessionId, resolved!.appKey, ws);
             });
         } catch (err) {
@@ -146,6 +149,7 @@ export class WebSocketService {
                     }
 
                     wss.handleUpgrade(request, socket, head, ws => {
+                        this.guardSocketErrors(ws, 'agent', sessionId);
                         if (payload.scope !== 'admin') {
                             this.liveSvc.connectSharedViewer(sessionId, ws);
                         } else {
@@ -181,6 +185,7 @@ export class WebSocketService {
                     }
 
                     wss.handleUpgrade(request, socket, head, ws => {
+                        this.guardSocketErrors(ws, 'agent', sessionId);
                         if (payload.scope === 'interactive') {
                             this.liveSvc.connectAgent(sessionId, ws, 'embed-user', 'Embed User');
                         } else {
@@ -198,6 +203,7 @@ export class WebSocketService {
             // No OIDC required and no embed token — allow only if dev mode is explicitly enabled
             if (!this.oidcSvc.isEnabled && this.devModeAllowed) {
                 wss.handleUpgrade(request, socket, head, ws => {
+                    this.guardSocketErrors(ws, 'agent', sessionId);
                     this.liveSvc.connectAgent(sessionId, ws, agentEmail, agentName);
                 });
                 return;
@@ -223,6 +229,7 @@ export class WebSocketService {
             const sessionId = await this.shareSvc.validateShareAccess(token);
 
             wss.handleUpgrade(request, socket, head, ws => {
+                this.guardSocketErrors(ws, 'shared viewer', sessionId);
                 this.liveSvc.connectSharedViewer(sessionId, ws);
             });
         } catch {
@@ -292,11 +299,23 @@ export class WebSocketService {
 
             const allowedAppKeys = embedPayload?.apps;
             wss.handleUpgrade(request, socket, head, ws => {
+                this.guardSocketErrors(ws, 'session watcher');
                 this.notifySvc.addWatcher(ws, filters, allowedAppKeys);
             });
         } catch (err) {
             this.logger.error('Watch WebSocket upgrade failed', err);
             socket.destroy();
         }
+    }
+
+    private guardSocketErrors(ws: WebSocket, connectionType: string, sessionId?: string): void {
+        ws.on('error', error => {
+            const socketError = error as Error & { code?: string };
+            this.logger.warn(`${connectionType} WebSocket error`, {
+                sessionId,
+                code: socketError.code,
+                error: socketError.message
+            });
+        });
     }
 }

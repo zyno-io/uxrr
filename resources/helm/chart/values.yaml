@@ -18,6 +18,7 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
     nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
     nginx.ingress.kubernetes.io/proxy-buffering: 'off'
+    nginx.ingress.kubernetes.io/proxy-body-size: '10m'
   tls:
     enabled: true
     secretName: s24dev-wildcard-tls
