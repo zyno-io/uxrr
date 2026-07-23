@@ -31,6 +31,24 @@ function createMocks(
 }
 
 describe('AppResolverService', () => {
+    describe('resolveAppKeyFresh', () => {
+        it('loads an inactive app directly when the cache is cold', async () => {
+            const findOneOrUndefinedFn = mock.fn(async () => ({ id: 'uuid-inactive', appKey: 'archived-app', isActive: false }));
+            const db = {
+                query: mock.fn(() => ({
+                    filter: mock.fn(function (this: unknown) {
+                        return this;
+                    }),
+                    findOneOrUndefined: findOneOrUndefinedFn
+                }))
+            } as unknown as UxrrDatabase;
+            const resolver = new AppResolverService(db, makeLogger());
+
+            assert.equal(await resolver.resolveAppKeyFresh('uuid-inactive'), 'archived-app');
+            assert.equal(findOneOrUndefinedFn.mock.callCount(), 1);
+        });
+    });
+
     describe('resolveByOrigin', () => {
         it('maps known origin to appKey', async () => {
             const { db } = createMocks([{ id: 'uuid-1', appKey: 'app-1', origins: ['https://example.com'], apiKey: undefined, isActive: true }]);

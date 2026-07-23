@@ -48,6 +48,15 @@ export class AppResolverService {
         return this.uuidToAppKey.get(uuid);
     }
 
+    /** UUID → appKey lookup for historical data, including inactive apps. */
+    async resolveAppKeyFresh(uuid: string): Promise<string | undefined> {
+        const cached = this.uuidToAppKey.get(uuid);
+        if (cached) return cached;
+
+        const app = await this.db.query(AppEntity).filter({ id: uuid }).findOneOrUndefined();
+        return app?.appKey;
+    }
+
     async getAllowedOrigins(): Promise<string[]> {
         await this.ensureFresh();
         return [...this.originMap.keys()];

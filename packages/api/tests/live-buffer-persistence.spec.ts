@@ -9,6 +9,7 @@ import type { LokiService } from '../src/services/loki.service';
 import type { S3Service } from '../src/services/s3.service';
 import type { SessionNotifyService } from '../src/services/session-notify.service';
 
+import { AppEntity } from '../src/database/entities/app.entity';
 import { LiveBufferPersistence } from '../src/services/live/live-buffer-persistence';
 
 function makeLogger(): Logger {
@@ -35,6 +36,7 @@ function makeSession(overrides: Partial<SessionEntity> = {}): SessionEntity {
 
 function createMocks(session?: SessionEntity) {
     const sess = session ?? makeSession();
+    const app = { id: sess.appId, appKey: 'human-app-key', isActive: false };
 
     const rawFindUnsafeFn = mock.fn(async (_sql: string) => [{ chunkIndex: sess.eventChunkCount }]);
     const persistFn = mock.fn(async () => {});
@@ -44,14 +46,24 @@ function createMocks(session?: SessionEntity) {
     const notifyUpdatedFn = mock.fn();
 
     const db = {
-        query: mock.fn(() => ({
-            filter: mock.fn(function (this: unknown) {
-                return this;
-            }),
-            findOneOrUndefined: mock.fn(async () => sess),
-            findOne: mock.fn(async () => sess),
-            find: mock.fn(async () => [{ userId: 'user-1' }])
-        })),
+        query: mock.fn((entity: unknown) => {
+            if (entity === AppEntity) {
+                return {
+                    filter: mock.fn(function (this: unknown) {
+                        return this;
+                    }),
+                    findOneOrUndefined: mock.fn(async () => app)
+                };
+            }
+            return {
+                filter: mock.fn(function (this: unknown) {
+                    return this;
+                }),
+                findOneOrUndefined: mock.fn(async () => sess),
+                findOne: mock.fn(async () => sess),
+                find: mock.fn(async () => [{ userId: 'user-1' }])
+            };
+        }),
         persist: persistFn,
         rawFindUnsafe: rawFindUnsafeFn
     } as unknown as UxrrDatabase;
@@ -130,7 +142,8 @@ describe('LiveBufferPersistence', () => {
 
             assert.equal(m.pushLogsFn.mock.callCount(), 1);
             const decorated = m.pushLogsFn.mock.calls[0].arguments[0] as Record<string, unknown>[];
-            assert.equal(decorated[0].appKey, 'app-1');
+            assert.equal(decorated[0].appId, 'app-1');
+            assert.equal(decorated[0].appKey, 'human-app-key');
             assert.equal(decorated[0].deviceId, 'dev-1');
             assert.equal(decorated[0].sessionId, 'sess-1');
         });

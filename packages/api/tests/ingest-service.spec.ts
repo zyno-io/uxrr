@@ -236,6 +236,7 @@ describe('IngestService', () => {
 
             assert.equal(m.pushLogsFn.mock.callCount(), 1);
             const decorated = m.pushLogsFn.mock.calls[0].arguments[0] as Record<string, unknown>[];
+            assert.equal(decorated[0].appId, 'app-uuid-1');
             assert.equal(decorated[0].appKey, 'app-1');
             assert.equal(decorated[0].deviceId, 'dev-1');
             assert.equal(decorated[0].userId, 'user-1');

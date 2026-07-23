@@ -40,6 +40,9 @@ export interface IngestDataPayload {
 }
 
 export interface StoredLogEntry extends IngestLogEntry {
+    /** Canonical app UUID used for Loki stream labels. */
+    appId: string;
+    /** Human-readable app key retained for live relay payloads. */
     appKey: string;
     deviceId: string;
     userId?: string;
@@ -163,6 +166,7 @@ export class IngestService {
             const deviceId = payload.identity.deviceId ?? session?.deviceId ?? 'unknown';
             const decorated: StoredLogEntry[] = payload.logs!.map(entry => ({
                 ...entry,
+                appId: appUuid,
                 appKey,
                 deviceId,
                 userId: payload.identity.userId,

@@ -17,7 +17,7 @@ function makeConfig(lokiUrl = 'http://localhost:3100'): UxrrConfig {
 
 describe('LokiService', () => {
     describe('structured metadata', () => {
-        it('stores sessionId as structured metadata instead of in the log line or stream labels', async () => {
+        it('stores sessionId, deviceId, and userId as structured metadata instead of stream labels', async () => {
             const fetchMock = mock.fn(async (_url: string, _options?: RequestInit) => ({ ok: true }));
             (globalThis as unknown as Record<string, unknown>).fetch = fetchMock;
 
@@ -29,6 +29,7 @@ describe('LokiService', () => {
                     c: 'checkout',
                     m: 'Payment processed',
                     d: { orderId: '123' },
+                    appId: 'app-uuid-1',
                     appKey: 'storefront',
                     deviceId: 'device-1',
                     userId: 'user-1',
@@ -42,12 +43,9 @@ describe('LokiService', () => {
             const stream = payload.streams[0];
             const [timestamp, line, metadata] = stream.values[0];
 
-            assert.deepEqual(stream.stream, {
-                job: 'uxrr',
-                appKey: 'storefront',
-                deviceId: 'device-1',
-                userId: 'user-1'
-            });
+            assert.deepEqual(stream.stream, { job: 'uxrr', appId: 'app-uuid-1', appKey: 'storefront', shard: '13' });
+            assert.equal(stream.stream.deviceId, undefined);
+            assert.equal(stream.stream.userId, undefined);
             assert.equal(timestamp, '1700000000000000000');
             assert.deepEqual(JSON.parse(line), {
                 level: 'info',
@@ -55,13 +53,50 @@ describe('LokiService', () => {
                 message: 'Payment processed',
                 data: { orderId: '123' }
             });
-            assert.deepEqual(metadata, { sessionId: 'session-1' });
+            assert.deepEqual(metadata, {
+                sessionId: 'session-1',
+                deviceId: 'device-1',
+                userId: 'user-1'
+            });
         });
 
-        it('queries structured metadata and the legacy JSON field', async () => {
+        it('uses a stable bounded shard to distribute session writes', async () => {
+            const fetchMock = mock.fn(async (_url: string, _options?: RequestInit) => ({ ok: true }));
+            (globalThis as unknown as Record<string, unknown>).fetch = fetchMock;
+
+            const svc = new LokiService(makeConfig(), makeLogger());
+            await svc.pushLogs(
+                ['session-1', 'session-1', 'session-2'].map((sessionId, index) => ({
+                    t: 1_700_000_000_000 + index,
+                    v: 1,
+                    c: 'scope',
+                    m: 'message',
+                    appId: 'app-uuid-1',
+                    appKey: 'storefront',
+                    deviceId: 'device-1',
+                    sessionId
+                }))
+            );
+
+            const payload = JSON.parse((fetchMock.mock.calls[0].arguments[1] as RequestInit).body as string);
+            assert.equal(payload.streams.length, 2);
+            const firstSessionStream = payload.streams.find((stream: { values: [string, string, { sessionId: string }][] }) => {
+                return stream.values[0][2].sessionId === 'session-1';
+            });
+            assert.equal(firstSessionStream.values.length, 2);
+            assert.match(firstSessionStream.stream.shard, /^(?:[0-9]|1[0-5])$/);
+            assert.notEqual(
+                firstSessionStream.stream.shard,
+                payload.streams.find((stream: { values: [string, string, { sessionId: string }][] }) => {
+                    return stream.values[0][2].sessionId === 'session-2';
+                }).stream.shard
+            );
+        });
+
+        it('queries UUID-labeled metadata plus both historical appKey formats', async () => {
             const fetchMock = mock.fn(async (url: string) => {
                 const query = new URL(url).searchParams.get('query');
-                if (query?.includes('| sessionId=')) {
+                if (query?.includes('appId="app-uuid-1"')) {
                     return {
                         ok: true,
                         json: async () => ({
@@ -70,8 +105,9 @@ describe('LokiService', () => {
                                     {
                                         stream: {
                                             job: 'uxrr',
-                                            appKey: 'storefront',
+                                            appId: 'app-uuid-1',
                                             deviceId: 'device-1',
+                                            userId: 'user-1',
                                             sessionId: 'session-1'
                                         },
                                         values: [['1700000000000000000', '{"level":"info","scope":"new","message":"new log"}']]
@@ -82,13 +118,81 @@ describe('LokiService', () => {
                     };
                 }
 
+                if (query?.includes('appKey="app-uuid-1"') && query.includes('| sessionId=')) {
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            data: {
+                                result: [
+                                    {
+                                        stream: {
+                                            job: 'uxrr',
+                                            appKey: 'app-uuid-1',
+                                            deviceId: 'device-1',
+                                            sessionId: 'session-1'
+                                        },
+                                        values: [['1699999999250000000', '{"level":"info","scope":"uuid-history","message":"uuid history"}']]
+                                    }
+                                ]
+                            }
+                        })
+                    };
+                }
+
+                // A missing appId exclusion would match current streams a second
+                // time through their retained human appKey label.
+                if (query?.includes('appKey="storefront"') && !query.includes('appId=""')) {
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            data: {
+                                result: [
+                                    {
+                                        stream: {
+                                            job: 'uxrr',
+                                            appId: 'app-uuid-1',
+                                            appKey: 'storefront',
+                                            deviceId: 'device-1',
+                                            sessionId: 'session-1'
+                                        },
+                                        values: [['1700000000000000000', '{"level":"info","scope":"duplicate","message":"duplicate log"}']]
+                                    }
+                                ]
+                            }
+                        })
+                    };
+                }
+
+                if (query?.includes('appKey="storefront"') && query.includes('| sessionId=')) {
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            data: {
+                                result: [
+                                    {
+                                        stream: {
+                                            job: 'uxrr',
+                                            appKey: 'storefront',
+                                            deviceId: 'device-1',
+                                            userId: 'previous-user-1',
+                                            sessionId: 'session-1'
+                                        },
+                                        values: [['1699999999500000000', '{"level":"info","scope":"previous","message":"previous log"}']]
+                                    }
+                                ]
+                            }
+                        })
+                    };
+                }
+
+                if (!query?.includes('appKey="storefront"')) return { ok: true, json: async () => ({ data: { result: [] } }) };
                 return {
                     ok: true,
                     json: async () => ({
                         data: {
                             result: [
                                 {
-                                    stream: { job: 'uxrr', appKey: 'storefront', deviceId: 'device-1' },
+                                    stream: { job: 'uxrr', appKey: 'storefront', deviceId: 'device-1', userId: 'legacy-user-1' },
                                     values: [['1699999999000000000', '{"level":"warn","scope":"legacy","message":"old log","sessionId":"session-1"}']]
                                 }
                             ]
@@ -99,14 +203,62 @@ describe('LokiService', () => {
             (globalThis as unknown as Record<string, unknown>).fetch = fetchMock;
 
             const svc = new LokiService(makeConfig(), makeLogger());
-            const logs = await svc.queryLogs('device-1', 'session-1');
+            const logs = await svc.queryLogs('app-uuid-1', 'device-1', 'session-1', undefined, undefined, 'storefront');
 
-            assert.equal(fetchMock.mock.callCount(), 2);
+            assert.equal(fetchMock.mock.callCount(), 5);
+            assert.equal(
+                new URL(fetchMock.mock.calls[0].arguments[0] as string).searchParams.get('query'),
+                '{job="uxrr", appId="app-uuid-1"} | deviceId="device-1" | sessionId="session-1"'
+            );
+            const legacyQueries = fetchMock.mock.calls.slice(1).map(call => new URL(call.arguments[0] as string).searchParams.get('query'));
+            assert.ok(legacyQueries.every(query => query?.includes('appId=""')));
             assert.deepEqual(
-                logs.map(log => ({ t: log.t, c: log.c, sessionId: log.sessionId })),
+                logs.map(log => ({
+                    t: log.t,
+                    c: log.c,
+                    appId: log.appId,
+                    appKey: log.appKey,
+                    deviceId: log.deviceId,
+                    userId: log.userId,
+                    sessionId: log.sessionId
+                })),
                 [
-                    { t: 1_699_999_999_000, c: 'legacy', sessionId: 'session-1' },
-                    { t: 1_700_000_000_000, c: 'new', sessionId: 'session-1' }
+                    {
+                        t: 1_699_999_999_000,
+                        c: 'legacy',
+                        appId: 'app-uuid-1',
+                        appKey: 'storefront',
+                        deviceId: 'device-1',
+                        userId: 'legacy-user-1',
+                        sessionId: 'session-1'
+                    },
+                    {
+                        t: 1_699_999_999_249,
+                        c: 'uuid-history',
+                        appId: 'app-uuid-1',
+                        appKey: 'storefront',
+                        deviceId: 'device-1',
+                        userId: undefined,
+                        sessionId: 'session-1'
+                    },
+                    {
+                        t: 1_699_999_999_500,
+                        c: 'previous',
+                        appId: 'app-uuid-1',
+                        appKey: 'storefront',
+                        deviceId: 'device-1',
+                        userId: 'previous-user-1',
+                        sessionId: 'session-1'
+                    },
+                    {
+                        t: 1_700_000_000_000,
+                        c: 'new',
+                        appId: 'app-uuid-1',
+                        appKey: 'storefront',
+                        deviceId: 'device-1',
+                        userId: 'user-1',
+                        sessionId: 'session-1'
+                    }
                 ]
             );
         });
@@ -124,42 +276,42 @@ describe('LokiService', () => {
                 (globalThis as unknown as Record<string, unknown>).fetch = fetchMock;
             });
 
-            it('escapes backslashes in deviceId', async () => {
+            it('escapes backslashes in the legacy deviceId selector', async () => {
                 const svc = new LokiService(makeConfig(), makeLogger());
-                await svc.queryLogs('dev\\ice', 'sess-1');
+                await svc.queryLogs('app-uuid-1', 'dev\\ice', 'sess-1');
 
-                const call = fetchMock.mock.calls[0];
+                const call = fetchMock.mock.calls[1];
                 const url = call.arguments[0] as string;
                 // backslash should be escaped to double backslash
                 assert.ok(url.includes('dev%5C%5Cice') || url.includes('dev\\\\ice'), `URL should contain escaped backslash: ${url}`);
             });
 
-            it('escapes double quotes in deviceId', async () => {
+            it('escapes double quotes in the legacy deviceId selector', async () => {
                 const svc = new LokiService(makeConfig(), makeLogger());
-                await svc.queryLogs('dev"ice', 'sess-1');
+                await svc.queryLogs('app-uuid-1', 'dev"ice', 'sess-1');
 
-                const call = fetchMock.mock.calls[0];
+                const call = fetchMock.mock.calls[1];
                 const url = call.arguments[0] as string;
                 // double quote should be escaped
                 assert.ok(!url.includes('dev"ice') || url.includes('dev\\"ice'), `URL should contain escaped double quote: ${url}`);
             });
 
-            it('keeps backticks in sessionId inside a quoted label filter', async () => {
+            it('keeps backticks in sessionId inside a quoted structured-metadata filter', async () => {
                 const svc = new LokiService(makeConfig(), makeLogger());
-                await svc.queryLogs('dev-1', 'sess`1');
+                await svc.queryLogs('app-uuid-1', 'dev-1', 'sess`1');
 
                 const call = fetchMock.mock.calls[0];
                 const url = call.arguments[0] as string;
                 const query = new URL(url).searchParams.get('query');
-                assert.equal(query, '{job="uxrr", deviceId="dev-1"} | sessionId="sess`1"');
+                assert.equal(query, '{job="uxrr", appId="app-uuid-1"} | deviceId="dev-1" | sessionId="sess`1"');
             });
 
             it('malicious deviceId with double quote produces safe query', async () => {
                 const svc = new LokiService(makeConfig(), makeLogger());
                 const maliciousDeviceId = 'dev"} | evil_query | {"x="';
-                await svc.queryLogs(maliciousDeviceId, 'sess-1');
+                await svc.queryLogs('app-uuid-1', maliciousDeviceId, 'sess-1');
 
-                const call = fetchMock.mock.calls[0];
+                const call = fetchMock.mock.calls[1];
                 const url = call.arguments[0] as string;
                 const decodedUrl = decodeURIComponent(url);
                 // The injected closing brace should be inside an escaped string

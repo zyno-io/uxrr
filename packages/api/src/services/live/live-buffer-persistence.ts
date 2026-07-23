@@ -7,6 +7,7 @@ import type { IBufferPersistence } from './interfaces';
 import type { IChatMessage } from './types';
 
 import { UxrrDatabase } from '../../database/database';
+import { AppEntity } from '../../database/entities/app.entity';
 import { SessionUserIdEntity } from '../../database/entities/session-user-id.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
 import { LokiService } from '../loki.service';
@@ -49,10 +50,12 @@ export class LiveBufferPersistence implements IBufferPersistence {
 
         const session = await this.db.query(SessionEntity).filter({ id: sessionId }).findOneOrUndefined();
         if (!session) return;
+        const app = await this.db.query(AppEntity).filter({ id: session.appId }).findOneOrUndefined();
 
         const decorated: StoredLogEntry[] = logs.map(entry => ({
             ...entry,
-            appKey: session.appId,
+            appId: session.appId,
+            appKey: app?.appKey ?? session.appId,
             deviceId: session.deviceId,
             userId: session.userId,
             sessionId

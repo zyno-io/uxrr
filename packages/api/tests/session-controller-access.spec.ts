@@ -56,8 +56,9 @@ function createMocks() {
         getChat: mock.fn(async () => [])
     } as unknown as S3Service;
 
+    const queryLogsFn = mock.fn(async () => []);
     const lokiSvc = {
-        queryLogs: mock.fn(async () => [])
+        queryLogs: queryLogsFn
     } as unknown as LokiService;
 
     const shareSvc = {
@@ -71,11 +72,12 @@ function createMocks() {
     } as unknown as RetentionService;
 
     const appResolver = {
-        resolveAppKey: mock.fn((uuid: string) => uuid)
+        resolveAppKey: mock.fn((uuid: string) => uuid),
+        resolveAppKeyFresh: mock.fn(async (uuid: string) => `legacy-${uuid}`)
     } as any;
 
     const controller = new SessionController(sessionSvc, s3Svc, lokiSvc, shareSvc, retentionSvc, appResolver);
-    return { controller, getOrThrowFn, distinctAppKeysFn, distinctDeviceIdsFn, distinctUsersFn };
+    return { controller, getOrThrowFn, queryLogsFn, distinctAppKeysFn, distinctDeviceIdsFn, distinctUsersFn };
 }
 
 describe('SessionController — access control', () => {
@@ -123,6 +125,17 @@ describe('SessionController — access control', () => {
             const result = await controller.getSession(request, 'sess-1');
             assert.equal(result.id, 'sess-1');
         });
+    });
+
+    it('scopes log queries by the resolved app key and session device', async () => {
+        const { controller, queryLogsFn } = createMocks();
+        await controller.getSessionLogs(makeRequest({ type: 'oidc', scope: 'admin' }), 'sess-1', {});
+
+        const args = [...queryLogsFn.mock.calls[0].arguments] as unknown[];
+        assert.deepEqual(args.slice(0, 3), ['app-1', 'dev-1', 'sess-1']);
+        assert.ok(args[3] instanceof Date);
+        assert.ok(args[4] instanceof Date);
+        assert.equal(args[5], 'legacy-app-1');
     });
 
     describe('admin-only endpoints', () => {
