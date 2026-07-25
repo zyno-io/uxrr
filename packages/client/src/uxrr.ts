@@ -67,6 +67,8 @@ class UXRR implements UxrrInstance {
     private maxSessionDuration: number | undefined;
     private maxSessionTimer: ReturnType<typeof setTimeout> | undefined;
     private boundFlushFn: (() => void) | undefined;
+    // Bumped on every init() and stop() so async subsystem loads can tell they're still current.
+    private generation = 0;
 
     constructor() {
         this.identity = new IdentityManager();
@@ -104,6 +106,7 @@ class UXRR implements UxrrInstance {
             this.stop();
         }
 
+        const generation = ++this.generation;
         this.session.start();
         this.config = config;
 
@@ -113,32 +116,46 @@ class UXRR implements UxrrInstance {
         const tracingEnabled = enabled.tracing !== false;
         const supportEnabled = enabled.support !== false && sessionsEnabled;
 
-        this.transport = new HttpTransport(config.endpoint, config.appKey, this.sessionId);
-        this.flushCoordinator = new FlushCoordinator();
-
         // Console prefix for loggers
         this.consolePrefix = config.logging?.consolePrefix ?? '';
 
-        // Unified ingest buffer (handles both events and logs)
-        this.ingestBuffer = new IngestBuffer(this.transport, this.identity, this.session.launchTs, config, this.session.previousSessionId);
-        if (loggingEnabled || sessionsEnabled) {
-            this.boundFlushFn = () => this.ingestBuffer!.flushBeacon();
-            this.flushCoordinator.register(this.boundFlushFn);
-        }
-        if (loggingEnabled) {
-            this.navigationLogger = new NavigationLogger(this.ingestBuffer);
-            this.navigationLogger.start();
+        // Everything that leaves the browser needs both an endpoint to ship to and an app key to ship
+        // as. Without them we deliberately still come up — tracing installs, so requests carry trace
+        // IDs the backend can correlate on — we just never send anything. That keeps trace context
+        // identical between a configured build and an unconfigured one (e.g. local dev).
+        const canShip = !!config.endpoint && !!config.appKey;
+        if (!canShip) {
+            console.warn(
+                `${this.consolePrefix}uxrr: no ${!config.endpoint && !config.appKey ? 'endpoint or appKey' : !config.endpoint ? 'endpoint' : 'appKey'} configured — ` +
+                    'sessions, logs and traces will NOT be shipped. Tracing is still installed, so requests carry trace IDs.'
+            );
         }
 
-        // Support (requires sessions)
-        if (supportEnabled) {
-            this.supportConnection = new SupportConnection(config.endpoint, this.sessionId, config.support?.renderUI !== false, {
+        if (canShip) {
+            this.transport = new HttpTransport(config.endpoint!, config.appKey!, this.sessionId);
+            this.flushCoordinator = new FlushCoordinator();
+
+            // Unified ingest buffer (handles both events and logs)
+            this.ingestBuffer = new IngestBuffer(this.transport, this.identity, this.session.launchTs, config, this.session.previousSessionId);
+            if (loggingEnabled || sessionsEnabled) {
+                this.boundFlushFn = () => this.ingestBuffer!.flushBeacon();
+                this.flushCoordinator.register(this.boundFlushFn);
+            }
+            if (loggingEnabled) {
+                this.navigationLogger = new NavigationLogger(this.ingestBuffer);
+                this.navigationLogger.start();
+            }
+        }
+
+        // Support (requires sessions + somewhere to connect to)
+        if (supportEnabled && canShip) {
+            this.supportConnection = new SupportConnection(config.endpoint!, this.sessionId, config.support?.renderUI !== false, {
                 onAgentConnected: config.support?.onAgentConnected,
                 onAgentDisconnected: config.support?.onAgentDisconnected,
                 onAnnotation: config.support?.onAnnotation,
                 onChat: config.support?.onChat
             });
-            this.ingestBuffer.setSupportConnection(this.supportConnection);
+            this.ingestBuffer!.setSupportConnection(this.supportConnection);
             this.supportConnection.setOnLiveModeChange(liveEnabled => {
                 this.ingestBuffer!.setLiveMode(liveEnabled);
                 if (liveEnabled) this.recorder?.takeFullSnapshot();
@@ -148,46 +165,52 @@ class UXRR implements UxrrInstance {
             });
         }
 
-        // Recording / sessions (enabled by default) — loaded async
-        if (sessionsEnabled) {
+        // Recording / sessions (enabled by default) — loaded async. Nothing to record into without a
+        // buffer, and skipping it keeps rrweb out of the bundle for unconfigured builds.
+        if (sessionsEnabled && canShip) {
             this.initRecording(config);
         }
 
-        // Tracing (enabled by default) — loaded async
+        // Tracing (enabled by default) — loaded async. Runs with or without an endpoint; see
+        // createTracingProvider for what changes when there's nowhere to export to.
         if (tracingEnabled) {
-            this.initTracing(config);
+            this.initTracing(config, generation);
         }
 
-        // Server config applies to the shared /data ingest path, including logging-only clients.
-        this.ingestBuffer.onServerConfig = serverConfig => {
-            if (sessionsEnabled && serverConfig.maxIdleTimeout !== undefined) {
-                if (this.idleMonitor) {
-                    this.idleMonitor.updateTimeout(serverConfig.maxIdleTimeout);
-                } else if (serverConfig.maxIdleTimeout > 0) {
+        // The rest is session lifecycle: it only exists to keep shipped sessions well-formed, so it's
+        // all inert when we aren't shipping (and the session ID simply stays put for the tab).
+        if (canShip) {
+            // Server config applies to the shared /data ingest path, including logging-only clients.
+            this.ingestBuffer!.onServerConfig = serverConfig => {
+                if (sessionsEnabled && serverConfig.maxIdleTimeout !== undefined) {
+                    if (this.idleMonitor) {
+                        this.idleMonitor.updateTimeout(serverConfig.maxIdleTimeout);
+                    } else if (serverConfig.maxIdleTimeout > 0) {
+                        this.idleMonitor = new IdleMonitor(
+                            serverConfig.maxIdleTimeout,
+                            () => this.ingestBuffer?.flush(),
+                            () => this.resetSession()
+                        );
+                    }
+                }
+                if (serverConfig.maxSessionDuration !== undefined) {
+                    this.updateMaxSessionDuration(serverConfig.maxSessionDuration);
+                }
+            };
+
+            this.ingestBuffer!.onSessionExpired = () => this.resetSession();
+            this.updateMaxSessionDuration(config.maxSessionDuration ?? DEFAULT_MAX_SESSION_DURATION);
+
+            // Idle session reset uses DOM activity and only applies when rrweb sessions are enabled.
+            if (sessionsEnabled) {
+                const idleTimeout = config.idleTimeout ?? DEFAULT_IDLE_TIMEOUT;
+                if (idleTimeout > 0) {
                     this.idleMonitor = new IdleMonitor(
-                        serverConfig.maxIdleTimeout,
+                        idleTimeout,
                         () => this.ingestBuffer?.flush(),
                         () => this.resetSession()
                     );
                 }
-            }
-            if (serverConfig.maxSessionDuration !== undefined) {
-                this.updateMaxSessionDuration(serverConfig.maxSessionDuration);
-            }
-        };
-
-        this.ingestBuffer.onSessionExpired = () => this.resetSession();
-        this.updateMaxSessionDuration(config.maxSessionDuration ?? DEFAULT_MAX_SESSION_DURATION);
-
-        // Idle session reset uses DOM activity and only applies when rrweb sessions are enabled.
-        if (sessionsEnabled) {
-            const idleTimeout = config.idleTimeout ?? DEFAULT_IDLE_TIMEOUT;
-            if (idleTimeout > 0) {
-                this.idleMonitor = new IdleMonitor(
-                    idleTimeout,
-                    () => this.ingestBuffer?.flush(),
-                    () => this.resetSession()
-                );
             }
         }
     }
@@ -268,11 +291,19 @@ class UXRR implements UxrrInstance {
         this.ingestBuffer.onNeedFullSnapshot = () => this.recorder?.takeFullSnapshot();
     }
 
-    private async initTracing(config: UxrrConfig): Promise<void> {
+    private async initTracing(config: UxrrConfig, generation: number): Promise<void> {
         const { createTracingProvider } = await import('./tracing/provider');
-        if (!this.transport) return; // guard against stop() called before load
-        this.tracingProvider = await createTracingProvider(this.transport, this.identity, this.sessionId, config, this.ingestBuffer);
-        this.tracer = this.tracingProvider.tracer;
+        // Tracing runs without a transport, so it can't use one as its liveness check the way
+        // recording uses the ingest buffer — the generation counter tells us if stop() / a re-init
+        // landed while we were loading.
+        if (generation !== this.generation) return;
+        const provider = await createTracingProvider(this.transport, this.identity, this.sessionId, config, this.ingestBuffer);
+        if (generation !== this.generation) {
+            void provider.shutdown();
+            return;
+        }
+        this.tracingProvider = provider;
+        this.tracer = provider.tracer;
         _activeTracer = this.tracer;
     }
 
@@ -290,6 +321,7 @@ class UXRR implements UxrrInstance {
     }
 
     stop(): void {
+        this.generation++;
         this.clearMaxSessionTimer();
         this.maxSessionDuration = undefined;
         this.idleMonitor?.stop();
@@ -309,5 +341,9 @@ class UXRR implements UxrrInstance {
             this.flushCoordinator?.unregister(this.boundFlushFn);
             this.boundFlushFn = undefined;
         }
+        // Both are conditional on shipping now, so a re-init that drops the endpoint must not inherit
+        // the previous run's transport.
+        this.flushCoordinator = undefined;
+        this.transport = undefined;
     }
 }

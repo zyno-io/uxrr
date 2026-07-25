@@ -112,9 +112,10 @@ The current session ID (a UUID persisted in `sessionStorage`).
 
 ```typescript
 interface UxrrConfig {
-    // Required
-    endpoint: string; // uxrr server URL
-    appId: string; // Application identifier
+    // Required to ship anything. With either missing, init() still installs tracing (so requests
+    // still carry trace IDs) but records and sends nothing, and warns that it isn't configured.
+    endpoint?: string; // uxrr server URL
+    appId?: string; // Application identifier
 
     // Optional
     version?: string; // App version

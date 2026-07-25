@@ -43,6 +43,7 @@ vi.mock('../support/connection', () => {
 
 import type { UxrrConfig } from '../types';
 
+import { createTracingProvider } from '../tracing/provider';
 import { uxrr } from '../uxrr';
 
 function makeConfig(overrides: Partial<UxrrConfig> = {}): UxrrConfig {
@@ -320,6 +321,60 @@ describe('UXRR', () => {
             uxrr.init(makeConfig({ enabled: { logging: false } }));
             expect(uxrr.sessionId).toBeTruthy();
             uxrr.stop();
+        });
+    });
+
+    describe('unconfigured (no endpoint / appKey)', () => {
+        beforeEach(() => {
+            vi.mocked(createTracingProvider).mockClear();
+            vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+        });
+
+        it('still installs tracing, but with no transport to export through', async () => {
+            uxrr.init({});
+            await vi.advanceTimersByTimeAsync(0); // initTracing loads the provider module async
+
+            expect(createTracingProvider).toHaveBeenCalledTimes(1);
+            expect(vi.mocked(createTracingProvider).mock.calls[0]![0]).toBeUndefined();
+        });
+
+        it('warns which piece of config is missing', () => {
+            uxrr.init({ appKey: 'app-1' });
+            expect(vi.mocked(console.warn).mock.calls.flat().join(' ')).toContain('no endpoint configured');
+
+            uxrr.init({ endpoint: 'https://example.com' });
+            expect(vi.mocked(console.warn).mock.calls.flat().join(' ')).toContain('no appKey configured');
+
+            uxrr.init({});
+            expect(vi.mocked(console.warn).mock.calls.flat().join(' ')).toContain('no endpoint or appKey configured');
+        });
+
+        it('ships nothing', async () => {
+            uxrr.init({ logging: { flushInterval: 1_000 } });
+
+            uxrr.createLogger('test').info('should stay local');
+            await vi.advanceTimersByTimeAsync(60_000);
+            await uxrr.flush();
+
+            expect(globalThis.fetch).not.toHaveBeenCalled();
+            expect(navigator.sendBeacon).not.toHaveBeenCalled();
+        });
+
+        it('passes a transport once configured', async () => {
+            uxrr.init(makeConfig());
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(vi.mocked(createTracingProvider).mock.calls[0]![0]).toBeDefined();
+        });
+
+        it('drops the previous transport when re-initialized without config', async () => {
+            uxrr.init(makeConfig());
+            await vi.advanceTimersByTimeAsync(0);
+            uxrr.init({});
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(createTracingProvider).toHaveBeenCalledTimes(2);
+            expect(vi.mocked(createTracingProvider).mock.calls[1]![0]).toBeUndefined();
         });
     });
 });

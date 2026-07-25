@@ -9,8 +9,11 @@ export interface UxrrConfig {
         tracing?: boolean;
         support?: boolean;
     };
-    endpoint: string;
-    appKey: string;
+    // Where to ship to, and as what. Both are required to ship anything: with either one missing the
+    // client runs local-only — nothing is sent, no session is recorded, but tracing still installs so
+    // instrumented requests keep carrying W3C trace context (see initTracing / createTracingProvider).
+    endpoint?: string;
+    appKey?: string;
     version?: string;
     environment?: string;
 

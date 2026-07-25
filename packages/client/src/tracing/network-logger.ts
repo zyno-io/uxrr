@@ -56,7 +56,9 @@ export class NetworkLogger {
         config: UxrrConfig
     ) {
         this.originalFetch = globalThis.fetch.bind(globalThis);
-        this.ignoreUrls = [...(config.tracing?.ignoreUrls ?? []), new RegExp(escapeRegex(config.endpoint))];
+        // `new RegExp('')` matches everything, so only ignore the ingest endpoint when there is one.
+        this.ignoreUrls = [...(config.tracing?.ignoreUrls ?? [])];
+        if (config.endpoint) this.ignoreUrls.push(new RegExp(escapeRegex(config.endpoint)));
 
         const prefix = config.logging?.consolePrefix;
         this.consolePrefix = prefix ? `${prefix}:uxrr:net` : 'uxrr:net';

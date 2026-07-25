@@ -21,33 +21,31 @@ init({
     },
 
     // Recording options
-    recording: {
-        /* see Privacy Controls */
-    },
+    recording: {/* see Privacy Controls */},
 
     // Logging options
-    logging: {
-        /* see Logging */
-    },
+    logging: {/* see Logging */},
 
     // Tracing options
-    tracing: {
-        /* see Network Tracing */
-    },
+    tracing: {/* see Network Tracing */},
 
     // Live support options
-    support: {
-        /* see Live Support */
-    }
+    support: {/* see Live Support */}
 });
 ```
 
-## Required Options
+## Connection Options
 
 | Option     | Type     | Description                                                    |
 | ---------- | -------- | -------------------------------------------------------------- |
 | `endpoint` | `string` | Base URL of your uxrr server                                   |
 | `appId`    | `string` | Application identifier (matches apps configured in the server) |
+
+Both are needed to send anything. If either is missing, `init()` still succeeds but runs **local-only**:
+no session is recorded, no logs or spans are shipped, and a warning is logged so the omission isn't
+silent. Tracing still installs, so instrumented requests keep carrying W3C trace context
+(`traceparent`) — trace IDs behave identically in a configured and an unconfigured build, which lets
+you leave `init()` unconditional and only supply the endpoint where you actually want data collected.
 
 ## Optional Options
 

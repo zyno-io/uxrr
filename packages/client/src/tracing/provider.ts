@@ -2,8 +2,8 @@ import type { Tracer } from '@opentelemetry/api';
 import type { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
 
 import type { IdentityManager } from '../identity';
-import type { IngestBuffer } from '../transport/ingest-buffer';
 import type { HttpTransport } from '../transport/http';
+import type { IngestBuffer } from '../transport/ingest-buffer';
 import type { UxrrConfig } from '../types';
 import type { NetworkLogger } from './network-logger';
 import type { IdentitySpanProcessor } from './span-processor';
@@ -11,10 +11,10 @@ import type { IdentitySpanProcessor } from './span-processor';
 export class TracingProvider {
     private provider: WebTracerProvider;
     private networkLogger?: NetworkLogger;
-    private processor: IdentitySpanProcessor;
+    private processor?: IdentitySpanProcessor;
     readonly tracer: Tracer;
 
-    constructor(provider: WebTracerProvider, tracer: Tracer, processor: IdentitySpanProcessor, networkLogger?: NetworkLogger) {
+    constructor(provider: WebTracerProvider, tracer: Tracer, processor?: IdentitySpanProcessor, networkLogger?: NetworkLogger) {
         this.provider = provider;
         this.tracer = tracer;
         this.processor = processor;
@@ -22,7 +22,7 @@ export class TracingProvider {
     }
 
     updateSessionId(sessionId: string): void {
-        this.processor.updateSessionId(sessionId);
+        this.processor?.updateSessionId(sessionId);
     }
 
     async shutdown(): Promise<void> {
@@ -36,7 +36,7 @@ function escapeRegex(str: string): string {
 }
 
 export async function createTracingProvider(
-    transport: HttpTransport,
+    transport: HttpTransport | undefined,
     identity: IdentityManager,
     sessionId: string,
     config: UxrrConfig,
@@ -44,59 +44,69 @@ export async function createTracingProvider(
 ): Promise<TracingProvider> {
     const [
         { ZoneContextManager },
-        { OTLPTraceExporter },
         { registerInstrumentations },
         { FetchInstrumentation },
         { XMLHttpRequestInstrumentation },
         { resourceFromAttributes },
-        { BatchSpanProcessor },
         { WebTracerProvider },
-        { NetworkLogger },
-        { IdentitySpanProcessor }
+        { NetworkLogger }
     ] = await Promise.all([
         import('@opentelemetry/context-zone'),
-        import('@opentelemetry/exporter-trace-otlp-http'),
         import('@opentelemetry/instrumentation'),
         import('@opentelemetry/instrumentation-fetch'),
         import('@opentelemetry/instrumentation-xml-http-request'),
         import('@opentelemetry/resources'),
-        import('@opentelemetry/sdk-trace-base'),
         import('@opentelemetry/sdk-trace-web'),
-        import('./network-logger'),
-        import('./span-processor')
+        import('./network-logger')
     ]);
 
     const resource = resourceFromAttributes({
-        'service.name': config.appKey,
+        'service.name': config.appKey ?? 'unknown',
         'service.version': config.version ?? 'unknown',
         'deployment.environment': config.environment ?? 'unknown'
     });
 
-    const exporter = new OTLPTraceExporter({
-        url: transport.getIngestUrl('t'),
-        headers: {}
-    });
+    // With no transport there is nowhere to ship spans, so the provider gets no span processor at
+    // all — and the exporter never enters the bundle. Spans are still created and still sampled
+    // (default AlwaysOn sampler ⇒ traceparent flags `01`), so instrumented requests carry real trace
+    // IDs the backend can record against; they're just never exported from the browser.
+    let processor: IdentitySpanProcessor | undefined;
+    if (transport) {
+        const [{ OTLPTraceExporter }, { BatchSpanProcessor }, { IdentitySpanProcessor }] = await Promise.all([
+            import('@opentelemetry/exporter-trace-otlp-http'),
+            import('@opentelemetry/sdk-trace-base'),
+            import('./span-processor')
+        ]);
 
-    const isDev = config.environment === 'development';
-    const baseProcessor = new BatchSpanProcessor(exporter, isDev ? { scheduledDelayMillis: 2000 } : undefined);
-    const processor = new IdentitySpanProcessor(
-        baseProcessor,
-        identity,
-        sessionId,
-        config.tracing?.spanAttributes,
-        config.tracing?.includeIdentityAttributes
-    );
+        const exporter = new OTLPTraceExporter({
+            url: transport.getIngestUrl('t'),
+            headers: {}
+        });
+
+        const isDev = config.environment === 'development';
+        const baseProcessor = new BatchSpanProcessor(exporter, isDev ? { scheduledDelayMillis: 2000 } : undefined);
+        processor = new IdentitySpanProcessor(
+            baseProcessor,
+            identity,
+            sessionId,
+            config.tracing?.spanAttributes,
+            config.tracing?.includeIdentityAttributes
+        );
+    }
 
     const provider = new WebTracerProvider({
         resource,
-        spanProcessors: [processor]
+        spanProcessors: processor ? [processor] : []
     });
 
     provider.register({
         contextManager: new ZoneContextManager()
     });
 
-    const ignoreUrls = [...(config.tracing?.ignoreUrls ?? []), new RegExp(escapeRegex(config.endpoint))];
+    // An undefined endpoint must not become an empty pattern here — `new RegExp('')` matches every
+    // URL and would silently un-instrument the whole app.
+    const ignoreUrls = [...(config.tracing?.ignoreUrls ?? [])];
+    if (config.endpoint) ignoreUrls.push(new RegExp(escapeRegex(config.endpoint)));
     const propagateTraceHeaderCorsUrls = config.tracing?.propagateToOrigins ?? [];
 
     // Install NetworkLogger before OTel so OTel wraps our wrapped fetch
