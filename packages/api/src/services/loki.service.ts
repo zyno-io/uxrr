@@ -63,7 +63,6 @@ export class LokiService {
         for (const entry of entries) {
             const labels: Record<string, string> = {
                 job: 'uxrr',
-                appId: entry.appId,
                 appKey: entry.appKey,
                 shard: getSessionShard(entry.sessionId)
             };
@@ -117,33 +116,20 @@ export class LokiService {
         }
     }
 
-    async queryLogs(appId: string, deviceId: string, sessionId: string, from?: Date, to?: Date, legacyAppKey?: string): Promise<StoredLogEntry[]> {
+    async queryLogs(appKey: string, deviceId: string, sessionId: string, from?: Date, to?: Date): Promise<Omit<StoredLogEntry, 'appId'>[]> {
         if (!this.config.LOKI_URL) return [];
 
         const metadataFilter = `| deviceId="${escapeLogQL(deviceId)}" | sessionId="${escapeLogQL(sessionId)}"`;
-        const metadataQuery = `{job="uxrr", appId="${escapeLogQL(appId)}"} ${metadataFilter}`;
+        const metadataQuery = `{job="uxrr", appKey="${escapeLogQL(appKey)}"} ${metadataFilter}`;
 
         // Keep historical logs readable. Before sessionId, deviceId, and userId
         // became structured metadata, the identity values were stream labels and
         // the session ID was serialized into the JSON log line.
-        // Earlier live persistence used the UUID as appKey; direct ingest used
-        // the human app key. Query both representations while new writes use appId.
-        const legacyAppValues = [...new Set([appId, legacyAppKey].filter((value): value is string => Boolean(value)))];
         const legacyNeedle = `"sessionId":${JSON.stringify(sessionId)}`;
-        // `appId=""` matches streams without the new appId label, preventing
-        // current streams (which also retain appKey) from being read twice.
-        const legacyMetadataQueries = legacyAppValues.map(appKey => {
-            return `{job="uxrr", appKey="${escapeLogQL(appKey)}", appId=""} ${metadataFilter}`;
-        });
-        const legacyJsonQueries = legacyAppValues.map(appKey => {
-            const selector = `{job="uxrr", appKey="${escapeLogQL(appKey)}", deviceId="${escapeLogQL(deviceId)}", appId=""}`;
-            return `${selector} |= "${escapeLogQL(legacyNeedle)}"`;
-        });
+        const legacyJsonQuery = `{job="uxrr", appKey="${escapeLogQL(appKey)}", deviceId="${escapeLogQL(deviceId)}"} |= "${escapeLogQL(legacyNeedle)}"`;
 
-        const streams = (
-            await Promise.all([metadataQuery, ...legacyMetadataQueries, ...legacyJsonQueries].map(query => this.queryRange(query, from, to)))
-        ).flat();
-        const entries: StoredLogEntry[] = [];
+        const streams = (await Promise.all([metadataQuery, legacyJsonQuery].map(query => this.queryRange(query, from, to)))).flat();
+        const entries: Omit<StoredLogEntry, 'appId'>[] = [];
 
         for (const stream of streams) {
             const labels = stream.stream;
@@ -156,8 +142,7 @@ export class LokiService {
                         c: parsed.scope ?? '',
                         m: parsed.message ?? '',
                         d: parsed.data,
-                        appId,
-                        appKey: legacyAppKey ?? labels.appKey ?? appId,
+                        appKey,
                         deviceId: labels.deviceId,
                         userId: labels.userId,
                         sessionId: labels.sessionId ?? parsed.sessionId ?? sessionId

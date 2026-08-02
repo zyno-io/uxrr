@@ -40,7 +40,7 @@ export interface IngestDataPayload {
 }
 
 export interface StoredLogEntry extends IngestLogEntry {
-    /** Canonical app UUID used for Loki stream labels. */
+    /** Canonical app UUID for the owning session; never written to Loki. */
     appId: string;
     /** Human-readable app key retained for live relay payloads. */
     appKey: string;

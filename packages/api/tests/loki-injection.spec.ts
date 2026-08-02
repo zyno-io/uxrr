@@ -43,7 +43,7 @@ describe('LokiService', () => {
             const stream = payload.streams[0];
             const [timestamp, line, metadata] = stream.values[0];
 
-            assert.deepEqual(stream.stream, { job: 'uxrr', appId: 'app-uuid-1', appKey: 'storefront', shard: '13' });
+            assert.deepEqual(stream.stream, { job: 'uxrr', appKey: 'storefront', shard: '13' });
             assert.equal(stream.stream.deviceId, undefined);
             assert.equal(stream.stream.userId, undefined);
             assert.equal(timestamp, '1700000000000000000');
@@ -93,10 +93,10 @@ describe('LokiService', () => {
             );
         });
 
-        it('queries UUID-labeled metadata plus both historical appKey formats', async () => {
+        it('queries appKey-labeled metadata plus the historical JSON format', async () => {
             const fetchMock = mock.fn(async (url: string) => {
                 const query = new URL(url).searchParams.get('query');
-                if (query?.includes('appId="app-uuid-1"')) {
+                if (query?.includes('| sessionId=')) {
                     return {
                         ok: true,
                         json: async () => ({
@@ -105,7 +105,8 @@ describe('LokiService', () => {
                                     {
                                         stream: {
                                             job: 'uxrr',
-                                            appId: 'app-uuid-1',
+                                            appKey: 'storefront',
+                                            shard: '13',
                                             deviceId: 'device-1',
                                             userId: 'user-1',
                                             sessionId: 'session-1'
@@ -118,74 +119,6 @@ describe('LokiService', () => {
                     };
                 }
 
-                if (query?.includes('appKey="app-uuid-1"') && query.includes('| sessionId=')) {
-                    return {
-                        ok: true,
-                        json: async () => ({
-                            data: {
-                                result: [
-                                    {
-                                        stream: {
-                                            job: 'uxrr',
-                                            appKey: 'app-uuid-1',
-                                            deviceId: 'device-1',
-                                            sessionId: 'session-1'
-                                        },
-                                        values: [['1699999999250000000', '{"level":"info","scope":"uuid-history","message":"uuid history"}']]
-                                    }
-                                ]
-                            }
-                        })
-                    };
-                }
-
-                // A missing appId exclusion would match current streams a second
-                // time through their retained human appKey label.
-                if (query?.includes('appKey="storefront"') && !query.includes('appId=""')) {
-                    return {
-                        ok: true,
-                        json: async () => ({
-                            data: {
-                                result: [
-                                    {
-                                        stream: {
-                                            job: 'uxrr',
-                                            appId: 'app-uuid-1',
-                                            appKey: 'storefront',
-                                            deviceId: 'device-1',
-                                            sessionId: 'session-1'
-                                        },
-                                        values: [['1700000000000000000', '{"level":"info","scope":"duplicate","message":"duplicate log"}']]
-                                    }
-                                ]
-                            }
-                        })
-                    };
-                }
-
-                if (query?.includes('appKey="storefront"') && query.includes('| sessionId=')) {
-                    return {
-                        ok: true,
-                        json: async () => ({
-                            data: {
-                                result: [
-                                    {
-                                        stream: {
-                                            job: 'uxrr',
-                                            appKey: 'storefront',
-                                            deviceId: 'device-1',
-                                            userId: 'previous-user-1',
-                                            sessionId: 'session-1'
-                                        },
-                                        values: [['1699999999500000000', '{"level":"info","scope":"previous","message":"previous log"}']]
-                                    }
-                                ]
-                            }
-                        })
-                    };
-                }
-
-                if (!query?.includes('appKey="storefront"')) return { ok: true, json: async () => ({ data: { result: [] } }) };
                 return {
                     ok: true,
                     json: async () => ({
@@ -203,20 +136,21 @@ describe('LokiService', () => {
             (globalThis as unknown as Record<string, unknown>).fetch = fetchMock;
 
             const svc = new LokiService(makeConfig(), makeLogger());
-            const logs = await svc.queryLogs('app-uuid-1', 'device-1', 'session-1', undefined, undefined, 'storefront');
+            const logs = await svc.queryLogs('storefront', 'device-1', 'session-1');
 
-            assert.equal(fetchMock.mock.callCount(), 5);
+            assert.equal(fetchMock.mock.callCount(), 2);
             assert.equal(
                 new URL(fetchMock.mock.calls[0].arguments[0] as string).searchParams.get('query'),
-                '{job="uxrr", appId="app-uuid-1"} | deviceId="device-1" | sessionId="session-1"'
+                '{job="uxrr", appKey="storefront"} | deviceId="device-1" | sessionId="session-1"'
             );
-            const legacyQueries = fetchMock.mock.calls.slice(1).map(call => new URL(call.arguments[0] as string).searchParams.get('query'));
-            assert.ok(legacyQueries.every(query => query?.includes('appId=""')));
+            assert.equal(
+                new URL(fetchMock.mock.calls[1].arguments[0] as string).searchParams.get('query'),
+                '{job="uxrr", appKey="storefront", deviceId="device-1"} |= "\\"sessionId\\":\\"session-1\\""'
+            );
             assert.deepEqual(
                 logs.map(log => ({
                     t: log.t,
                     c: log.c,
-                    appId: log.appId,
                     appKey: log.appKey,
                     deviceId: log.deviceId,
                     userId: log.userId,
@@ -226,34 +160,14 @@ describe('LokiService', () => {
                     {
                         t: 1_699_999_999_000,
                         c: 'legacy',
-                        appId: 'app-uuid-1',
                         appKey: 'storefront',
                         deviceId: 'device-1',
                         userId: 'legacy-user-1',
                         sessionId: 'session-1'
                     },
                     {
-                        t: 1_699_999_999_249,
-                        c: 'uuid-history',
-                        appId: 'app-uuid-1',
-                        appKey: 'storefront',
-                        deviceId: 'device-1',
-                        userId: undefined,
-                        sessionId: 'session-1'
-                    },
-                    {
-                        t: 1_699_999_999_500,
-                        c: 'previous',
-                        appId: 'app-uuid-1',
-                        appKey: 'storefront',
-                        deviceId: 'device-1',
-                        userId: 'previous-user-1',
-                        sessionId: 'session-1'
-                    },
-                    {
                         t: 1_700_000_000_000,
                         c: 'new',
-                        appId: 'app-uuid-1',
                         appKey: 'storefront',
                         deviceId: 'device-1',
                         userId: 'user-1',
@@ -278,7 +192,7 @@ describe('LokiService', () => {
 
             it('escapes backslashes in the legacy deviceId selector', async () => {
                 const svc = new LokiService(makeConfig(), makeLogger());
-                await svc.queryLogs('app-uuid-1', 'dev\\ice', 'sess-1');
+                await svc.queryLogs('storefront', 'dev\\ice', 'sess-1');
 
                 const call = fetchMock.mock.calls[1];
                 const url = call.arguments[0] as string;
@@ -288,7 +202,7 @@ describe('LokiService', () => {
 
             it('escapes double quotes in the legacy deviceId selector', async () => {
                 const svc = new LokiService(makeConfig(), makeLogger());
-                await svc.queryLogs('app-uuid-1', 'dev"ice', 'sess-1');
+                await svc.queryLogs('storefront', 'dev"ice', 'sess-1');
 
                 const call = fetchMock.mock.calls[1];
                 const url = call.arguments[0] as string;
@@ -298,18 +212,18 @@ describe('LokiService', () => {
 
             it('keeps backticks in sessionId inside a quoted structured-metadata filter', async () => {
                 const svc = new LokiService(makeConfig(), makeLogger());
-                await svc.queryLogs('app-uuid-1', 'dev-1', 'sess`1');
+                await svc.queryLogs('storefront', 'dev-1', 'sess`1');
 
                 const call = fetchMock.mock.calls[0];
                 const url = call.arguments[0] as string;
                 const query = new URL(url).searchParams.get('query');
-                assert.equal(query, '{job="uxrr", appId="app-uuid-1"} | deviceId="dev-1" | sessionId="sess`1"');
+                assert.equal(query, '{job="uxrr", appKey="storefront"} | deviceId="dev-1" | sessionId="sess`1"');
             });
 
             it('malicious deviceId with double quote produces safe query', async () => {
                 const svc = new LokiService(makeConfig(), makeLogger());
                 const maliciousDeviceId = 'dev"} | evil_query | {"x="';
-                await svc.queryLogs('app-uuid-1', maliciousDeviceId, 'sess-1');
+                await svc.queryLogs('storefront', maliciousDeviceId, 'sess-1');
 
                 const call = fetchMock.mock.calls[1];
                 const url = call.arguments[0] as string;

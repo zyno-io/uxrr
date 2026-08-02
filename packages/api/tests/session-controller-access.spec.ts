@@ -132,10 +132,10 @@ describe('SessionController — access control', () => {
         await controller.getSessionLogs(makeRequest({ type: 'oidc', scope: 'admin' }), 'sess-1', {});
 
         const args = [...queryLogsFn.mock.calls[0].arguments] as unknown[];
-        assert.deepEqual(args.slice(0, 3), ['app-1', 'dev-1', 'sess-1']);
+        assert.deepEqual(args.slice(0, 3), ['legacy-app-1', 'dev-1', 'sess-1']);
         assert.ok(args[3] instanceof Date);
         assert.ok(args[4] instanceof Date);
-        assert.equal(args[5], 'legacy-app-1');
+        assert.equal(args.length, 5);
     });
 
     describe('admin-only endpoints', () => {

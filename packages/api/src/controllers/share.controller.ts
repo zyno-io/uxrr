@@ -48,14 +48,9 @@ export class ShareController {
     async getSessionLogs(token: string, query: HttpQueries<{ since?: number }>): Promise<ILogEntry[]> {
         const session = await this.resolveSession(token);
         const from = query.since ? new Date(query.since) : session.startedAt;
-        return this.lokiSvc.queryLogs(
-            session.appId,
-            session.deviceId,
-            session.id,
-            from,
-            new Date(session.lastActivityAt.getTime() + 60_000),
-            await this.appResolver.resolveAppKeyFresh(session.appId)
-        );
+        const appKey = await this.appResolver.resolveAppKeyFresh(session.appId);
+        if (!appKey) return [];
+        return this.lokiSvc.queryLogs(appKey, session.deviceId, session.id, from, new Date(session.lastActivityAt.getTime() + 60_000));
     }
 
     @http.GET(':token/chat')

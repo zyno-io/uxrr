@@ -9,7 +9,7 @@ import type { ShareService } from '../src/services/share.service';
 import { ShareController } from '../src/controllers/share.controller';
 
 describe('ShareController log queries', () => {
-    it('uses the canonical app UUID and refreshed legacy app key', async () => {
+    it('uses the refreshed app key', async () => {
         const now = new Date();
         const session = {
             id: 'sess-1',
@@ -33,9 +33,9 @@ describe('ShareController log queries', () => {
         await controller.getSessionLogs('share-token', {});
 
         const args = [...queryLogsFn.mock.calls[0].arguments] as unknown[];
-        assert.deepEqual(args.slice(0, 3), ['app-uuid-1', 'device-1', 'sess-1']);
+        assert.deepEqual(args.slice(0, 3), ['legacy-app-key', 'device-1', 'sess-1']);
         assert.ok(args[3] instanceof Date);
         assert.ok(args[4] instanceof Date);
-        assert.equal(args[5], 'legacy-app-key');
+        assert.equal(args.length, 5);
     });
 });
