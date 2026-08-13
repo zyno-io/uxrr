@@ -279,6 +279,7 @@ export class IngestService {
                 this.logger.error(`Failed to flush ingest event buffer for session ${sessionId} on timer`, err);
             });
         }, this.ingestEventFlushDelayMs);
+        buffer.flushTimer.unref?.();
     }
 
     private async flushEventsBuffer(sessionId: string, reason: string): Promise<void> {

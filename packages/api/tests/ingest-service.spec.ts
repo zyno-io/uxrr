@@ -216,6 +216,12 @@ describe('IngestService', () => {
             await svc.ingestData('app-uuid-1', 'app-1', 'sess-1', makePayload({ events }));
             assert.equal(m.putEventsFn.mock.callCount(), 0, 'should not flush immediately under buffering thresholds');
 
+            const serviceWithBuffers = svc as unknown as {
+                eventBuffers: Map<string, { flushTimer?: ReturnType<typeof setTimeout> }>;
+            };
+            const flushTimer = serviceWithBuffers.eventBuffers.get('sess-1')?.flushTimer;
+            assert.equal(flushTimer?.hasRef(), false, 'deferred flush timer should not keep the process alive');
+
             await svc.onServerShutdownRequested();
 
             assert.equal(m.putEventsFn.mock.callCount(), 1);

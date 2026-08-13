@@ -1,3 +1,5 @@
+import { eventDispatcher } from '@zyno-io/ts-server-foundation';
+import { onServerBootstrap, onServerShutdownRequested } from '@zyno-io/ts-server-foundation';
 import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { uuidv7 } from '../util/uuid';
@@ -36,17 +38,15 @@ export class PodPresenceService {
     constructor(
         private readonly redis: RedisService,
         private readonly logger: ScopedLogger
-    ) {
-        if (!redis.enabled) return;
+    ) {}
 
+    @eventDispatcher.listen(onServerBootstrap)
+    onServerBootstrap(): void {
+        if (!this.redis.enabled || this.shuttingDown) return;
         this.alivePods.add(this.podId);
         this.startHeartbeat();
         this.startSweep();
         this.subscribePresence();
-
-        const onShutdown = () => this.shutdown();
-        process.on('SIGTERM', onShutdown);
-        process.on('SIGINT', onShutdown);
 
         this.logger.info(`Pod presence initialized: ${this.podId}`);
     }
@@ -117,6 +117,7 @@ export class PodPresenceService {
     private startHeartbeat(): void {
         this.sendHeartbeat();
         this.heartbeatTimer = setInterval(() => this.sendHeartbeat(), HEARTBEAT_INTERVAL_MS);
+        this.heartbeatTimer.unref?.();
     }
 
     private sendHeartbeat(): void {
@@ -129,6 +130,7 @@ export class PodPresenceService {
 
     private startSweep(): void {
         this.sweepTimer = setInterval(() => this.sweep(), SWEEP_INTERVAL_MS);
+        this.sweepTimer.unref?.();
     }
 
     private async sweep(): Promise<void> {
@@ -189,6 +191,7 @@ export class PodPresenceService {
 
     // ── Shutdown ───────────────────────────────────────────────────────
 
+    @eventDispatcher.listen(onServerShutdownRequested)
     async shutdown(): Promise<void> {
         if (!this.redis.enabled || this.shuttingDown) return;
         this.shuttingDown = true;
