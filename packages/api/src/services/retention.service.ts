@@ -1,3 +1,5 @@
+import { eventDispatcher } from '@zyno-io/ts-server-foundation';
+import { onServerBootstrap, onServerShutdownRequested } from '@zyno-io/ts-server-foundation';
 import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { UxrrConfig } from '../config';
@@ -13,6 +15,7 @@ const BATCH_SIZE = 100;
 
 export class RetentionService {
     private timer?: ReturnType<typeof setInterval>;
+    private initialCleanupTimer?: ReturnType<typeof setTimeout>;
 
     constructor(
         private readonly config: UxrrConfig,
@@ -21,9 +24,12 @@ export class RetentionService {
         private readonly sessionSvc: SessionService,
         private readonly s3: S3Service,
         private readonly loki: LokiService
-    ) {
-        if (config.DATA_RETENTION_DAYS > 0) {
-            const initialCleanupTimer = setTimeout(() => {
+    ) {}
+
+    @eventDispatcher.listen(onServerBootstrap)
+    onServerBootstrap(): void {
+        if (this.config.DATA_RETENTION_DAYS > 0) {
+            this.initialCleanupTimer = setTimeout(() => {
                 this.cleanup().catch(err => {
                     this.logger.error('Initial retention cleanup failed', err);
                 });
@@ -34,8 +40,14 @@ export class RetentionService {
                 }, CLEANUP_INTERVAL_MS);
                 this.timer.unref?.();
             }, INITIAL_DELAY_MS);
-            initialCleanupTimer.unref?.();
+            this.initialCleanupTimer.unref?.();
         }
+    }
+
+    @eventDispatcher.listen(onServerShutdownRequested)
+    onServerShutdownRequested(): void {
+        if (this.initialCleanupTimer) clearTimeout(this.initialCleanupTimer);
+        if (this.timer) clearInterval(this.timer);
     }
 
     async cleanup(): Promise<number> {

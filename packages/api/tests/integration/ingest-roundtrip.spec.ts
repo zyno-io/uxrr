@@ -103,7 +103,11 @@ const tf = TestingHelpers.createTestingFacade(
             await s3.send(new CreateBucketCommand({ Bucket: 'uxrr-events' })).catch(() => {});
             s3.destroy();
         },
-        autoSeedData: true
+        autoSeedData: true,
+        onBeforeStop: async facade => {
+            const ingestService = facade.get<IngestService>(IngestService);
+            await ingestService.onServerShutdownRequested();
+        }
     }
 );
 
