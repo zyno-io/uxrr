@@ -75,7 +75,6 @@ export class WebSocketService {
             socket.destroy();
         });
 
-        this.notifySvc.startStaleChecker();
         this.logger.info('WebSocket service initialized');
     }
 

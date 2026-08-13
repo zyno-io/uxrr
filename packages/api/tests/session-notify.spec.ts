@@ -19,6 +19,7 @@ function makeRedis(enabled = false): RedisService {
     return {
         enabled,
         subscribe: mock.fn(),
+        unsubscribe: mock.fn(),
         publish: mock.fn()
     } as unknown as RedisService;
 }
@@ -114,7 +115,7 @@ describe('SessionNotifyService — allowedAppKeys enforcement', () => {
         assert.equal(sent2.length, 0, 'app-2 watcher should not receive update');
     });
 
-    it('Redis notification enforces allowedAppKeys on remote watchers', () => {
+    it('Redis notification enforces allowedAppKeys on remote watchers', async () => {
         let subscribeCallback: (channel: string, raw: string) => void;
         const subscribeFn = mock.fn((channel: string, cb: (channel: string, raw: string) => void) => {
             subscribeCallback = cb;
@@ -122,10 +123,12 @@ describe('SessionNotifyService — allowedAppKeys enforcement', () => {
         const redis = {
             enabled: true,
             subscribe: subscribeFn,
+            unsubscribe: mock.fn(),
             publish: mock.fn()
         } as unknown as RedisService;
 
         const svc = new SessionNotifyService(makeLogger(), redis, makePresence('pod-1'), makeAppResolver());
+        await svc.onServerBootstrap();
 
         const { ws, sent } = makeWs();
         svc.addWatcher(ws, {}, ['app-2']); // only allowed app-2
@@ -153,6 +156,21 @@ describe('SessionNotifyService — allowedAppKeys enforcement', () => {
         );
 
         assert.equal(sent.length, 0, 'Watcher should not receive Redis notification for non-allowed app');
+
+        await svc.onServerShutdownRequested();
+    });
+
+    it('starts and stops subscriptions only with the server lifecycle', async () => {
+        const redis = makeRedis(true);
+        const svc = new SessionNotifyService(makeLogger(), redis, makePresence(), makeAppResolver());
+
+        assert.equal((redis.subscribe as unknown as ReturnType<typeof mock.fn>).mock.callCount(), 0);
+
+        await svc.onServerBootstrap();
+        assert.equal((redis.subscribe as unknown as ReturnType<typeof mock.fn>).mock.callCount(), 1);
+
+        await svc.onServerShutdownRequested();
+        assert.equal((redis.unsubscribe as unknown as ReturnType<typeof mock.fn>).mock.callCount(), 1);
     });
 
     it('stale checker enforces allowedAppKeys', () => {

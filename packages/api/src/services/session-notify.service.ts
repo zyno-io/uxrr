@@ -1,6 +1,6 @@
 import type WebSocket from 'ws';
 
-import { ScopedLogger } from '@zyno-io/ts-server-foundation';
+import { eventDispatcher, onServerBootstrap, onServerShutdownRequested, ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { SessionEntity } from '../database/entities/session.entity';
 import { AppResolverService } from './app-resolver.service';
@@ -60,21 +60,33 @@ export class SessionNotifyService {
         { lastActivityAt: number; appKey: string; session: SessionEntity; allUserIds: string[] }
     >();
     private staleCheckTimer: ReturnType<typeof setInterval> | undefined;
+    private readonly boundRedisNotification = this.handleRedisNotification.bind(this);
 
     constructor(
         private readonly logger: ScopedLogger,
         private readonly redis: RedisService,
         private readonly presence: PodPresenceService,
         private readonly appResolver: AppResolverService
-    ) {
-        if (redis.enabled) {
-            redis.subscribe(CHANNEL_SESSION_NOTIFY, this.handleRedisNotification.bind(this));
+    ) {}
+
+    @eventDispatcher.listen(onServerBootstrap)
+    async onServerBootstrap(): Promise<void> {
+        if (this.redis.enabled) {
+            await this.redis.subscribe(CHANNEL_SESSION_NOTIFY, this.boundRedisNotification);
         }
+        this.startStaleChecker();
+    }
+
+    @eventDispatcher.listen(onServerShutdownRequested)
+    async onServerShutdownRequested(): Promise<void> {
+        this.stopStaleChecker();
+        await this.redis.unsubscribe(CHANNEL_SESSION_NOTIFY, this.boundRedisNotification);
     }
 
     startStaleChecker(): void {
         if (this.staleCheckTimer) return;
         this.staleCheckTimer = setInterval(() => this.checkStale(), STALE_CHECK_INTERVAL_MS);
+        this.staleCheckTimer.unref?.();
     }
 
     stopStaleChecker(): void {
