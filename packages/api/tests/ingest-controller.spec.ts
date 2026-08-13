@@ -76,6 +76,21 @@ describe('IngestController', () => {
             assert.equal(ingestDataFn.mock.calls[0].arguments[1], 'app-1');
         });
 
+        it('filters legacy events with missing or null timestamps', async () => {
+            const { db, ingestSvc, liveSvc, ingestDataFn } = createMocks();
+            const controller = new IngestController(makeConfig(), db, ingestSvc, liveSvc, mockLogger);
+            const request = makeRequest('app-1');
+            const validEvent = { type: 2, data: {}, timestamp: 1000 };
+
+            const result = await controller.ingestData('app-1', VALID_SESSION_ID, request, {
+                events: [validEvent, { type: 3, data: {}, timestamp: null }, { type: 3, data: {} }]
+            } as IngestDataPayload);
+
+            assert.deepEqual(result, { ok: true });
+            const forwardedBody = ingestDataFn.mock.calls[0].arguments[3];
+            assert.deepEqual(forwardedBody.events, [validEvent]);
+        });
+
         it('returns { ok: true } without ws flag when no agent connected', async () => {
             const { db, ingestSvc, liveSvc } = createMocks();
             const controller = new IngestController(makeConfig(), db, ingestSvc, liveSvc, mockLogger);

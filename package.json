@@ -26,20 +26,21 @@
     },
     "devDependencies": {
         "lefthook": "^2.1.10",
-        "oxfmt": "^0.58.0",
-        "oxlint": "^1.73.0",
-        "typescript": "~6.0",
+        "oxfmt": "^0.63.0",
+        "oxlint": "^1.78.0",
+        "typescript": "^7.0.2",
         "vitepress": "^1.6.4"
     },
     "resolutions": {
-        "@rrweb/packer": "2.1.0",
-        "@rrweb/replay": "2.1.0",
-        "@rrweb/rrweb-plugin-console-record": "2.1.0",
-        "@rrweb/types": "2.1.0",
-        "@rrweb/utils": "2.1.0",
-        "rrdom": "2.1.0",
-        "rrweb": "2.1.0",
-        "rrweb-snapshot": "2.1.0"
+        "@rrweb/packer": "2.1.1",
+        "@rrweb/replay": "2.1.1",
+        "@rrweb/rrweb-plugin-console-record": "2.1.1",
+        "@rrweb/types": "2.1.1",
+        "@rrweb/utils": "2.1.1",
+        "rrdom": "2.1.1",
+        "rrweb": "2.1.1",
+        "rrweb-snapshot": "2.1.1",
+        "typescript@~7.0.2": "npm:typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2"
     },
     "packageManager": "yarn@4.17.1"
 }

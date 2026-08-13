@@ -151,6 +151,29 @@ describe('Ingest roundtrip (integration)', () => {
         assert.ok(session!.eventBytesStored > 0, 'eventBytesStored should be > 0');
     });
 
+    it('accepts legacy null and missing rrweb timestamps', async () => {
+        const res = await makeMockRequest(
+            tf as unknown as Parameters<typeof makeMockRequest>[0],
+            'POST',
+            `/v1/ng/${TEST_APP_KEY}/cccccccc-dddd-eeee-ffff-000000000000/data`,
+            {
+                origin: TEST_ORIGIN
+            },
+            {
+                identity: { deviceId: 'dev-int-legacy' },
+                meta: {},
+                launchTs: Date.now(),
+                events: [
+                    { type: 4, data: { width: 1920, height: 1080 }, timestamp: Date.now() },
+                    { type: 3, data: {}, timestamp: null },
+                    { type: 3, data: {} }
+                ]
+            }
+        );
+
+        assert.equal(res.statusCode, 200);
+    });
+
     it('updates session on subsequent ingest', async () => {
         const res = await makeMockRequest(
             tf as unknown as Parameters<typeof makeMockRequest>[0],

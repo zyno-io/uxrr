@@ -1080,11 +1080,11 @@ components:
         data: {}
         timestamp:
           type: number
+          nullable: true
         delay:
           type: number
       required:
         - type
-        - timestamp
     IngestLogEntry:
       type: object
       properties:

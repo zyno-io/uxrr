@@ -309,3 +309,13 @@ mirror to github:
     git remote add github git@github.com:zyno-io/uxrr.git
     git push -u github HEAD:refs/heads/main --force
     git push github --tags --force
+
+osv scan:
+  stage: test
+  allow_failure: true
+  image:
+    name: ghcr.io/google/osv-scanner:latest
+    entrypoint: ['']
+  before_script: []
+  script:
+    - /osv-scanner scan source --recursive .

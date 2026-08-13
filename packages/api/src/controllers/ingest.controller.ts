@@ -15,7 +15,7 @@ import { UxrrConfig } from '../config';
 import { UxrrDatabase } from '../database/database';
 import { SessionEntity } from '../database/entities/session.entity';
 import { getAppKey, getAppUuid, getAppMaxIdleTimeout, getAppMaxSessionDuration } from '../middleware/origin.guard';
-import { IngestService, IngestDataPayload } from '../services/ingest.service';
+import { IngestService, IngestDataPayload, isPersistableRrwebEvent } from '../services/ingest.service';
 import { LiveSessionService } from '../services/live-session.service';
 import { RateLimiter } from '../util/rate-limiter';
 import { validateSessionId } from '../util/validation';
@@ -66,10 +66,19 @@ export class IngestController {
         if (request.body && request.body.length > MAX_BODY_SIZE) {
             throw new HttpPayloadTooLargeError('Payload too large');
         }
-        if (body.events && body.events.length > this.config.UXRR_MAX_EVENT_BATCH_SIZE) {
+        const validEvents = body.events?.filter(isPersistableRrwebEvent);
+        if (body.events && validEvents && validEvents.length !== body.events.length) {
+            this.logger.warn('Dropping rrweb events with invalid timestamps', {
+                sessionId,
+                droppedEventCount: body.events.length - validEvents.length
+            });
+        }
+        const ingestBody: IngestDataPayload = validEvents === body.events ? body : { ...body, events: validEvents };
+
+        if (ingestBody.events && ingestBody.events.length > this.config.UXRR_MAX_EVENT_BATCH_SIZE) {
             throw new HttpPayloadTooLargeError(`Too many events (max ${this.config.UXRR_MAX_EVENT_BATCH_SIZE})`);
         }
-        if (body.logs && body.logs.length > this.config.UXRR_MAX_LOG_BATCH_SIZE) {
+        if (ingestBody.logs && ingestBody.logs.length > this.config.UXRR_MAX_LOG_BATCH_SIZE) {
             throw new HttpPayloadTooLargeError(`Too many logs (max ${this.config.UXRR_MAX_LOG_BATCH_SIZE})`);
         }
 
@@ -89,7 +98,7 @@ export class IngestController {
             }
         }
 
-        await this.ingestSvc.ingestData(appUuid, resolvedAppKey, sessionId, body, ipAddress);
+        await this.ingestSvc.ingestData(appUuid, resolvedAppKey, sessionId, ingestBody, ipAddress);
         const result: { ok: true; ws?: true; config?: { maxIdleTimeout?: number; maxSessionDuration?: number } } = { ok: true };
         if (this.liveSvc.isAgentConnected(sessionId)) {
             result.ws = true;

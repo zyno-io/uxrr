@@ -17,8 +17,22 @@ export interface RrwebEvent {
     type: number; // EventType enum (0=DomContentLoaded, 1=Load, 2=FullSnapshot, 3=IncrementalSnapshot, 4=Meta, 5=Custom, 6=Plugin)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deepkit serializer drops `unknown` fields
     data: any;
-    timestamp: number;
+    timestamp?: number | null;
     delay?: number;
+}
+
+export interface PersistableRrwebEvent extends RrwebEvent {
+    timestamp: number;
+}
+
+/**
+ * Legacy SDKs can serialize non-finite timestamps as null. Those events
+ * cannot be replayed safely, but should not prevent valid events in the same
+ * batch from being persisted.
+ */
+export function isPersistableRrwebEvent(event: unknown): event is PersistableRrwebEvent {
+    if (typeof event !== 'object' || event === null || !('timestamp' in event)) return false;
+    return typeof event.timestamp === 'number' && Number.isFinite(event.timestamp);
 }
 
 export interface IngestLogEntry {

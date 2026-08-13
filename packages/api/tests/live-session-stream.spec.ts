@@ -1,4 +1,4 @@
-import type { Logger } from '@zyno-io/ts-server-foundation';
+import type { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
 import { strict as assert } from 'node:assert';
 import { describe, it, mock } from 'node:test';
@@ -8,8 +8,8 @@ import type { AgentPublicInfo, LiveMessage } from '../src/services/live/types';
 
 import { LiveSessionStream } from '../src/services/live/live-session-stream';
 
-function makeLogger(): Logger {
-    return { warn: mock.fn(), error: mock.fn(), info: mock.fn(), debug: mock.fn() } as unknown as Logger;
+function makeLogger() {
+    return { warn: mock.fn(), error: mock.fn(), info: mock.fn(), debug: mock.fn() };
 }
 
 function makeTransport() {
@@ -49,8 +49,9 @@ function makePersistence() {
 function createStream() {
     const t = makeTransport();
     const p = makePersistence();
-    const stream = new LiveSessionStream(t.transport, p.persistence, makeLogger());
-    return { stream, ...t, ...p };
+    const logger = makeLogger();
+    const stream = new LiveSessionStream(t.transport, p.persistence, logger as unknown as ScopedLogger);
+    return { stream, logger, ...t, ...p };
 }
 
 describe('LiveSessionStream', () => {
@@ -245,6 +246,24 @@ describe('LiveSessionStream', () => {
 
             assert.equal(persistEvents.mock.callCount(), 1);
         });
+
+        it('filters legacy events with invalid timestamps before relaying or persisting', () => {
+            const { stream, broadcastToAgents, persistEvents, logger } = createStream();
+            stream.onClientConnected('sess-1', 'app-1');
+            stream.onAgentConnected('sess-1', 'a1', { email: 'agent@test.com' });
+            const validEvent = { type: 3, timestamp: 1000 };
+
+            stream.onClientMessage('sess-1', {
+                type: 'events',
+                data: [validEvent, { type: 3, timestamp: null }, { type: 3 }]
+            });
+            stream.flushBuffers('sess-1');
+
+            assert.deepEqual(persistEvents.mock.calls[0].arguments[1], [validEvent]);
+            const eventRelay = broadcastToAgents.mock.calls.find(call => (call.arguments[1] as LiveMessage).type === 'events');
+            assert.deepEqual((eventRelay?.arguments[1] as LiveMessage).data, [validEvent]);
+            assert.equal(logger.warn.mock.callCount(), 1);
+        });
     });
 
     describe('remote state updates', () => {
@@ -277,7 +296,7 @@ describe('LiveSessionStream', () => {
         it('flushBuffers flushes events and logs', () => {
             const { stream, persistEvents, persistLogs } = createStream();
             stream.onClientConnected('sess-1', 'app-1');
-            stream.onClientMessage('sess-1', { type: 'events', data: [{ type: 3 }] });
+            stream.onClientMessage('sess-1', { type: 'events', data: [{ type: 3, timestamp: 1 }] });
             stream.onClientMessage('sess-1', { type: 'logs', data: [{ t: 1, v: 1, c: 'test', m: 'msg' }] });
 
             stream.flushBuffers('sess-1');

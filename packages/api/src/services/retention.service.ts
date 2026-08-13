@@ -23,7 +23,7 @@ export class RetentionService {
         private readonly loki: LokiService
     ) {
         if (config.DATA_RETENTION_DAYS > 0) {
-            setTimeout(() => {
+            const initialCleanupTimer = setTimeout(() => {
                 this.cleanup().catch(err => {
                     this.logger.error('Initial retention cleanup failed', err);
                 });
@@ -32,7 +32,9 @@ export class RetentionService {
                         this.logger.error('Scheduled retention cleanup failed', err);
                     });
                 }, CLEANUP_INTERVAL_MS);
+                this.timer.unref?.();
             }, INITIAL_DELAY_MS);
+            initialCleanupTimer.unref?.();
         }
     }
 

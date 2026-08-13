@@ -1,10 +1,10 @@
 import type { ScopedLogger } from '@zyno-io/ts-server-foundation';
 
-import type { IngestLogEntry } from '../ingest.service';
 import type { ISessionTransport, IBufferPersistence } from './interfaces';
 import type { AgentPublicInfo, IChatMessage, LiveMessage } from './types';
 
 import { RateLimiter } from '../../util/rate-limiter';
+import { isPersistableRrwebEvent, type IngestLogEntry } from '../ingest.service';
 import { CHAT_PERSIST_DELAY_MS, FLUSH_EVENT_THRESHOLD, FLUSH_LOG_THRESHOLD } from './types';
 
 // ── Per-session state (no WebSocket references, no Redis, no network) ──
@@ -142,7 +142,15 @@ export class LiveSessionStream {
         // Buffer events for persistence
         if (msg.type === 'events' && Array.isArray(msg.data)) {
             const events = msg.data as unknown[];
-            state.pendingEvents.push(...events);
+            const validEvents = events.filter(isPersistableRrwebEvent);
+            if (validEvents.length !== events.length) {
+                this.logger.warn('Dropping live rrweb events with invalid timestamps', {
+                    sessionId,
+                    droppedEventCount: events.length - validEvents.length
+                });
+            }
+            msg.data = validEvents;
+            state.pendingEvents.push(...validEvents);
 
             if (state.pendingEvents.length >= FLUSH_EVENT_THRESHOLD) {
                 this.flushEvents(sessionId, state);

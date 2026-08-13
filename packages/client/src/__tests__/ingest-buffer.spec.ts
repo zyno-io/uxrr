@@ -74,6 +74,25 @@ describe('IngestBuffer', () => {
         expect(payload.events).toHaveLength(2);
     });
 
+    it('drops rrweb events with non-finite timestamps before they reach the transport', () => {
+        const transport = makeTransport();
+        const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+        const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        buffer.pushEvent(makeEvent(Number.NaN));
+        buffer.pushEvent(makeEvent(1234));
+        buffer.flush();
+
+        const payload = (transport.postJSON as ReturnType<typeof vi.fn>).mock.calls[0][1] as Record<string, unknown>;
+        expect(payload.events).toEqual([makeEvent(1234)]);
+        expect(consoleWarn).toHaveBeenCalledWith(
+            '[uxrr] dropping rrweb event with invalid timestamp',
+            expect.objectContaining({ timestamp: Number.NaN })
+        );
+
+        consoleWarn.mockRestore();
+    });
+
     it('auto-flushes at eventBufferSize (50) threshold', () => {
         const transport = makeTransport();
         const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
@@ -603,6 +622,44 @@ describe('IngestBuffer', () => {
 
             expect(buffer.onNeedFullSnapshot).toHaveBeenCalledOnce();
             expect(postJSONFn).toHaveBeenCalledTimes(5);
+        });
+    });
+
+    describe('HTTP 400 handling', () => {
+        it('isolates and drops only the rejected event', async () => {
+            const postJSONFn = vi.fn<(path: string, body: unknown) => Promise<PostResult>>();
+            postJSONFn.mockResolvedValue({ ok: true });
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 400, error: 'body.events.1.timestamp must not be null' });
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 400, error: 'body.events.1.timestamp must not be null' });
+            postJSONFn.mockResolvedValueOnce({ ok: true });
+            postJSONFn.mockResolvedValueOnce({ ok: false, status: 400, error: 'body.events.0.timestamp must not be null' });
+
+            const transport = { postJSON: postJSONFn, sendBeacon: vi.fn(() => true) } as unknown as HttpTransport;
+            const buffer = new IngestBuffer(transport, makeIdentity(), 1000, makeConfig());
+            const snapshotCb = vi.fn();
+            buffer.onNeedFullSnapshot = snapshotCb;
+
+            const validEvent = makeEvent(1);
+            const rejectedEvent = makeEvent(2);
+            buffer.pushEvent(validEvent);
+            buffer.pushEvent(rejectedEvent);
+            buffer.flush();
+
+            await vi.advanceTimersByTimeAsync(0);
+            await vi.advanceTimersByTimeAsync(0);
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(postJSONFn).toHaveBeenCalledTimes(4);
+            const acceptedPayload = postJSONFn.mock.calls[2][1] as Record<string, unknown>;
+            expect(acceptedPayload.events).toEqual([validEvent]);
+            const rejectedPayload = postJSONFn.mock.calls[3][1] as Record<string, unknown>;
+            expect(rejectedPayload.events).toEqual([rejectedEvent]);
+
+            buffer.pushEvent(makeEvent(3));
+            buffer.flush();
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(snapshotCb).toHaveBeenCalledOnce();
         });
     });
 

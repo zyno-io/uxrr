@@ -13,6 +13,7 @@ export class RateLimiter {
     ) {
         // Periodically prune stale keys to prevent memory leaks
         this.cleanupTimer = setInterval(() => this.cleanup(), windowMs * 2);
+        this.cleanupTimer.unref?.();
     }
 
     isAllowed(key: string): boolean {

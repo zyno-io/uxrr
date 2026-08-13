@@ -1,6 +1,7 @@
 export interface PostResult {
     ok: boolean;
     status?: number;
+    error?: string;
     ws?: boolean;
     config?: { maxIdleTimeout?: number; maxSessionDuration?: number };
 }
@@ -29,7 +30,21 @@ export class HttpTransport {
                 body: JSON.stringify(body),
                 signal: AbortSignal.timeout(10_000)
             });
-            if (!response.ok) return { ok: false, status: response.status };
+            if (!response.ok) {
+                let error: string | undefined;
+                try {
+                    const responseBody: unknown = await response.json();
+                    if (typeof responseBody === 'object' && responseBody !== null && 'error' in responseBody) {
+                        const responseError = responseBody.error;
+                        if (typeof responseError === 'string') {
+                            error = responseError;
+                        }
+                    }
+                } catch {
+                    // A non-JSON error response still has a useful HTTP status.
+                }
+                return { ok: false, status: response.status, error };
+            }
             try {
                 return await response.json();
             } catch {

@@ -80,6 +80,15 @@ export class IngestBuffer {
     }
 
     pushEvent(event: eventWithTime): void {
+        if (!Number.isFinite(event.timestamp)) {
+            console.warn('[uxrr] dropping rrweb event with invalid timestamp', { type: event.type, timestamp: event.timestamp });
+            this.needsFullSnapshot = true;
+            if (this.liveMode && this.supportConnection?.isConnected) {
+                this.handleFlushSuccess();
+            }
+            return;
+        }
+
         if (this.liveMode && this.supportConnection?.isConnected) {
             this.supportConnection.sendEvents([event]);
             return;
@@ -159,6 +168,8 @@ export class IngestBuffer {
                 this.onSessionExpired?.();
             } else if (result.status === 413) {
                 this.handlePayloadTooLarge(events, logs, payload, generation);
+            } else if (result.status === 400) {
+                this.handleBadRequest(events, logs, payload, generation, result.error);
             } else {
                 // Don't re-queue if session has rotated since this flush started
                 if (generation !== this.sessionGeneration) return;
@@ -279,6 +290,116 @@ export class IngestBuffer {
         };
 
         sendSplit();
+    }
+
+    private handleBadRequest(
+        events: eventWithTime[],
+        logs: LogEntry[],
+        basePayload: Record<string, unknown>,
+        generation: number,
+        error?: string
+    ): void {
+        console.warn('[uxrr] server rejected ingest payload; isolating invalid records', error ?? 'HTTP 400');
+
+        const isolateRecords = async () => {
+            const shouldContinue = await this.isolateRejectedEvents(events, basePayload, generation);
+            if (!shouldContinue) return;
+
+            await this.isolateRejectedLogs(logs, basePayload, generation);
+        };
+
+        isolateRecords();
+    }
+
+    private async isolateRejectedEvents(events: eventWithTime[], basePayload: Record<string, unknown>, generation: number): Promise<boolean> {
+        if (events.length === 0) return true;
+
+        const eventsPayload = { ...basePayload, events, logs: undefined };
+        delete eventsPayload.logs;
+        const result = await this.transport.postJSON('data', eventsPayload);
+
+        if (result.ok) {
+            this.consecutiveFailures = 0;
+            this.handleFlushSuccess();
+            this.applyResultConfig(result);
+            return true;
+        }
+
+        if (result.status === 410) {
+            console.warn('[uxrr] session expired server-side, rotating');
+            this.needsFullSnapshot = true;
+            this.onSessionExpired?.();
+            return false;
+        }
+
+        if (result.status !== 400) {
+            if (generation === this.sessionGeneration) {
+                this.events.unshift(...events);
+            }
+            return true;
+        }
+
+        if (events.length === 1) {
+            const [event] = events;
+            console.warn('[uxrr] dropping server-rejected rrweb event', {
+                type: event.type,
+                timestamp: event.timestamp,
+                error: result.error
+            });
+            this.needsFullSnapshot = true;
+            return true;
+        }
+
+        const midpoint = Math.ceil(events.length / 2);
+        const firstHalf = events.slice(0, midpoint);
+        const secondHalf = events.slice(midpoint);
+        const shouldContinue = await this.isolateRejectedEvents(firstHalf, basePayload, generation);
+        if (!shouldContinue) return false;
+
+        return await this.isolateRejectedEvents(secondHalf, basePayload, generation);
+    }
+
+    private async isolateRejectedLogs(logs: LogEntry[], basePayload: Record<string, unknown>, generation: number): Promise<void> {
+        if (logs.length === 0) return;
+
+        const logsPayload = { ...basePayload, logs, events: undefined };
+        delete logsPayload.events;
+        const result = await this.transport.postJSON('data', logsPayload);
+
+        if (result.ok) {
+            this.consecutiveFailures = 0;
+            this.handleFlushSuccess();
+            this.applyResultConfig(result);
+            return;
+        }
+
+        if (result.status === 410) {
+            console.warn('[uxrr] session expired server-side, rotating');
+            this.needsFullSnapshot = true;
+            this.onSessionExpired?.();
+            return;
+        }
+
+        if (result.status !== 400) {
+            if (generation === this.sessionGeneration) {
+                this.logs.unshift(...logs);
+                while (this.logs.length > this.maxLogQueue) {
+                    this.logs.shift();
+                }
+            }
+            return;
+        }
+
+        if (logs.length === 1) {
+            console.warn('[uxrr] dropping server-rejected log record', { error: result.error });
+            return;
+        }
+
+        const midpoint = Math.ceil(logs.length / 2);
+        const firstHalf = logs.slice(0, midpoint);
+        const secondHalf = logs.slice(midpoint);
+        await this.isolateRejectedLogs(firstHalf, basePayload, generation);
+        await this.isolateRejectedLogs(secondHalf, basePayload, generation);
     }
 
     private async flushRotationBatch(): Promise<boolean> {
