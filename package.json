@@ -25,9 +25,9 @@
         "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && oxfmt"
     },
     "devDependencies": {
-        "lefthook": "^2.1.10",
-        "oxfmt": "^0.63.0",
-        "oxlint": "^1.78.0",
+        "lefthook": "^2.1.14",
+        "oxfmt": "^0.68.0",
+        "oxlint": "^1.83.0",
         "typescript": "^7.0.2",
         "vitepress": "^1.6.4"
     },
@@ -42,5 +42,5 @@
         "rrweb-snapshot": "2.1.1",
         "typescript@~7.0.2": "npm:typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2"
     },
-    "packageManager": "yarn@4.17.1"
+    "packageManager": "yarn@4.18.0"
 }
