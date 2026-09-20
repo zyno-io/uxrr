@@ -41,7 +41,7 @@ prepare build:
 
 .test-services:
   extends: .test-base
-  image: mcr.microsoft.com/playwright:v1.62.1-jammy
+  image: mcr.microsoft.com/playwright:v1.63.0-jammy
   services:
     - name: postgres:17
       variables:
