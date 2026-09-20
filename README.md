@@ -93,6 +93,7 @@ OIDC_CLIENT_ID=uxrr
 LOKI_URL=http://localhost:3100
 OTLP_TRACES_URL=http://localhost:4318/v1/traces
 REDIS_HOST=localhost
+REDIS_PASSWORD_SECRET=your-redis-password
 DATA_RETENTION_DAYS=30
 ```
 

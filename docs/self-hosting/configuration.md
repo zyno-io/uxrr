@@ -67,13 +67,17 @@ limits_config:
 
 ## Redis
 
-| Variable              | Default | Description                                       |
-| --------------------- | ------- | ------------------------------------------------- |
-| `REDIS_HOST`          | —       | Redis host (enables horizontal scaling)           |
-| `REDIS_PORT`          | `6379`  | Redis port                                        |
-| `REDIS_SENTINEL_HOST` | —       | Redis Sentinel host (alternative to `REDIS_HOST`) |
-| `REDIS_SENTINEL_PORT` | —       | Redis Sentinel port                               |
-| `REDIS_SENTINEL_NAME` | —       | Redis Sentinel master name                        |
+| Variable                         | Default                 | Description                                                         |
+| -------------------------------- | ----------------------- | ------------------------------------------------------------------- |
+| `REDIS_HOST`                     | —                       | Redis host (enables horizontal scaling)                             |
+| `REDIS_PORT`                     | `6379`                  | Redis port                                                          |
+| `REDIS_USERNAME`                 | —                       | Redis ACL username                                                  |
+| `REDIS_PASSWORD_SECRET`          | —                       | Redis password                                                      |
+| `REDIS_SENTINEL_HOST`            | —                       | Redis Sentinel host (alternative to `REDIS_HOST`)                   |
+| `REDIS_SENTINEL_PORT`            | —                       | Redis Sentinel port                                                 |
+| `REDIS_SENTINEL_NAME`            | —                       | Redis Sentinel master name                                          |
+| `REDIS_SENTINEL_USERNAME`        | `REDIS_USERNAME`        | Sentinel ACL username                                               |
+| `REDIS_SENTINEL_PASSWORD_SECRET` | `REDIS_PASSWORD_SECRET` | Sentinel password; defaults to the Redis password when not provided |
 
 ## Encryption
 

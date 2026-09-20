@@ -50,6 +50,9 @@ env:
   OIDC_AUDIENCE: api://bd6b76fa-6398-4003-9122-5f42daeadd89
   OIDC_ISSUER: https://sts.windows.net/234dbf24-3b6c-444f-a266-686da86b2d66/
 
+# Map environment variables to Kubernetes valueFrom sources such as Secret keys.
+envValueFrom: {}
+
 secret:
   # Name of the Kubernetes Secret to mount into the container as env vars.
   # Defaults to the release name when unset; here it matches the OnePasswordItem.
