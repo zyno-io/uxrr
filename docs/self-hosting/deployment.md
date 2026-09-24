@@ -21,7 +21,7 @@ The built server is at `packages/api/dist/` and the UI static assets are at `pac
 ```bash
 # Run database migrations
 cd packages/api
-node . migration:run
+node . migrate:run
 
 # Start the server
 node . server:start
@@ -140,7 +140,7 @@ Database migrations must be run before starting the server:
 
 ```bash
 cd packages/api
-node . migration:run
+node . migrate:run
 ```
 
 ## Reverse Proxy

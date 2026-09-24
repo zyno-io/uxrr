@@ -167,7 +167,7 @@ jobs:
 
       - name: Run migrations
         working-directory: packages/api
-        run: node . migration:run
+        run: node . migrate:run
 
       - name: Start server
         working-directory: packages/api

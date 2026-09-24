@@ -28,7 +28,7 @@ spec:
         - name: migrate
           image: {{ .Values.image }}
           imagePullPolicy: IfNotPresent
-          command: ["node", ".", "migration:run"]
+          command: ["node", ".", "migrate:run"]
           envFrom:
             - secretRef:
                 name: {{ .Values.secret.name | default .Release.Name }}
