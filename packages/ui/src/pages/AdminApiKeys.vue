@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
 import { dataFrom } from '@zyno-io/openapi-client-codegen';
 import { VfModal, vfModalRef, showConfirmDestroy, showToast } from '@zyno-io/vue-foundation';
+import { ref, onMounted } from 'vue';
+
 import type { ApiKeyResponse, AppResponse, PostApiKeyCreateKeyResponse } from '@/openapi-client-generated';
+
 import { AdminApi, ApiKeyApi } from '@/openapi-client-generated';
 
 const keys = ref<ApiKeyResponse[]>([]);
@@ -103,7 +105,7 @@ onMounted(load);
     <div class="admin-page">
         <div class="admin-page-header">
             <h1>API Keys</h1>
-            <button class="uxrr-btn-primary" @click="openCreate">Create Key</button>
+            <button class="btn primary uxrr-btn-primary" @click="openCreate">Create Key</button>
         </div>
 
         <div v-if="error" class="admin-error">{{ error }}</div>
@@ -112,8 +114,8 @@ onMounted(load);
             <p>API key created. Copy it now — it won't be shown again:</p>
             <code>{{ createdKey }}</code>
             <div class="api-key-actions">
-                <button class="uxrr-btn-small" @click="copyKey">Copy</button>
-                <button class="uxrr-btn-small" @click="createdKey = null">Dismiss</button>
+                <button class="btn sm uxrr-btn-small" @click="copyKey">Copy</button>
+                <button class="btn sm uxrr-btn-small" @click="createdKey = null">Dismiss</button>
             </div>
         </div>
 
@@ -145,7 +147,7 @@ onMounted(load);
                     </td>
                     <td>{{ new Date(key.createdAt).toLocaleDateString() }}</td>
                     <td class="actions">
-                        <button v-if="key.isActive" class="uxrr-btn-small danger" @click="revokeKey(key)">Revoke</button>
+                        <button v-if="key.isActive" class="btn sm uxrr-btn-small danger" @click="revokeKey(key)">Revoke</button>
                     </td>
                 </tr>
             </tbody>
@@ -161,11 +163,11 @@ onMounted(load);
                 <div class="modal-form">
                     <label>
                         Name
-                        <input v-model="newName" type="text" placeholder="My API Key" />
+                        <input class="input" v-model="newName" type="text" placeholder="My API Key" />
                     </label>
                     <label>
                         Scope
-                        <select v-model="newScope">
+                        <select class="select" v-model="newScope">
                             <option value="readonly">Readonly</option>
                             <option value="interactive">Interactive</option>
                         </select>
@@ -183,8 +185,8 @@ onMounted(load);
                 </div>
 
                 <template #footer>
-                    <button type="button" class="uxrr-btn-secondary" @click="showCreate = false">Cancel</button>
-                    <button type="submit" class="uxrr-btn-primary" :disabled="!newName">Create</button>
+                    <button type="button" class="btn uxrr-btn-secondary" @click="showCreate = false">Cancel</button>
+                    <button type="submit" class="btn primary uxrr-btn-primary" :disabled="!newName">Create</button>
                 </template>
             </VfModal>
         </teleport>
@@ -209,22 +211,7 @@ onMounted(load);
         flex-direction: column;
         gap: 4px;
         font-size: 13px;
-        color: var(--uxrr-text-muted);
-    }
-
-    input[type='text'],
-    select {
-        padding: 6px 10px;
-        border: 1px solid var(--uxrr-border);
-        border-radius: 4px;
-        background: var(--uxrr-bg);
-        color: var(--uxrr-text);
-        font-size: 13px;
-
-        &:focus {
-            outline: none;
-            border-color: var(--uxrr-accent);
-        }
+        color: var(--text-3);
     }
 }
 
@@ -236,7 +223,7 @@ onMounted(load);
 
 .field-label {
     font-size: 13px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .app-checkboxes {
@@ -244,9 +231,9 @@ onMounted(load);
     flex-direction: column;
     gap: 6px;
     padding: 8px 10px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: var(--uxrr-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-2);
     max-height: 180px;
     overflow-y: auto;
 }
@@ -257,13 +244,13 @@ onMounted(load);
     align-items: center;
     gap: 8px !important;
     font-size: 13px;
-    color: var(--uxrr-text);
+    color: var(--text);
     cursor: pointer;
 
     input[type='checkbox'] {
         width: 14px;
         height: 14px;
-        accent-color: var(--uxrr-accent);
+        accent-color: var(--accent);
         cursor: pointer;
     }
 }

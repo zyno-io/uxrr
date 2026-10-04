@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { formatDistanceToNow, format } from 'date-fns';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+
 import type { ISession } from '@/openapi-client-generated';
+
 import UserInfoPopover from './UserInfoPopover.vue';
 
 const props = defineProps<{
@@ -136,11 +138,17 @@ function formatRelative(iso: string): string {
     flex: 1;
     min-height: 0;
     overflow: auto;
+    margin: 12px 16px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
 }
 
 .session-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 13px;
 
     th,
@@ -151,19 +159,21 @@ function formatRelative(iso: string): string {
     }
 
     th {
-        color: var(--uxrr-text-muted);
-        font-weight: 500;
-        font-size: 12px;
+        color: var(--text-3);
+        font-weight: 600;
+        font-size: 11px;
+        height: 32px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        border-bottom: 1px solid var(--uxrr-border);
+        border-bottom: 1px solid var(--border);
         position: sticky;
         top: 0;
-        background: var(--uxrr-surface);
+        background: var(--surface-2);
     }
 
     td {
-        border-bottom: 1px solid var(--uxrr-border);
+        height: 40px;
+        border-bottom: 1px solid var(--border);
     }
 }
 
@@ -171,18 +181,18 @@ function formatRelative(iso: string): string {
     cursor: pointer;
 
     &:hover td {
-        background: rgba(108, 126, 225, 0.06);
+        background: var(--surface-hover);
     }
 }
 
 .cell-empty {
     text-align: center;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     padding: 32px 12px;
 }
 
 .cell-error {
-    color: var(--uxrr-danger);
+    color: var(--danger);
 }
 
 .cell-loading-more {
@@ -191,13 +201,13 @@ function formatRelative(iso: string): string {
 }
 
 .cell-mono {
-    font-family: var(--uxrr-mono);
+    font-family: var(--font-mono);
     font-size: 12px;
 }
 
 .cell-exact-time {
     margin-left: 6px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 11px;
 }
 
@@ -205,7 +215,7 @@ function formatRelative(iso: string): string {
     cursor: pointer;
 
     &:hover {
-        color: var(--uxrr-accent);
+        color: var(--accent);
         text-decoration: underline;
     }
 }
@@ -219,9 +229,10 @@ function formatRelative(iso: string): string {
 .live-badge {
     display: inline-block;
     padding: 1px 6px;
-    border-radius: 3px;
-    background: var(--uxrr-danger);
-    color: #fff;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--danger-border);
+    background: var(--danger-soft);
+    color: var(--danger);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.5px;

@@ -218,17 +218,18 @@ function formatHeaders(headers: Record<string, string>): string {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--uxrr-surface);
-    border-radius: 4px;
+    background: var(--surface);
+    border-radius: var(--radius);
     overflow: hidden;
 }
 
 .network-toolbar {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px 8px;
+    flex-wrap: wrap;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--uxrr-border);
+    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
 
@@ -238,7 +239,7 @@ function formatHeaders(headers: Record<string, string>): string {
 }
 
 .network-count {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 12px;
     margin-right: auto;
 }
@@ -248,7 +249,7 @@ function formatHeaders(headers: Record<string, string>): string {
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     cursor: pointer;
     user-select: none;
 }
@@ -261,13 +262,13 @@ function formatHeaders(headers: Record<string, string>): string {
 .network-empty {
     padding: 24px;
     text-align: center;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .network-table {
     width: 100%;
     border-collapse: collapse;
-    font-family: var(--uxrr-mono);
+    font-family: var(--font-mono);
     font-size: 12px;
 
     th,
@@ -278,18 +279,18 @@ function formatHeaders(headers: Record<string, string>): string {
     }
 
     th {
-        color: var(--uxrr-text-muted);
+        color: var(--text-3);
         font-weight: 500;
         font-size: 11px;
         text-transform: uppercase;
-        border-bottom: 1px solid var(--uxrr-border);
+        border-bottom: 1px solid var(--border);
         position: sticky;
         top: 0;
-        background: var(--uxrr-surface);
+        background: var(--surface);
     }
 
     td {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid var(--border);
     }
 }
 
@@ -297,12 +298,12 @@ tr.clickable {
     cursor: pointer;
 
     &:hover td {
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--surface-hover);
     }
 }
 
 tr.expanded td {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--surface-2);
 }
 
 tr.future td {
@@ -311,14 +312,14 @@ tr.future td {
 }
 
 .col-time {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     flex-shrink: 0;
 
     &--clickable {
         cursor: pointer;
 
         &:hover {
-            color: var(--uxrr-accent);
+            color: var(--accent);
             text-decoration: underline;
         }
     }
@@ -341,17 +342,17 @@ tr.future td {
 }
 
 .status-ok {
-    color: var(--uxrr-success, #22c55e);
+    color: var(--success);
 }
 .status-redirect {
-    color: var(--uxrr-warning);
+    color: var(--warning);
 }
 .status-error {
-    color: var(--uxrr-danger);
+    color: var(--danger);
 }
 
 .col-duration {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     width: 60px;
     text-align: right;
 }
@@ -361,7 +362,7 @@ tr.future td {
 }
 
 .trace-link {
-    color: var(--uxrr-accent);
+    color: var(--accent);
     text-decoration: none;
     font-size: 11px;
 
@@ -380,8 +381,8 @@ tr.future td {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: rgba(0, 0, 0, 0.15);
-    border-bottom: 1px solid var(--uxrr-border);
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
 }
 
 .detail-section {
@@ -394,19 +395,19 @@ tr.future td {
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .detail-pre {
     margin: 0;
     padding: 6px 8px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
+    background: var(--surface-3);
+    border-radius: var(--radius-sm);
     font-size: 11px;
     white-space: pre-wrap;
     word-break: break-all;
     max-height: 200px;
     overflow-y: auto;
-    color: var(--uxrr-text);
+    color: var(--text);
 }
 </style>

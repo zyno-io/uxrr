@@ -249,7 +249,7 @@ async function toggleLogSelection(item: ConsoleLogItem) {
                 <input
                     v-model="searchQuery"
                     type="search"
-                    class="console-search-input"
+                    class="input console-search-input"
                     placeholder="Search console"
                     aria-label="Search console"
                     autocomplete="off"
@@ -260,11 +260,11 @@ async function toggleLogSelection(item: ConsoleLogItem) {
                 </button>
             </div>
             <div class="console-filters">
-                <button :class="['filter-chip', { active: levelFilter === null }]" @click="setFilter(null)">All</button>
-                <button :class="['filter-chip', { active: levelFilter === 0 }]" @click="setFilter(0)">Debug</button>
-                <button :class="['filter-chip', { active: levelFilter === 1 }]" @click="setFilter(1)">Info+</button>
-                <button :class="['filter-chip', { active: levelFilter === 2 }]" @click="setFilter(2)">Warn+</button>
-                <button :class="['filter-chip', { active: levelFilter === 3 }]" @click="setFilter(3)">Error</button>
+                <button class="btn sm" :class="['filter-chip', { active: levelFilter === null }]" @click="setFilter(null)">All</button>
+                <button class="btn sm" :class="['filter-chip', { active: levelFilter === 0 }]" @click="setFilter(0)">Debug</button>
+                <button class="btn sm" :class="['filter-chip', { active: levelFilter === 1 }]" @click="setFilter(1)">Info+</button>
+                <button class="btn sm" :class="['filter-chip', { active: levelFilter === 2 }]" @click="setFilter(2)">Warn+</button>
+                <button class="btn sm" :class="['filter-chip', { active: levelFilter === 3 }]" @click="setFilter(3)">Error</button>
             </div>
             <label class="filter-chip-toggle">
                 <input v-model="includeNetwork" type="checkbox" />
@@ -405,17 +405,18 @@ async function toggleLogSelection(item: ConsoleLogItem) {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--uxrr-surface);
-    border-radius: 4px;
+    background: var(--surface);
+    border-radius: var(--radius);
     overflow: hidden;
 }
 
 .console-toolbar {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px 8px;
+    flex-wrap: wrap;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--uxrr-border);
+    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
 
@@ -433,24 +434,9 @@ async function toggleLogSelection(item: ConsoleLogItem) {
 
 .console-search-input {
     width: 100%;
-    box-sizing: border-box;
-    padding: 4px 24px 4px 8px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 3px;
-    background: var(--uxrr-bg);
-    color: var(--uxrr-text);
-    font: inherit;
+    height: 26px;
+    padding: 0 24px 0 8px;
     font-size: 11px;
-
-    &::placeholder {
-        color: var(--uxrr-text-muted);
-    }
-
-    &:focus {
-        outline: none;
-        border-color: var(--uxrr-accent);
-    }
-
     &::-webkit-search-cancel-button {
         appearance: none;
     }
@@ -465,14 +451,14 @@ async function toggleLogSelection(item: ConsoleLogItem) {
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 16px;
     line-height: 18px;
     cursor: pointer;
     transform: translateY(-50%);
 
     &:hover {
-        color: var(--uxrr-text);
+        color: var(--text);
     }
 }
 
@@ -482,18 +468,10 @@ async function toggleLogSelection(item: ConsoleLogItem) {
 }
 
 .filter-chip {
-    padding: 2px 8px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 3px;
-    background: transparent;
-    color: var(--uxrr-text-muted);
-    font-size: 11px;
-    cursor: pointer;
-
     &.active {
-        background: var(--uxrr-accent);
-        color: #fff;
-        border-color: var(--uxrr-accent);
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        color: var(--accent);
     }
 }
 
@@ -502,7 +480,7 @@ async function toggleLogSelection(item: ConsoleLogItem) {
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     cursor: pointer;
     user-select: none;
 }
@@ -512,7 +490,7 @@ async function toggleLogSelection(item: ConsoleLogItem) {
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     cursor: pointer;
     user-select: none;
 }
@@ -520,7 +498,7 @@ async function toggleLogSelection(item: ConsoleLogItem) {
 .console-entries {
     flex: 1;
     overflow-y: auto;
-    font-family: var(--uxrr-mono);
+    font-family: var(--font-mono);
     font-size: 12px;
     line-height: 1.6;
 }
@@ -528,12 +506,12 @@ async function toggleLogSelection(item: ConsoleLogItem) {
 .console-empty {
     padding: 24px;
     text-align: center;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .console-entry {
     padding: 2px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--border);
     word-break: break-word;
     cursor: pointer;
     transition:
@@ -550,28 +528,28 @@ async function toggleLogSelection(item: ConsoleLogItem) {
     }
 
     &.level-debug {
-        color: var(--uxrr-text-muted);
+        color: var(--text-3);
     }
     &.level-info {
-        color: var(--uxrr-info);
+        color: var(--info);
     }
     &.level-warn {
-        color: var(--uxrr-warning);
-        background: rgba(225, 176, 91, 0.04);
+        color: var(--warning);
+        background: var(--warning-soft);
     }
     &.level-error {
-        color: var(--uxrr-danger);
-        background: rgba(225, 91, 91, 0.06);
+        color: var(--danger);
+        background: var(--danger-soft);
     }
 
     &.selected {
-        background: rgba(108, 126, 225, 0.2);
-        box-shadow: inset 3px 0 var(--uxrr-accent);
+        background: var(--accent-soft);
+        box-shadow: inset 3px 0 var(--accent);
     }
 }
 
 .net-entry {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .entry-net-icon {
@@ -580,13 +558,13 @@ async function toggleLogSelection(item: ConsoleLogItem) {
 }
 
 .entry-time {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 
     &--clickable {
         cursor: pointer;
 
         &:hover {
-            color: var(--uxrr-accent);
+            color: var(--accent);
             text-decoration: underline;
         }
     }
@@ -597,11 +575,11 @@ async function toggleLogSelection(item: ConsoleLogItem) {
 }
 
 .entry-scope {
-    color: var(--uxrr-accent);
+    color: var(--accent);
 }
 
 .entry-data {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .entry-method {
@@ -622,21 +600,21 @@ async function toggleLogSelection(item: ConsoleLogItem) {
 }
 
 .entry-duration {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .net-status-ok {
-    color: var(--uxrr-success, #22c55e);
+    color: var(--success);
 }
 .net-status-redirect {
-    color: var(--uxrr-warning);
+    color: var(--warning);
 }
 .net-status-error {
-    color: var(--uxrr-danger);
+    color: var(--danger);
 }
 
 .entry-trace {
-    color: var(--uxrr-accent);
+    color: var(--accent);
     text-decoration: none;
     font-size: 10px;
     opacity: 0.7;

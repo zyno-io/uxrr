@@ -4,7 +4,28 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="color-scheme" content="light dark" />
         <title>uxrr</title>
+        <script>
+            // apply the stored theme before first paint; only the theme preference lives in localStorage
+            (function () {
+                var stored = null;
+                try {
+                    stored = localStorage.getItem('uxrr:theme');
+                } catch (e) {}
+                var mode = stored === 'light' || stored === 'dark' ? stored : 'system';
+                var isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                if (isDark) document.documentElement.classList.add('dark');
+            })();
+        </script>
+        <style>
+            html {
+                background-color: #f6f7f9;
+            }
+            html.dark {
+                background-color: #0c0d10;
+            }
+        </style>
     </head>
     <body>
         <div id="app"></div>
