@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue';
+
 import { createLogger } from '@/logger';
 
 const log = createLogger('chat');
@@ -100,14 +101,14 @@ function formatSender(from: string): string {
         <template v-else-if="!chatStarted">
             <div class="chat-start">
                 <p class="chat-start-desc">Open a chat widget on the user's screen</p>
-                <button class="chat-start-btn" :disabled="!clientConnected" @click="emit('start-chat')">Start Chat</button>
+                <button class="btn primary chat-start-btn" :disabled="!clientConnected" @click="emit('start-chat')">Start Chat</button>
             </div>
         </template>
         <template v-else>
             <div class="chat-toolbar">
                 <span class="chat-title">Chat</span>
                 <span class="chat-count">{{ messages.length }} messages</span>
-                <button v-if="chatActive" class="chat-end-btn" @click="emit('end-chat')">End Chat</button>
+                <button v-if="chatActive" class="btn sm danger chat-end-btn" @click="emit('end-chat')">End Chat</button>
             </div>
             <div ref="containerRef" class="chat-messages">
                 <div v-if="messages.length === 0" class="chat-empty">No messages yet</div>
@@ -133,6 +134,7 @@ function formatSender(from: string): string {
             </div>
             <div v-if="chatActive" class="chat-input">
                 <textarea
+                    class="input"
                     ref="textareaRef"
                     v-model="inputText"
                     placeholder="Type a message..."
@@ -140,10 +142,10 @@ function formatSender(from: string): string {
                     @keydown="onKeydown"
                     @input="emit('typing')"
                 />
-                <button @click="doSend">Send</button>
+                <button class="btn primary" @click="doSend">Send</button>
             </div>
             <div v-else-if="clientConnected" class="chat-ended">
-                <button class="chat-start-btn" @click="emit('start-chat')">Restart Chat</button>
+                <button class="btn primary chat-start-btn" @click="emit('start-chat')">Restart Chat</button>
             </div>
         </template>
     </div>
@@ -154,8 +156,8 @@ function formatSender(from: string): string {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--uxrr-surface);
-    border-radius: 4px;
+    background: var(--surface);
+    border-radius: var(--radius);
     overflow: hidden;
 }
 
@@ -170,29 +172,9 @@ function formatSender(from: string): string {
 }
 
 .chat-start-desc {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 13px;
     margin: 0;
-}
-
-.chat-start-btn {
-    padding: 8px 20px;
-    border: none;
-    border-radius: 4px;
-    background: var(--uxrr-accent);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-        opacity: 0.9;
-    }
-
-    &:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
 }
 
 .chat-toolbar {
@@ -200,7 +182,7 @@ function formatSender(from: string): string {
     align-items: center;
     gap: 12px;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--uxrr-border);
+    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
 
@@ -210,25 +192,12 @@ function formatSender(from: string): string {
 }
 
 .chat-count {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 12px;
 }
 
 .chat-end-btn {
     margin-left: auto;
-    padding: 4px 10px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--uxrr-text-muted);
-    font-size: 12px;
-    cursor: pointer;
-
-    &:hover {
-        background: rgba(239, 68, 68, 0.1);
-        border-color: #ef4444;
-        color: #ef4444;
-    }
 }
 
 .chat-messages {
@@ -239,7 +208,7 @@ function formatSender(from: string): string {
 
 .chat-empty {
     text-align: center;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     padding: 24px;
 }
 
@@ -248,7 +217,7 @@ function formatSender(from: string): string {
     align-items: center;
     gap: 8px;
     margin: 12px 0;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 11px;
 
     &::before,
@@ -256,13 +225,13 @@ function formatSender(from: string): string {
         content: '';
         flex: 1;
         height: 1px;
-        background: var(--uxrr-border);
+        background: var(--border);
     }
 }
 
 .chat-ended {
     padding: 8px 12px;
-    border-top: 1px solid var(--uxrr-border);
+    border-top: 1px solid var(--border);
     flex-shrink: 0;
     text-align: center;
 }
@@ -273,15 +242,15 @@ function formatSender(from: string): string {
 
 .chat-msg--user {
     .chat-bubble {
-        background: rgba(108, 126, 225, 0.1);
-        border-left: 3px solid var(--uxrr-accent);
+        background: var(--accent-soft);
+        border-left: 3px solid var(--accent);
     }
 }
 
 .chat-msg--agent {
     .chat-bubble {
-        background: rgba(34, 197, 94, 0.08);
-        border-left: 3px solid var(--uxrr-success, #22c55e);
+        background: var(--success-soft);
+        border-left: 3px solid var(--success);
     }
 }
 
@@ -290,7 +259,7 @@ function formatSender(from: string): string {
     gap: 8px;
     margin-bottom: 4px;
     font-size: 11px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .chat-from {
@@ -299,7 +268,7 @@ function formatSender(from: string): string {
 
 .chat-bubble {
     padding: 8px 12px;
-    border-radius: 4px;
+    border-radius: var(--radius);
     font-size: 13px;
     line-height: 1.5;
     word-break: break-word;
@@ -315,16 +284,16 @@ function formatSender(from: string): string {
     gap: 4px;
     align-items: center;
     padding: 8px 14px;
-    border-radius: 4px;
-    background: rgba(108, 126, 225, 0.1);
-    border-left: 3px solid var(--uxrr-accent);
+    border-radius: var(--radius);
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
 }
 
 .chat-typing-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--uxrr-text-muted);
+    background: var(--text-3);
     animation: typing-bounce 1.4s infinite ease-in-out;
 
     &:nth-child(2) {
@@ -353,40 +322,16 @@ function formatSender(from: string): string {
     display: flex;
     gap: 8px;
     padding: 8px 12px;
-    border-top: 1px solid var(--uxrr-border);
+    border-top: 1px solid var(--border);
     flex-shrink: 0;
 
     textarea {
         flex: 1;
+        height: auto;
         padding: 6px 10px;
-        border: 1px solid var(--uxrr-border);
-        border-radius: 4px;
-        background: var(--uxrr-bg);
-        color: var(--uxrr-text);
-        font-size: 13px;
-        font-family: inherit;
-        outline: none;
         resize: none;
         line-height: 1.4;
         min-height: 32px;
-
-        &:focus {
-            border-color: var(--uxrr-accent);
-        }
-    }
-
-    button {
-        padding: 6px 14px;
-        border: none;
-        border-radius: 4px;
-        background: var(--uxrr-accent);
-        color: #fff;
-        font-size: 13px;
-        cursor: pointer;
-
-        &:hover {
-            opacity: 0.9;
-        }
     }
 }
 </style>

@@ -1,14 +1,16 @@
 <script setup lang="ts">
+import { dataFrom } from '@zyno-io/openapi-client-codegen';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
-import { dataFrom } from '@zyno-io/openapi-client-codegen';
+
 import type { ISession, GetSessionListSessionsData } from '@/openapi-client-generated';
-import { SessionApi } from '@/openapi-client-generated';
-import SessionTable from '@/components/SessionTable.vue';
+
 import DateRangePicker, { type DateRange } from '@/components/DateRangePicker.vue';
+import SessionTable from '@/components/SessionTable.vue';
 import { embedState, getEmbedToken } from '@/embed';
-import { connectEmbedSessionListStream, type SessionListStreamHandle } from '@/session-list-stream';
 import { createLogger } from '@/logger';
+import { SessionApi } from '@/openapi-client-generated';
+import { connectEmbedSessionListStream, type SessionListStreamHandle } from '@/session-list-stream';
 
 const log = createLogger('embed-session-list');
 const REFRESH_INTERVAL = 30_000;
@@ -181,18 +183,18 @@ onBeforeUnmount(() => {
 <template>
     <div class="embed-session-list">
         <div class="embed-filter-bar">
-            <select v-if="showAppFilter" v-model="selectedAppKey" class="embed-filter-select" @change="load">
+            <select v-if="showAppFilter" v-model="selectedAppKey" class="select embed-filter-select" @change="load">
                 <option value="">All Apps</option>
                 <option v-for="app in embedState.appKeys" :key="app" :value="app">{{ app }}</option>
             </select>
-            <input v-model="userId" placeholder="User ID" class="embed-filter-input" @keyup.enter="load" />
-            <input v-model="deviceId" placeholder="Device ID" class="embed-filter-input" @keyup.enter="load" />
+            <input v-model="userId" placeholder="User ID" class="input embed-filter-input" @keyup.enter="load" />
+            <input v-model="deviceId" placeholder="Device ID" class="input embed-filter-input" @keyup.enter="load" />
             <DateRangePicker ref="datePickerRef" @change="onDateChange" />
             <label class="embed-filter-toggle">
                 <input type="checkbox" v-model="hasChat" @change="load" />
                 <span>Has Chat</span>
             </label>
-            <button class="embed-filter-btn" @click="load">Filter</button>
+            <button class="btn primary embed-filter-btn" @click="load">Filter</button>
         </div>
         <SessionTable
             :sessions="sessions"
@@ -224,67 +226,17 @@ onBeforeUnmount(() => {
     flex-wrap: wrap;
 }
 
-.embed-filter-select {
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: var(--uxrr-bg);
-    color: var(--uxrr-text);
-    font-size: 13px;
-    outline: none;
-
-    &:focus {
-        border-color: var(--uxrr-accent);
-    }
-}
-
-.embed-filter-input {
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: var(--uxrr-bg);
-    color: var(--uxrr-text);
-    font-size: 13px;
-    outline: none;
-
-    &:focus {
-        border-color: var(--uxrr-accent);
-    }
-
-    &::placeholder {
-        color: var(--uxrr-text-muted);
-    }
-}
-
 .embed-filter-toggle {
     display: flex;
     align-items: center;
     gap: 4px;
     font-size: 13px;
-    color: var(--uxrr-text);
+    color: var(--text);
     cursor: pointer;
     white-space: nowrap;
 
     input {
         cursor: pointer;
-    }
-}
-
-.embed-filter-btn {
-    height: 32px;
-    padding: 0 14px;
-    border: none;
-    border-radius: 4px;
-    background: var(--uxrr-accent);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-
-    &:hover {
-        background: var(--uxrr-accent-hover);
     }
 }
 </style>

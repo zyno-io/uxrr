@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { markRaw } from 'vue';
 import { dataFrom } from '@zyno-io/openapi-client-codegen';
 import { showConfirmDestroy, presentOverlay } from '@zyno-io/vue-foundation';
+import { ref, onMounted } from 'vue';
+import { markRaw } from 'vue';
+
 import type { AppResponse } from '@/openapi-client-generated';
-import { AdminApi } from '@/openapi-client-generated';
+
 import AppFormModal from '@/components/AppFormModal.vue';
 import AppSetupModal from '@/components/AppSetupModal.vue';
+import { AdminApi } from '@/openapi-client-generated';
 
 const apps = ref<AppResponse[]>([]);
 const loading = ref(true);
@@ -65,7 +67,7 @@ onMounted(load);
     <div class="admin-page">
         <div class="admin-page-header">
             <h1>Apps</h1>
-            <button class="uxrr-btn-primary" @click="openCreate">Create App</button>
+            <button class="btn primary uxrr-btn-primary" @click="openCreate">Create App</button>
         </div>
 
         <div v-if="error" class="admin-error">{{ error }}</div>
@@ -96,9 +98,9 @@ onMounted(load);
                     </td>
                     <td>{{ new Date(app.createdAt).toLocaleDateString() }}</td>
                     <td class="actions">
-                        <button class="uxrr-btn-small" @click="openSetup(app)">Setup</button>
-                        <button class="uxrr-btn-small" @click="openEdit(app)">Edit</button>
-                        <button class="uxrr-btn-small" :class="app.isActive ? 'danger' : 'success'" @click="toggleActive(app)">
+                        <button class="btn sm uxrr-btn-small" @click="openSetup(app)">Setup</button>
+                        <button class="btn sm uxrr-btn-small" @click="openEdit(app)">Edit</button>
+                        <button class="btn sm uxrr-btn-small" :class="app.isActive ? 'danger' : 'success'" @click="toggleActive(app)">
                             {{ app.isActive ? 'Deactivate' : 'Activate' }}
                         </button>
                     </td>
@@ -114,9 +116,9 @@ onMounted(load);
 
 .app-id {
     padding: 2px 6px;
-    background: var(--uxrr-bg);
-    border-radius: 3px;
-    font-family: var(--uxrr-mono);
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
     font-size: 11px;
     user-select: all;
 }

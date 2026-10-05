@@ -66,25 +66,25 @@ async function submit() {
         <div class="modal-form">
             <label>
                 App Key
-                <input v-if="app" :value="app.appKey" type="text" readonly />
-                <input v-else v-model="formId" v-autofocus type="text" placeholder="e.g. my-app" />
+                <input class="input" v-if="app" :value="app.appKey" type="text" readonly />
+                <input class="input" v-else v-model="formId" v-autofocus type="text" placeholder="e.g. my-app" />
             </label>
             <label>
                 Name
-                <input v-model="formName" type="text" :placeholder="formId || 'My App'" />
+                <input class="input" v-model="formName" type="text" :placeholder="formId || 'My App'" />
             </label>
             <label>
                 Origins (comma-separated)
-                <input v-model="formOrigins" type="text" placeholder="https://example.com" />
+                <input class="input" v-model="formOrigins" type="text" placeholder="https://example.com" />
             </label>
             <label>
                 Max Idle Timeout (minutes)
-                <input v-model="formMaxIdleMinutes" type="number" min="0" step="1" placeholder="30 (default)" />
+                <input class="input" v-model="formMaxIdleMinutes" type="number" min="0" step="1" placeholder="30 (default)" />
                 <span class="field-hint">Session resets after this many minutes of inactivity. Leave blank for default (30 min).</span>
             </label>
             <label>
                 Max Session Duration (minutes)
-                <input v-model="formMaxSessionMinutes" type="number" min="0" step="1" placeholder="720 (default)" />
+                <input class="input" v-model="formMaxSessionMinutes" type="number" min="0" step="1" placeholder="720 (default)" />
                 <span class="field-hint">Session resets after this many total minutes. Leave blank for default (12 hours).</span>
             </label>
         </div>
@@ -107,31 +107,17 @@ async function submit() {
         flex-direction: column;
         gap: 4px;
         font-size: 13px;
-        color: var(--uxrr-text-muted);
+        color: var(--text-3);
     }
 
-    input {
-        padding: 6px 10px;
-        border: 1px solid var(--uxrr-border);
-        border-radius: 4px;
-        background: var(--uxrr-bg);
-        color: var(--uxrr-text);
-        font-size: 13px;
-
-        &:focus {
-            outline: none;
-            border-color: var(--uxrr-accent);
-        }
-
-        &[readonly] {
-            opacity: 0.7;
-            cursor: default;
-        }
+    input[readonly] {
+        opacity: 0.7;
+        cursor: default;
     }
 
     .field-hint {
         font-size: 11px;
-        color: var(--uxrr-text-muted);
+        color: var(--text-3);
         opacity: 0.7;
     }
 }

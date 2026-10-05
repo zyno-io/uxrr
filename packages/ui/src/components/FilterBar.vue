@@ -302,58 +302,16 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
     flex-wrap: wrap;
 }
 
-.filter-input {
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: var(--uxrr-bg);
-    color: var(--uxrr-text);
-    font-size: 13px;
-    outline: none;
-
-    &:focus {
-        border-color: var(--uxrr-accent);
-    }
-
-    &::placeholder {
-        color: var(--uxrr-text-muted);
-    }
-}
-
 .filter-select {
     flex: 0 0 160px;
-
     :deep(input) {
-        height: 32px;
         padding: 0 24px 0 10px !important;
-        border: 1px solid var(--uxrr-border);
-        border-radius: 4px;
-        background: var(--uxrr-bg);
-        color: var(--uxrr-text);
-        font-size: 13px;
-        outline: none;
-        box-sizing: border-box;
-
-        &:focus {
-            border-color: var(--uxrr-accent);
-        }
-
-        &::placeholder {
-            color: var(--uxrr-text-muted);
-        }
-
-        &.nullable::placeholder {
-            color: var(--uxrr-text);
-        }
     }
-
     :deep(.vf-smart-select)::after {
-        border-top-color: var(--uxrr-text-muted);
+        border-top-color: var(--text-3);
     }
-
     :deep(.vf-smart-select.open)::after {
-        border-bottom-color: var(--uxrr-text-muted);
+        border-bottom-color: var(--text-3);
     }
 }
 
@@ -362,42 +320,12 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
     align-items: center;
     gap: 4px;
     font-size: 13px;
-    color: var(--uxrr-text);
+    color: var(--text);
     cursor: pointer;
     white-space: nowrap;
 
     input {
         cursor: pointer;
-    }
-}
-</style>
-
-<style lang="scss">
-/* VfSmartSelect dropdown is teleported to document.body, so it needs global (non-scoped) styles */
-.vf-smart-select-options {
-    border: 1px solid var(--uxrr-border) !important;
-    background: var(--uxrr-surface) !important;
-    color: var(--uxrr-text);
-    font-size: 13px;
-    border-radius: 4px;
-
-    .option {
-        &.highlighted {
-            background-color: rgba(108, 126, 225, 0.15) !important;
-        }
-    }
-
-    .group-title {
-        color: var(--uxrr-text-muted);
-    }
-
-    .no-results {
-        color: var(--uxrr-text-muted);
-    }
-
-    .subtitle {
-        font-size: 11px;
-        color: var(--uxrr-text-muted);
     }
 }
 </style>

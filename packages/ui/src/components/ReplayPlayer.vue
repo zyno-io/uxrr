@@ -320,7 +320,7 @@ defineExpose({ mount, addEvent, seek, toLocalCoords });
     position: absolute;
     inset: 0;
     background: #000;
-    border-radius: 4px;
+    border-radius: var(--radius);
     overflow: hidden;
     user-select: none;
 
@@ -333,6 +333,58 @@ defineExpose({ mount, addEvent, seek, toLocalCoords });
     :deep(.rr-player__frame) {
         border-radius: 0;
         background: #000 !important;
+    }
+
+    :deep(.rr-controller) {
+        background: var(--surface) !important;
+        color: var(--text) !important;
+        border-top: 1px solid var(--border);
+    }
+
+    :deep(.rr-timeline__time) {
+        color: var(--text-2) !important;
+    }
+
+    :deep(.rr-progress) {
+        background: var(--surface-3) !important;
+        border-color: var(--surface) !important;
+    }
+
+    :deep(.rr-progress__step) {
+        background: var(--accent-soft) !important;
+    }
+    :deep(.rr-progress__handler) {
+        background: var(--accent) !important;
+    }
+
+    :deep(.rr-controller__btns button) {
+        color: var(--text-2) !important;
+        font-family: var(--font-sans);
+        &:hover,
+        &:active {
+            background: var(--surface-2) !important;
+        }
+        &.active {
+            background: var(--accent) !important;
+            color: var(--accent-text) !important;
+        }
+    }
+
+    :deep(.rr-controller__btns button svg) {
+        fill: currentColor;
+    }
+
+    :deep(.switch label::before) {
+        background: var(--border-strong) !important;
+    }
+    :deep(.switch label::after) {
+        background: var(--text-3) !important;
+    }
+    :deep(.switch input:checked + label::before) {
+        background: var(--accent) !important;
+    }
+    :deep(.switch input:checked + label::after) {
+        background: var(--accent-text) !important;
     }
 
     :deep(.replayer-mouse) {

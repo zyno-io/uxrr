@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { showToast } from '@zyno-io/vue-foundation';
+import { ref } from 'vue';
 
 defineProps<{
     userId?: string;
@@ -46,7 +46,7 @@ function copy(value: string) {
                 <span class="user-popover-label">ID</span>
                 <span class="user-popover-value user-popover-mono user-popover-copyable" @click.stop="copy(userId!)">{{ userId }}</span>
             </div>
-            <button v-if="userId" class="user-popover-btn" @click.stop="emit('filter', userId)">View all sessions</button>
+            <button v-if="userId" class="btn sm user-popover-btn" @click.stop="emit('filter', userId)">View all sessions</button>
         </div>
     </span>
 </template>
@@ -62,11 +62,11 @@ function copy(value: string) {
     top: calc(100% + 6px);
     left: 0;
     z-index: 100;
-    background: var(--uxrr-surface);
-    border: 1px solid var(--uxrr-border);
-    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 8px 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-md);
     white-space: nowrap;
     min-width: 180px;
     user-select: text;
@@ -82,45 +82,28 @@ function copy(value: string) {
 }
 
 .user-popover-label {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     min-width: 38px;
     flex-shrink: 0;
 }
 
 .user-popover-value {
-    color: var(--uxrr-text);
+    color: var(--text);
 }
 
 .user-popover-mono {
-    font-family: var(--uxrr-mono);
+    font-family: var(--font-mono);
     font-size: 11px;
 }
 
 .user-popover-copyable {
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     padding: 0 3px;
     margin: 0 -3px;
 
     &:hover {
-        background: rgba(108, 126, 225, 0.1);
-    }
-}
-
-.user-popover-btn {
-    display: block;
-    width: 100%;
-    margin-top: 6px;
-    padding: 4px 8px;
-    font-size: 11px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--uxrr-accent);
-    cursor: pointer;
-
-    &:hover {
-        background: rgba(108, 126, 225, 0.1);
+        background: var(--accent-soft);
     }
 }
 </style>

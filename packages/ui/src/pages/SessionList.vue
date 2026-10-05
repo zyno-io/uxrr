@@ -2,14 +2,16 @@
 import { ref, onMounted, onBeforeUnmount, onActivated, onDeactivated } from 'vue';
 
 defineOptions({ name: 'SessionList' });
-import { useRoute, useRouter } from 'vue-router';
 import { dataFrom } from '@zyno-io/openapi-client-codegen';
+import { useRoute, useRouter } from 'vue-router';
+
 import type { ISession, GetSessionListSessionsData } from '@/openapi-client-generated';
-import { SessionApi } from '@/openapi-client-generated';
+
 import FilterBar from '@/components/FilterBar.vue';
 import SessionTable from '@/components/SessionTable.vue';
-import { connectSessionListStream, type SessionListStreamHandle } from '@/session-list-stream';
 import { createLogger } from '@/logger';
+import { SessionApi } from '@/openapi-client-generated';
+import { connectSessionListStream, type SessionListStreamHandle } from '@/session-list-stream';
 
 const log = createLogger('session-list');
 const REFRESH_INTERVAL = 30_000;
@@ -238,7 +240,8 @@ onBeforeUnmount(() => {
     flex-wrap: wrap;
 
     h1 {
-        font-size: 20px;
+        font-size: 19px;
+        letter-spacing: -0.01em;
         font-weight: 600;
     }
 }

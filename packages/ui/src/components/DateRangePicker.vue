@@ -261,7 +261,7 @@ defineExpose({ computeRange, initState, getState });
 
 <template>
     <div class="drp">
-        <button ref="triggerRef" class="drp-trigger" :class="{ 'drp-trigger--active': open }" @click="open = !open">
+        <button ref="triggerRef" class="btn drp-trigger" :class="{ 'drp-trigger--active': open }" @click="open = !open">
             <svg class="drp-icon" viewBox="0 0 16 16" fill="none">
                 <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3" />
                 <path d="M2 6.5h12" stroke="currentColor" stroke-width="1.3" />
@@ -299,16 +299,22 @@ defineExpose({ computeRange, initState, getState });
                     <input
                         v-model="customFrom"
                         type="text"
-                        class="drp-input"
+                        class="input drp-input"
                         placeholder="YYYY-MM-DD HH:mm[:ss]"
                         @paste="e => handlePaste(e, 'from')"
                     />
                 </label>
                 <label class="drp-field">
                     <span class="drp-field-label">To</span>
-                    <input v-model="customTo" type="text" class="drp-input" placeholder="YYYY-MM-DD HH:mm[:ss]" @paste="e => handlePaste(e, 'to')" />
+                    <input
+                        v-model="customTo"
+                        type="text"
+                        class="input drp-input"
+                        placeholder="YYYY-MM-DD HH:mm[:ss]"
+                        @paste="e => handlePaste(e, 'to')"
+                    />
                 </label>
-                <button class="drp-apply" :disabled="!textToDate(customFrom) || !textToDate(customTo)" @click="applyCustom">Apply</button>
+                <button class="btn primary drp-apply" :disabled="!textToDate(customFrom) || !textToDate(customTo)" @click="applyCustom">Apply</button>
             </div>
         </div>
     </div>
@@ -320,23 +326,10 @@ defineExpose({ computeRange, initState, getState });
 }
 
 .drp-trigger {
-    display: flex;
-    align-items: center;
     gap: 6px;
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: var(--uxrr-bg);
-    color: var(--uxrr-text);
-    font-size: 13px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: border-color 0.15s;
-
     &:hover,
     &--active {
-        border-color: var(--uxrr-accent);
+        border-color: var(--accent);
     }
 }
 
@@ -344,7 +337,7 @@ defineExpose({ computeRange, initState, getState });
     width: 14px;
     height: 14px;
     flex-shrink: 0;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .drp-label {
@@ -357,7 +350,7 @@ defineExpose({ computeRange, initState, getState });
     width: 10px;
     height: 10px;
     flex-shrink: 0;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     transition: transform 0.15s;
 
     &--open {
@@ -370,10 +363,10 @@ defineExpose({ computeRange, initState, getState });
     top: calc(100% + 4px);
     right: 0;
     display: flex;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 6px;
-    background: var(--uxrr-surface);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-lg);
     z-index: 100;
     overflow: hidden;
 }
@@ -381,7 +374,7 @@ defineExpose({ computeRange, initState, getState });
 .drp-section-title {
     font-size: 11px;
     font-weight: 600;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 0 0 8px;
@@ -391,7 +384,7 @@ defineExpose({ computeRange, initState, getState });
     display: flex;
     flex-direction: column;
     padding: 12px;
-    border-right: 1px solid var(--uxrr-border);
+    border-right: 1px solid var(--border);
     min-width: 170px;
 }
 
@@ -400,29 +393,29 @@ defineExpose({ computeRange, initState, getState });
     width: 100%;
     padding: 6px 10px;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius);
     background: transparent;
-    color: var(--uxrr-text);
+    color: var(--text);
     font-size: 13px;
     text-align: left;
     cursor: pointer;
     transition: background 0.1s;
 
     &:hover {
-        background: rgba(108, 126, 225, 0.1);
+        background: var(--accent-soft);
     }
 
     &--active {
-        background: rgba(108, 126, 225, 0.15);
-        color: var(--uxrr-accent);
+        background: var(--accent-soft);
+        color: var(--accent);
         font-weight: 500;
     }
 
     &--clear {
         margin-top: 4px;
-        border-top: 1px solid var(--uxrr-border);
+        border-top: 1px solid var(--border);
         padding-top: 10px;
-        color: var(--uxrr-text-muted);
+        color: var(--text-3);
     }
 }
 
@@ -448,10 +441,10 @@ defineExpose({ computeRange, initState, getState });
     font-size: 11px;
     font-weight: 600;
     padding: 2px 8px;
-    border: 1px solid var(--uxrr-border);
+    border: 1px solid var(--border);
     border-radius: 10px;
     background: transparent;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     cursor: pointer;
     transition:
         background 0.15s,
@@ -459,14 +452,14 @@ defineExpose({ computeRange, initState, getState });
         border-color 0.15s;
 
     &:hover {
-        border-color: var(--uxrr-accent);
-        color: var(--uxrr-text);
+        border-color: var(--accent);
+        color: var(--text);
     }
 
     &--utc {
-        background: rgba(108, 126, 225, 0.15);
-        border-color: var(--uxrr-accent);
-        color: var(--uxrr-accent);
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
     }
 }
 
@@ -478,50 +471,17 @@ defineExpose({ computeRange, initState, getState });
 
 .drp-field-label {
     font-size: 11px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-weight: 500;
 }
 
 .drp-input {
     height: 30px;
-    padding: 0 8px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: var(--uxrr-bg);
-    color: var(--uxrr-text);
-    font-size: 12px;
-    font-family: inherit;
-    color-scheme: dark;
-    outline: none;
-
-    &:focus {
-        border-color: var(--uxrr-accent);
-    }
-
-    &::placeholder {
-        color: var(--uxrr-text-muted);
-        opacity: 0.6;
-    }
+    width: 100%;
 }
 
 .drp-apply {
+    width: 100%;
     margin-top: 4px;
-    height: 30px;
-    border: none;
-    border-radius: 4px;
-    background: var(--uxrr-accent);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-        background: var(--uxrr-accent-hover);
-    }
-
-    &:disabled {
-        opacity: 0.4;
-        cursor: default;
-    }
 }
 </style>

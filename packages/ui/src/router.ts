@@ -60,7 +60,7 @@ export const router = createRouter({
                     h(
                         'div',
                         {
-                            style: 'display:flex;align-items:center;justify-content:center;height:100%;color:var(--uxrr-text-muted)'
+                            style: 'display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-3)'
                         },
                         'Completing sign-in...'
                     )

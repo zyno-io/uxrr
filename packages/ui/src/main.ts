@@ -1,11 +1,13 @@
-import { createApp } from 'vue';
 import { installVf } from '@zyno-io/vue-foundation';
+import { createApp } from 'vue';
 import '@zyno-io/vue-foundation/dist/vue-foundation.css';
 
+import './styles/uxrr.scss';
+import './composables/useTheme';
+import App from './App.vue';
 import { authState, consumeReturnUrl, initAuth } from './auth';
 import { initEmbed } from './embed';
 import { createLogger } from './logger';
-import App from './App.vue';
 import { router } from './router';
 
 const log = createLogger('main');

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { VfModal, showToast } from '@zyno-io/vue-foundation';
+import { computed } from 'vue';
+
 import type { AppResponse } from '@/openapi-client-generated';
 
 const props = defineProps<{
@@ -62,10 +63,10 @@ function copySnippet() {
 .setup-code {
     margin: 0;
     padding: 10px 12px;
-    background: var(--uxrr-bg);
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    font-family: var(--uxrr-mono);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
     font-size: 12px;
     white-space: pre;
     overflow-x: auto;

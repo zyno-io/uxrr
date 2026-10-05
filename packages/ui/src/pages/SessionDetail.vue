@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { dataFrom } from '@zyno-io/openapi-client-codegen';
+import { showToast } from '@zyno-io/vue-foundation';
+import { format } from 'date-fns';
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { format } from 'date-fns';
-import { dataFrom } from '@zyno-io/openapi-client-codegen';
+
+import type { ChatMessage } from '@/components/ChatPanel.vue';
 import type {
     ISession,
     ILogEntry,
@@ -10,18 +13,17 @@ import type {
     GetSessionGetShareLinkResponse,
     PostSessionCreateShareLinkResponse
 } from '@/openapi-client-generated';
-import { SessionApi } from '@/openapi-client-generated';
-import ReplayPlayer from '@/components/ReplayPlayer.vue';
+
+import { authState, grafanaConfig } from '@/auth';
+import ChatPanel from '@/components/ChatPanel.vue';
 import ConsolePanel from '@/components/ConsolePanel.vue';
 import NetworkPanel from '@/components/NetworkPanel.vue';
-import ChatPanel from '@/components/ChatPanel.vue';
+import ReplayPlayer from '@/components/ReplayPlayer.vue';
 import UserInfoPopover from '@/components/UserInfoPopover.vue';
-import type { ChatMessage } from '@/components/ChatPanel.vue';
-import { connectLiveSession, type AgentInfo } from '@/live-stream';
-import { showToast } from '@zyno-io/vue-foundation';
-import { authState, grafanaConfig } from '@/auth';
 import { useSessionDetail } from '@/composables/useSessionDetail';
+import { connectLiveSession, type AgentInfo } from '@/live-stream';
 import { createLogger } from '@/logger';
+import { SessionApi } from '@/openapi-client-generated';
 
 const log = createLogger('session-detail');
 
@@ -366,7 +368,7 @@ function filterByUser(userId: string) {
 <template>
     <div class="session-detail">
         <div class="detail-header">
-            <button class="back-btn" @click="router.push('/')">&larr; Sessions</button>
+            <button class="btn sm back-btn" @click="router.push('/')">&larr; Sessions</button>
             <template v-if="session">
                 <div class="detail-meta">
                     <span v-if="liveStatus === 'live'" class="live-badge">LIVE</span>
@@ -410,6 +412,7 @@ function filterByUser(userId: string) {
                     </span>
                     <div v-if="liveStatus === 'live' && hasControl" class="interaction-toolbar">
                         <button
+                            class="btn sm icon"
                             :class="['tool-btn', { active: interactionMode === 'view' }]"
                             @click="interactionMode = 'view'"
                             v-tooltip="'View only'"
@@ -417,6 +420,7 @@ function filterByUser(userId: string) {
                             &#8857;
                         </button>
                         <button
+                            class="btn sm icon"
                             :class="['tool-btn', { active: interactionMode === 'pointer' }]"
                             @click="interactionMode = 'pointer'"
                             v-tooltip="'Cursor'"
@@ -424,34 +428,51 @@ function filterByUser(userId: string) {
                             &#9654;
                         </button>
                         <button
+                            class="btn sm icon"
                             :class="['tool-btn', { active: interactionMode === 'highlight' }]"
                             @click="interactionMode = 'highlight'"
                             v-tooltip="'Highlight'"
                         >
                             &#9673;
                         </button>
-                        <button :class="['tool-btn', { active: interactionMode === 'pen' }]" @click="interactionMode = 'pen'" v-tooltip="'Pen'">
+                        <button
+                            class="btn sm icon"
+                            :class="['tool-btn', { active: interactionMode === 'pen' }]"
+                            @click="interactionMode = 'pen'"
+                            v-tooltip="'Pen'"
+                        >
                             &#9998;
                         </button>
                     </div>
-                    <button v-if="liveStatus === 'live' && !hasControl" class="take-control-btn" @click="takeControl">Take Control</button>
+                    <button v-if="liveStatus === 'live' && !hasControl" class="btn primary sm take-control-btn" @click="takeControl">
+                        Take Control
+                    </button>
                     <div ref="shareWrapperRef" class="share-wrapper" @click.stop>
-                        <button class="share-btn" @click="openShareDialog">Share</button>
+                        <button class="btn sm share-btn" @click="openShareDialog">Share</button>
                         <div v-if="showShareDialog" class="share-dialog">
                             <div v-if="shareLoading" class="share-dialog-loading">Loading...</div>
                             <template v-else-if="shareToken">
-                                <input readonly :value="shareUrl" class="share-url-input" @focus="($event.target as HTMLInputElement).select()" />
+                                <input
+                                    readonly
+                                    :value="shareUrl"
+                                    class="input share-url-input"
+                                    @focus="($event.target as HTMLInputElement).select()"
+                                />
                                 <div class="share-dialog-actions">
-                                    <button class="share-copy-btn" @click="copyShareUrl">Copy</button>
-                                    <button class="share-rotate-btn" @click="createShare" title="Generate a new link and revoke the current one">
+                                    <button class="btn primary sm share-copy-btn" @click="copyShareUrl">Copy</button>
+                                    <button
+                                        class="btn sm share-rotate-btn"
+                                        @click="createShare"
+                                        title="Generate a new link and revoke the current one"
+                                    >
                                         Rotate
                                     </button>
-                                    <button class="share-revoke-btn" @click="revokeShare">Disable</button>
+                                    <button class="btn sm danger share-revoke-btn" @click="revokeShare">Disable</button>
                                 </div>
                                 <div v-if="shareExpiresAt" class="share-expiry">Expires {{ formatTimeRemaining(shareExpiresAt) }}</div>
                             </template>
                             <template v-else>
-                                <button class="share-generate-btn" @click="createShare">Generate Share Link</button>
+                                <button class="btn primary share-generate-btn" @click="createShare">Generate Share Link</button>
                             </template>
                         </div>
                     </div>
@@ -469,14 +490,14 @@ function filterByUser(userId: string) {
                 <div v-if="liveStatus === 'waiting'" class="replay-status">
                     <div class="replay-status-content">
                         Waiting for client to connect...
-                        <button class="skip-live-btn" @click="skipLive">Skip Live Connection</button>
+                        <button class="btn sm skip-live-btn" @click="skipLive">Skip Live Connection</button>
                     </div>
                 </div>
                 <div v-else-if="liveStatus === 'syncing'" class="replay-status">Syncing...</div>
                 <div v-else-if="liveStatus === 'ended'" class="replay-status">
                     <div class="replay-status-content">
                         Session ended
-                        <button class="skip-live-btn" @click="skipLive">Watch Replay</button>
+                        <button class="btn sm skip-live-btn" @click="skipLive">Watch Replay</button>
                     </div>
                 </div>
                 <ReplayPlayer ref="playerRef" :live-mode="isLive" @time-update="onTimeUpdate" @interact="onInteract" @interact-end="onInteractEnd" />
@@ -552,23 +573,8 @@ function filterByUser(userId: string) {
     align-items: center;
     gap: 16px;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--uxrr-border);
+    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-}
-
-.back-btn {
-    padding: 4px 10px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--uxrr-text);
-    font-size: 13px;
-    cursor: pointer;
-
-    &:hover {
-        border-color: var(--uxrr-accent);
-        color: var(--uxrr-accent);
-    }
 }
 
 .detail-meta {
@@ -581,9 +587,10 @@ function filterByUser(userId: string) {
 .live-badge {
     display: inline-block;
     padding: 2px 8px;
-    border-radius: 3px;
-    background: var(--uxrr-danger);
-    color: #fff;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--danger-border);
+    background: var(--danger-soft);
+    color: var(--danger);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -591,7 +598,7 @@ function filterByUser(userId: string) {
 }
 
 .live-badge--connecting {
-    background: var(--uxrr-text-muted);
+    background: var(--text-3);
     animation: none;
 }
 
@@ -606,31 +613,31 @@ function filterByUser(userId: string) {
 }
 
 .meta-id {
-    font-family: var(--uxrr-mono);
-    color: var(--uxrr-accent);
+    font-family: var(--font-mono);
+    color: var(--accent);
     font-weight: 600;
 }
 
 .meta-sep {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .meta-time {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .prev-session-link {
     margin-left: 4px;
     padding: 1px 8px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 3px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     font-size: 11px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     text-decoration: none;
 
     &:hover {
-        border-color: var(--uxrr-accent);
-        color: var(--uxrr-accent);
+        border-color: var(--accent);
+        color: var(--accent);
     }
 }
 
@@ -643,39 +650,23 @@ function filterByUser(userId: string) {
 
 .client-indicator {
     font-size: 12px;
-    color: var(--uxrr-success, #22c55e);
+    color: var(--success);
 
     &--off {
-        color: var(--uxrr-text-muted);
+        color: var(--text-3);
     }
 
     &--unfocused {
-        color: var(--uxrr-warning, #eab308);
+        color: var(--warning);
     }
 }
 
 .agents-count {
     font-size: 11px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     padding: 2px 8px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 3px;
-}
-
-.take-control-btn {
-    padding: 4px 12px;
-    border: 1px solid var(--uxrr-accent);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--uxrr-accent);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover {
-        background: var(--uxrr-accent);
-        color: #fff;
-    }
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
 }
 
 .interaction-toolbar {
@@ -685,39 +676,24 @@ function filterByUser(userId: string) {
 
 .tool-btn {
     padding: 3px 8px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 3px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     background: transparent;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 14px;
     cursor: pointer;
     min-width: 28px;
     text-align: center;
 
     &.active {
-        background: var(--uxrr-accent);
-        color: #fff;
-        border-color: var(--uxrr-accent);
+        background: var(--accent);
+        color: var(--accent-text);
+        border-color: var(--accent);
     }
 }
 
 .share-wrapper {
     position: relative;
-}
-
-.share-btn {
-    padding: 4px 12px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--uxrr-text-muted);
-    font-size: 12px;
-    cursor: pointer;
-
-    &:hover {
-        border-color: var(--uxrr-accent);
-        color: var(--uxrr-accent);
-    }
 }
 
 .share-dialog {
@@ -726,10 +702,10 @@ function filterByUser(userId: string) {
     right: 0;
     width: 360px;
     padding: 12px;
-    background: var(--uxrr-surface);
-    border: 1px solid var(--uxrr-border);
-    border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -738,19 +714,14 @@ function filterByUser(userId: string) {
 
 .share-dialog-loading {
     font-size: 12px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     text-align: center;
     padding: 8px;
 }
 
 .share-url-input {
     width: 100%;
-    padding: 6px 8px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: var(--uxrr-bg);
-    color: var(--uxrr-text);
-    font-family: var(--uxrr-mono);
+    font-family: var(--font-mono);
     font-size: 11px;
 }
 
@@ -761,73 +732,20 @@ function filterByUser(userId: string) {
 
 .share-copy-btn {
     flex: 1;
-    padding: 6px 12px;
-    border: 1px solid var(--uxrr-accent);
-    border-radius: 4px;
-    background: var(--uxrr-accent);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover {
-        background: var(--uxrr-accent-hover);
-    }
-}
-
-.share-rotate-btn {
-    padding: 6px 12px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--uxrr-text);
-    font-size: 12px;
-    cursor: pointer;
-
-    &:hover {
-        border-color: var(--uxrr-accent);
-        color: var(--uxrr-accent);
-    }
-}
-
-.share-revoke-btn {
-    padding: 6px 12px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--uxrr-danger);
-    font-size: 12px;
-    cursor: pointer;
-
-    &:hover {
-        border-color: var(--uxrr-danger);
-    }
 }
 
 .share-generate-btn {
     width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--uxrr-accent);
-    border-radius: 4px;
-    background: var(--uxrr-accent);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover {
-        background: var(--uxrr-accent-hover);
-    }
 }
 
 .share-expiry {
     font-size: 10px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .detail-user {
     font-size: 12px;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
 }
 
 .detail-loading,
@@ -836,12 +754,12 @@ function filterByUser(userId: string) {
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 15px;
 }
 
 .detail-error {
-    color: var(--uxrr-danger);
+    color: var(--danger);
 }
 
 .detail-content {
@@ -909,27 +827,29 @@ function filterByUser(userId: string) {
     align-items: center;
     gap: 4px;
     padding: 3px 8px;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 4px;
-    font-family: var(--uxrr-mono);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
     font-size: 11px;
     z-index: 10;
     pointer-events: none;
 }
 
 .playback-time-label {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 9px;
     text-transform: uppercase;
     font-weight: 600;
 }
 
 .playback-time-value {
-    color: var(--uxrr-text);
+    color: var(--text);
 }
 
 .playback-time-sep {
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     opacity: 0.5;
 }
 
@@ -939,7 +859,7 @@ function filterByUser(userId: string) {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 14px;
     z-index: 5;
 }
@@ -951,27 +871,12 @@ function filterByUser(userId: string) {
     gap: 12px;
 }
 
-.skip-live-btn {
-    padding: 6px 16px;
-    border: 1px solid var(--uxrr-border);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--uxrr-text-muted);
-    font-size: 12px;
-    cursor: pointer;
-
-    &:hover {
-        border-color: var(--uxrr-accent);
-        color: var(--uxrr-accent);
-    }
-}
-
 .skip-live-link {
     margin-left: 8px;
     padding: 0;
     border: none;
     background: transparent;
-    color: var(--uxrr-accent);
+    color: var(--accent);
     font-size: 12px;
     cursor: pointer;
     text-decoration: underline;
@@ -983,13 +888,13 @@ function filterByUser(userId: string) {
 
 .resize-handle {
     flex-shrink: 0;
-    background: var(--uxrr-border);
+    background: var(--border);
     transition: background 0.15s;
     z-index: 10;
 
     &:hover,
     &:active {
-        background: var(--uxrr-accent);
+        background: var(--accent);
     }
 
     &--right {
@@ -1013,7 +918,7 @@ function filterByUser(userId: string) {
 
 .tab-bar {
     display: flex;
-    border-bottom: 1px solid var(--uxrr-border);
+    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
 
@@ -1022,7 +927,7 @@ function filterByUser(userId: string) {
     padding: 8px 12px;
     border: none;
     background: transparent;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -1033,17 +938,17 @@ function filterByUser(userId: string) {
     gap: 6px;
 
     &.active {
-        color: var(--uxrr-accent);
-        border-bottom-color: var(--uxrr-accent);
+        color: var(--accent);
+        border-bottom-color: var(--accent);
     }
 }
 
 .tab-badge {
     display: inline-block;
     padding: 0 5px;
-    border-radius: 8px;
-    background: var(--uxrr-accent);
-    color: #fff;
+    border-radius: var(--radius-lg);
+    background: var(--accent);
+    color: var(--accent-text);
     font-size: 10px;
     line-height: 16px;
 }
@@ -1053,13 +958,13 @@ function filterByUser(userId: string) {
     padding: 6px 10px;
     border: none;
     background: transparent;
-    color: var(--uxrr-text-muted);
+    color: var(--text-3);
     font-size: 14px;
     cursor: pointer;
     border-bottom: 2px solid transparent;
 
     &:hover {
-        color: var(--uxrr-accent);
+        color: var(--accent);
     }
 }
 
