@@ -25,22 +25,26 @@
         "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && oxfmt"
     },
     "devDependencies": {
-        "lefthook": "^2.1.14",
-        "oxfmt": "^0.68.0",
-        "oxlint": "^1.83.0",
+        "lefthook": "^2.1.16",
+        "oxfmt": "^0.71.0",
+        "oxlint": "^1.86.0",
         "typescript": "^7.0.2",
         "vitepress": "^1.6.4"
     },
     "resolutions": {
-        "@rrweb/packer": "2.1.1",
-        "@rrweb/replay": "2.1.1",
-        "@rrweb/rrweb-plugin-console-record": "2.1.1",
-        "@rrweb/types": "2.1.1",
-        "@rrweb/utils": "2.1.1",
-        "rrdom": "2.1.1",
-        "rrweb": "2.1.1",
-        "rrweb-snapshot": "2.1.1",
-        "typescript@~7.0.2": "npm:typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2"
+        "@rrweb/packer": "2.1.7",
+        "@rrweb/replay": "2.1.7",
+        "@rrweb/rrweb-plugin-console-record": "2.1.7",
+        "@rrweb/types": "2.1.7",
+        "@rrweb/utils": "2.1.7",
+        "@vitejs/plugin-vue": "6.0.9",
+        "esbuild": "0.28.2",
+        "js-yaml": "4.3.2",
+        "rrdom": "2.1.7",
+        "rrweb": "2.1.7",
+        "rrweb-snapshot": "2.1.7",
+        "typescript@~7.0.2": "npm:typescript-native-bridge@6.0.3-bridge.18.tsgo.7.0.2",
+        "vitepress/vite": "7.3.6"
     },
-    "packageManager": "yarn@4.18.0"
+    "packageManager": "yarn@4.18.1"
 }
