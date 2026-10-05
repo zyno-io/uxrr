@@ -79,6 +79,7 @@ test.describe('Theme', () => {
         await expect(page.getByRole('menuitemradio', { name: 'Dark', exact: true })).toBeInViewport();
         await page.getByRole('menuitemradio', { name: 'Dark', exact: true }).click();
         await expect(page.locator('html')).toHaveClass(/dark/);
+        await expect(page.getByRole('menu')).toHaveCount(0);
         await page.screenshot({ path: 'screenshots/session-list-mobile-dark.png', fullPage: true });
     });
 
