@@ -19,8 +19,8 @@
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1146.0",
         "@aws-sdk/lib-storage": "^3.1146.0",
-        "@zyno-io/ts-reflection": "26.1026.1655",
-        "@zyno-io/ts-server-foundation": "26.1026.1655",
+        "@zyno-io/ts-reflection": "^26.1029.216",
+        "@zyno-io/ts-server-foundation": "26.1029.216",
         "ioredis": "^6.0.0",
         "jose": "^6.2.12",
         "lodash": "^4.18.1",
