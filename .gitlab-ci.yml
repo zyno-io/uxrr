@@ -50,8 +50,6 @@ prepare build:
   before_script:
     - *node26_corepack
     - corepack enable
-      "https://${PRIVATE_NPM_HOST}/"
-      "${PRIVATE_NPM_TOKEN}"
     - yarn --immutable
 
 .test-services:
@@ -89,8 +87,6 @@ prepare build:
       node --version
     - *node26_corepack
     - corepack enable
-      "https://${PRIVATE_NPM_HOST}/"
-      "${PRIVATE_NPM_TOKEN}"
     - yarn --immutable
 
 # ---------- Unit tests (no external services) ----------
