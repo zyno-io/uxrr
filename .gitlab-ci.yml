@@ -96,6 +96,7 @@ unit test:
     name: node:26-alpine
     pull_policy: always
   script: |
+    bash -eo pipefail <<'NODE26_BASH'
     set -e
 
     echo "--- UI typecheck (src + tests) ---"
@@ -120,11 +121,13 @@ unit test:
     # Run only non-integration tests (tsf-dev test accepts file arguments)
     npx tsf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)
     popd
+    NODE26_BASH
 
 # ---------- Integration + E2E + VRT screenshots ----------
 test:
   extends: .test-services
   script: |
+    bash -eo pipefail <<'NODE26_BASH'
     set -e
 
     echo "--- Waiting for MiniStack S3 ---"
@@ -193,6 +196,7 @@ test:
     kill $SERVER_PID
     wait $SERVER_PID 2>/dev/null || true
     echo "--- Done ---"
+    NODE26_BASH
   artifacts:
     when: always
     paths:
