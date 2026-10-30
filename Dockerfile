@@ -12,11 +12,7 @@ COPY packages/client/package.json packages/client/package.json
 COPY packages/api/package.json packages/api/package.json
 COPY packages/ui/package.json packages/ui/package.json
 
-RUN if [ -n "${PRIVATE_NPM_HOST}" ]; then \
-      yarn config set --home 'npmScopes.zyno-io.npmRegistryServer' "https://${PRIVATE_NPM_HOST}/" && \
-      yarn config set --home 'npmScopes.zyno-io.npmAuthToken' "${PRIVATE_NPM_TOKEN}"; \
-    fi && \
-    yarn --immutable
+RUN yarn --immutable
 
 COPY packages/client packages/client
 COPY packages/api packages/api

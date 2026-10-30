@@ -50,15 +50,13 @@ prepare build:
   before_script:
     - *node26_corepack
     - corepack enable
-    - yarn config set --home 'npmScopes.zyno-io.npmRegistryServer'
       "https://${PRIVATE_NPM_HOST}/"
-    - yarn config set --home 'npmScopes.zyno-io.npmAuthToken'
       "${PRIVATE_NPM_TOKEN}"
     - yarn --immutable
 
 .test-services:
   extends: .test-base
-  image: mcr.microsoft.com/playwright:v1.63.0-jammy
+  image: mcr.microsoft.com/playwright:v1.64.1-jammy
   services:
     - name: postgres:17
       variables:
@@ -91,9 +89,7 @@ prepare build:
       node --version
     - *node26_corepack
     - corepack enable
-    - yarn config set --home 'npmScopes.zyno-io.npmRegistryServer'
       "https://${PRIVATE_NPM_HOST}/"
-    - yarn config set --home 'npmScopes.zyno-io.npmAuthToken'
       "${PRIVATE_NPM_TOKEN}"
     - yarn --immutable
 
@@ -247,9 +243,6 @@ publish client canary:
     - *node26_corepack
     - corepack enable
     - |
-      yarn config set --home 'npmScopes.zyno-io.npmRegistryServer' "https://${PRIVATE_NPM_HOST}/"
-      yarn config set --home 'npmScopes.zyno-io.npmPublishRegistry' "https://${PRIVATE_NPM_HOST}/"
-      yarn config set --home 'npmScopes.zyno-io.npmAuthToken' "${PRIVATE_NPM_PUBLISHER_TOKEN}"
       yarn --immutable
   script: |
     set -e
