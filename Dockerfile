@@ -1,11 +1,14 @@
-FROM node:26-alpine AS builder
+# typescript-native-bridge requires glibc; keep both stages on the same minimal ABI.
+FROM node:26-bookworm-slim AS builder
 
 WORKDIR /app
 
 ARG PRIVATE_NPM_HOST
 ARG PRIVATE_NPM_TOKEN
 
-RUN npm install --global corepack && corepack enable
+RUN apt-get update && apt-get install --no-install-recommends --yes ca-certificates git && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install --global corepack && corepack enable
 
 COPY package.json yarn.lock .yarnrc.yml tsconfig.base.json ./
 COPY packages/client/package.json packages/client/package.json
@@ -30,12 +33,13 @@ RUN yarn workspaces focus @zyno-io/uxrr-api --production
 
 ###
 
-FROM node:26-alpine
+FROM node:26-bookworm-slim
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apk add --no-cache tini
+RUN apt-get update && apt-get install --no-install-recommends --yes ca-certificates tini && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/packages/api .
 COPY --from=builder /app/node_modules node_modules
@@ -44,5 +48,5 @@ COPY THIRD-PARTY-LICENSES.md LICENSE.md ./
 ARG BUILD_VERSION=0.0.0
 RUN npm version ${BUILD_VERSION} --allow-same-version
 
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", ".", "server:start"]
