@@ -52,8 +52,7 @@ jobs:
 
       - name: API unit tests
         working-directory: packages/api
-        run: npx tsf-dev test $(find tests -name '*.spec.ts' -not -path
-          '*/integration/*' | sort)
+        run: npx tsf-dev test $(find tests -name '*.spec.ts' -not -path '*/integration/*' | sort)
 
   test-integration:
     runs-on: ubuntu-latest
@@ -67,15 +66,13 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U uxrr -d uxrr_test" --health-interval 5s
-          --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U uxrr -d uxrr_test" --health-interval 5s --health-timeout 5s --health-retries 10
       redis:
         image: redis:7-alpine
         ports:
           - 6379:6379
         options: >-
-          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s
-          --health-retries 10
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -121,15 +118,13 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U uxrr -d uxrr_test" --health-interval 5s
-          --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U uxrr -d uxrr_test" --health-interval 5s --health-timeout 5s --health-retries 10
       redis:
         image: redis:7-alpine
         ports:
           - 6379:6379
         options: >-
-          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s
-          --health-retries 10
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -277,6 +272,7 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:${{ steps.version.outputs.VERSION }}
             ghcr.io/${{ github.repository }}:latest
+          pull: true
 
   release:
     needs: [build-release, publish-client]
