@@ -9,10 +9,7 @@
           apt-get install --no-install-recommends --yes ca-certificates git
           rm -rf /var/lib/apt/lists/*
         fi
-        if ! command -v corepack >/dev/null 2>&1; then
-          npm install --global corepack --registry=https://registry.npmjs.org/
-        fi
-        corepack enable
+        npx --yes --@zyno-io:registry=https://registry.npmjs.org/ @zyno-io/yarn-helper@1 setup
       fi
 default:
   interruptible: true
@@ -54,7 +51,7 @@ prepare build:
   before_script:
     - *node26_corepack
     - corepack enable
-    - yarn --immutable
+    - npx --yes --@zyno-io:registry=https://registry.npmjs.org/ @zyno-io/yarn-helper@1 install --immutable
 
 .test-services:
   extends: .test-base
@@ -91,7 +88,7 @@ prepare build:
       node --version
     - *node26_corepack
     - corepack enable
-    - yarn --immutable
+    - npx --yes --@zyno-io:registry=https://registry.npmjs.org/ @zyno-io/yarn-helper@1 install --immutable
 
 # ---------- Unit tests (no external services) ----------
 unit test:
@@ -248,7 +245,7 @@ publish client canary:
     - *node26_corepack
     - corepack enable
     - |
-      yarn --immutable
+      npx --yes --@zyno-io:registry=https://registry.npmjs.org/ @zyno-io/yarn-helper@1 install --immutable
   script: |
     set -e
     : "${BUILD_VERSION:?BUILD_VERSION must be provided by prepare build}"
