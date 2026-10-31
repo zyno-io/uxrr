@@ -1,4 +1,4 @@
-# typescript-native-bridge requires glibc; keep both stages on the same minimal ABI.
+# UI typechecking uses a native TypeScript bridge that requires glibc.
 FROM node:26-bookworm-slim AS builder
 
 WORKDIR /app
@@ -33,13 +33,12 @@ RUN yarn workspaces focus @zyno-io/uxrr-api --production
 
 ###
 
-FROM node:26-bookworm-slim
+FROM node:26-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apt-get update && apt-get install --no-install-recommends --yes ca-certificates tini && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache tini
 
 COPY --from=builder /app/packages/api .
 COPY --from=builder /app/node_modules node_modules
@@ -48,5 +47,5 @@ COPY THIRD-PARTY-LICENSES.md LICENSE.md ./
 ARG BUILD_VERSION=0.0.0
 RUN npm version ${BUILD_VERSION} --allow-same-version
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", ".", "server:start"]
