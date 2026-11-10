@@ -20,7 +20,7 @@
   requests. See `CONTRIBUTING.md`
 - Fix the `license` field in `package.json` files to point at `LICENSE.md`
 - The client SDK npm package now ships its `LICENSE` file (previously omitted) and a generated `THIRD-PARTY-NOTICES.md`
-  with the license texts of the bundled dependencies (rrweb, OpenTelemetry, zone.js)
+  with the license texts of the bundled dependencies (rrweb, OpenTelemetry, zone.js) and the third-party code they embed
 
 ## v0.1.2
 

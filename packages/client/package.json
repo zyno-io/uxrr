@@ -31,6 +31,7 @@
         "clean": "rm -rf dist",
         "build": "tsup && node scripts/third-party-notices.mjs",
         "dev": "tsup --watch",
+        "prepack": "yarn build",
         "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && prettier --config ../../.prettierrc.json --ignore-path ../../.gitignore --write ."
     },
     "dependencies": {
