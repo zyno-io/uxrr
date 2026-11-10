@@ -21,7 +21,7 @@ Before we can accept a contribution, you need to sign the [uxrr Contributor Lice
 
 - **Companies:** if you contribute as part of your job, have an authorized representative complete Part B of the [CLA](CLA.md) and email it to support@sgnl24.com. Each contributor still signs individually with the comment above.
 
-Every commit in the pull request must be authored by a GitHub account that has signed.
+Every commit in the pull request must be authored by a GitHub account that has signed, so make sure the email on your commits is linked to your GitHub account.
 
 ## License
 
@@ -33,6 +33,12 @@ uxrr is source-available, under the [uxrr Source Available License, Version 1.1]
 - You may fork the repository and modify uxrr to prepare and submit a contribution (Section 8 of the License).
 
 The License itself is the authoritative text. Contributions you submit are covered by Section 8 of the License and by the CLA.
+
+## For Maintainers
+
+- Pull requests are never merged on GitHub. Apply an accepted pull request in the primary repository, then close it once the change reaches `main` on GitHub.
+- Before applying a pull request, check that the CLA check passed and that every commit is attributed to a GitHub account. If any commit's author shows as not being a GitHub user (its email is not linked to an account), do not apply it: ask the contributor to fix the commit author and re-push, because the CLA signature cannot be tied to that commit.
+- If the contributor works for a company, confirm that a signed Part B of the CLA is on file for it.
 
 ## Prerequisites
 

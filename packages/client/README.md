@@ -185,4 +185,4 @@ On page unload, the `FlushCoordinator` sends any remaining data via `sendBeacon`
 
 ## License
 
-The uxrr client SDK (`@zyno-io/uxrr-client`) is licensed under the [MIT License](LICENSE). The published bundle includes third-party components (rrweb, OpenTelemetry, zone.js) whose licenses are reproduced in `THIRD-PARTY-NOTICES.md`. The uxrr server and dashboard are source-available under the [uxrr Source Available License](https://github.com/zyno-io/uxrr/blob/main/LICENSE.md).
+The uxrr client SDK (`@zyno-io/uxrr-client`) is licensed under the [MIT License](LICENSE). The MIT License applies to all releases of the client SDK, including versions published before the `LICENSE` file was added. The published bundle includes third-party components (rrweb, OpenTelemetry, zone.js) whose licenses are reproduced in `THIRD-PARTY-NOTICES.md`. The uxrr server and dashboard are source-available under the [uxrr Source Available License](https://github.com/zyno-io/uxrr/blob/main/LICENSE.md).

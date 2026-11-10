@@ -111,4 +111,4 @@ uxrr is **source-available** under the [uxrr Source Available License, Version 1
 
 **Free for internal use** — you can self-host uxrr within your organization without restriction. A commercial license is required to offer uxrr as a hosted service, embed it in a product sold to others, or distribute it. See [LICENSE.md](LICENSE.md) for details, or contact support@sgnl24.com for commercial licensing.
 
-The client SDK in `packages/client` (`@zyno-io/uxrr-client`) is licensed separately under the [MIT License](packages/client/LICENSE), so you can embed it in your websites and applications freely.
+The client SDK in `packages/client` (`@zyno-io/uxrr-client`) is licensed separately under the [MIT License](packages/client/LICENSE), including all previously published versions, so you can embed it in your websites and applications freely.

@@ -35,11 +35,11 @@ You accept and agree to the following terms for Your present and future Contribu
 
 4. **Right to Grant.** You represent that You are legally entitled to grant the above licenses. If Your employer(s) has rights to intellectual property that You create that includes Your Contributions, You represent that You have received permission to make Contributions on behalf of that employer, that Your employer has waived such rights for Your Contributions to the Licensor, or that Your employer has signed Part B of this Agreement.
 
-5. **Original Work.** You represent that each of Your Contributions is Your original creation (see Section 7 for submissions on behalf of others). You represent that Your Contribution submissions include complete details of any third-party license or other restriction (including related patents and trademarks) of which You are personally aware and which are associated with any part of Your Contributions.
+5. **Original Work.** You represent that each of Your Contributions is Your original creation or that You otherwise have the right to submit it under this Agreement (see Section 7). You represent that Your Contribution submissions include complete details of any third-party license or other restriction (including related patents and trademarks) of which You are personally aware and which are associated with any part of Your Contributions.
 
 6. **No Support; No Warranty.** You are not expected to provide support for Your Contributions, except to the extent You desire to provide support. Unless required by applicable law or agreed to in writing, and except for the representations in this Agreement, You provide Your Contributions on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE.
 
-7. **Third-Party Work.** Should You wish to submit work that is not Your original creation, You may submit it to the Licensor separately from any Contribution, identifying the complete details of its source and of any license or other restriction (including related patents, trademarks, and license agreements) of which You are personally aware, and conspicuously marking the work as “Submitted on behalf of a third-party: [named here]”.
+7. **Third-Party Work.** If anything You submit contains work that is not Your original creation, You must identify that work, the complete details of its source, and any license or other restriction (including related patents, trademarks, and license agreements) of which You are personally aware. If You cannot grant the licenses in this Agreement for that work, You must submit it separately from any Contribution, conspicuously marked as “Submitted on behalf of a third-party: [named here]”; the licenses in this Agreement do not apply to work so marked.
 
 8. **Notification.** You agree to notify the Licensor of any facts or circumstances of which You become aware that would make these representations inaccurate in any respect.
 
@@ -53,7 +53,7 @@ The entity named below (“You”) accepts and agrees to the terms of Part A, Se
 
 2. **Right to Grant.** You represent that You are legally entitled to grant the licenses in Part A, and that the individual signing this Part B is authorized to bind You.
 
-3. **Original Work.** You represent that each of Your Contributions is Your original creation (see Part A, Section 7 for submissions on behalf of others).
+3. **Original Work.** You represent that each of Your Contributions is Your original creation or that You otherwise have the right to submit it under this Agreement (see Part A, Section 7).
 
 4. **Changes to Designated Contributors.** It is Your responsibility to notify the Licensor when any change is required to the list of Designated Contributors, or to Your point of contact with the Licensor. Contributions submitted before the Licensor receives such notice remain covered by this Agreement.
 
@@ -74,7 +74,7 @@ Schedule A: Designated Contributors (GitHub usernames):
 
 ## General
 
-**Relationship to the uxrr Source Available License.** As stated in Section 8 of the uxrr Source Available License, a signed contributor license agreement prevails over that Section 8 for the Contributions it covers. Nothing in this Agreement grants You any rights in uxrr; Your use of uxrr is governed by the uxrr Source Available License, the license file of the component concerned (for example, the MIT License for the client SDK), or a separate commercial license.
+**Relationship to the uxrr Source Available License.** As stated in Section 8 of the uxrr Source Available License, a signed contributor license agreement prevails over that Section 8, to the extent of any conflict, for the Contributions it covers; the permission in that Section 8 to fork and modify uxrr to prepare a Contribution continues to apply. Nothing in this Agreement grants You any rights in uxrr; Your use of uxrr is governed by the uxrr Source Available License, the license file of the component concerned (for example, the MIT License for the client SDK), or a separate commercial license.
 
 **Versions.** The Licensor may publish new versions of this Agreement. The version You signed governs the Contributions You submit until You sign a later version. The Licensor may require You to sign a later version before accepting further Contributions.
 
