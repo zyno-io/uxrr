@@ -9,7 +9,8 @@ export default defineConfig([
         clean: true,
         splitting: true,
         platform: 'browser',
-        noExternal: [/./]
+        noExternal: [/./],
+        metafile: true
     },
     {
         entry: ['src/index.ts'],
@@ -17,6 +18,7 @@ export default defineConfig([
         sourcemap: true,
         splitting: false,
         platform: 'browser',
-        noExternal: [/./]
+        noExternal: [/./],
+        metafile: true
     }
 ]);

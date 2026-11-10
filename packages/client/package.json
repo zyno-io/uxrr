@@ -13,6 +13,7 @@
     "files": [
         "README.md",
         "LICENSE",
+        "THIRD-PARTY-NOTICES.md",
         "dist"
     ],
     "type": "module",
@@ -28,7 +29,7 @@
     },
     "scripts": {
         "clean": "rm -rf dist",
-        "build": "tsup",
+        "build": "tsup && node scripts/third-party-notices.mjs",
         "dev": "tsup --watch",
         "format": "npx oxlint --fix --fix-suggestions --fix-dangerously && prettier --config ../../.prettierrc.json --ignore-path ../../.gitignore --write ."
     },
