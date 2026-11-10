@@ -10,8 +10,8 @@
     - You own the copyright in your own modifications, which remain subject to the License
     - Contractors no longer need confidentiality obligations; they must be bound to use your copies and deployments only
       on your behalf. Your affiliates may use uxrr under your license
-    - A service provider may operate your instance, but not one that offers uxrr hosting or management as a service to
-      others; that requires a commercial license
+    - A contractor or service provider may operate your instance, but not one that offers uxrr hosting or management as
+      a service to others; that requires a commercial license
     - Termination: 30-day cure period for breaches other than hosting, embedding, distribution, white-labelling,
       circumvention, or willful breach. Licensor notices must be retained on copies
     - Sister companies related only through a common financial investor are not affiliates
