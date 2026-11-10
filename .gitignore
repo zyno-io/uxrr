@@ -20,3 +20,4 @@ screenshots/
 *.png
 !packages/ui/public/**/*.png
 !docs/public/**/*.png
+packages/client/THIRD-PARTY-NOTICES.md

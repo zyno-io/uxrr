@@ -2,7 +2,7 @@
     "name": "@zyno-io/uxrr-api",
     "version": "0.1.2",
     "private": true,
-    "license": "SEE LICENSE IN LICENSE",
+    "license": "SEE LICENSE IN LICENSE.md",
     "main": "dist/src/bootstrap.js",
     "scripts": {
         "clean": "tsf-dev clean",

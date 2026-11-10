@@ -2,6 +2,10 @@
 
 The Embed API lets you embed uxrr session lists and session playback into your own application via iframes, or access session data directly via REST API using API keys.
 
+::: warning Licensing
+Embedding uxrr in your own internal tools, used by your own team, is covered by the free internal-use license. Embedding uxrr session lists or playback in a product, portal, or dashboard that you provide to customers or other third parties requires a [commercial license](mailto:support@sgnl24.com). See the [license](https://github.com/zyno-io/uxrr/blob/main/LICENSE.md).
+:::
+
 ## Overview
 
 The system has two layers:
