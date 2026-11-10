@@ -1,7 +1,7 @@
 {
     "name": "@zyno-io/uxrr-client",
     "version": "0.1.2",
-    "license": "SEE LICENSE IN LICENSE",
+    "license": "MIT",
     "author": {
         "name": "Signal24 LLC dba Zyno Consulting",
         "email": "support@zyno.io",
@@ -12,7 +12,7 @@
     },
     "files": [
         "README.md",
-        "LICENSE.md",
+        "LICENSE",
         "dist"
     ],
     "type": "module",

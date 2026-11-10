@@ -55,7 +55,7 @@ uxrr has three components:
 
 ## License
 
-uxrr is **source-available** under the uxrr Source Available License. It is free for internal use within your organization. A [commercial license](mailto:support@sgnl24.com) is required to offer it as a hosted service, distribute it, or embed it in products sold to others.
+uxrr is **source-available** under the uxrr Source Available License, Version 1.1. It is free for internal use within your organization. A [commercial license](mailto:support@sgnl24.com) is required to offer it as a hosted service, distribute it, or embed it in products sold to others. The client SDK (`@zyno-io/uxrr-client`) is licensed separately under the MIT License.
 
 <style>
 .screenshot {
