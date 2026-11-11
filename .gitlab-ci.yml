@@ -264,7 +264,8 @@ publish client canary:
     npm pkg set version="${PKG_VERSION}"
 
     # npm (not yarn npm publish): .yarnrc.yml pins the @zyno-io scope to registry.npmjs.org.
-    npm config set -- "//npm.s24.dev/:_authToken=${PRIVATE_NPM_PUBLISHER_TOKEN}"
+    # `npm config set` refuses to run inside a workspace (ENOWORKSPACES), so write ~/.npmrc directly.
+    echo "//npm.s24.dev/:_authToken=${PRIVATE_NPM_PUBLISHER_TOKEN}" >> ~/.npmrc
     if npm view "${PKG_NAME}@${PKG_VERSION}" version --registry "${CANARY_REGISTRY}" >/dev/null 2>&1; then
       echo "${PKG_NAME}@${PKG_VERSION} already exists; restoring the canary dist-tag."
       npm dist-tag add "${PKG_NAME}@${PKG_VERSION}" canary --registry "${CANARY_REGISTRY}"
@@ -347,6 +348,9 @@ mirror to github:
   image:
     name: alpine/git
     entrypoint: ['']
+  variables:
+    # A shallow clone can't push when GitHub is more than GIT_DEPTH commits behind.
+    GIT_DEPTH: 0
   script: |
     export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
     mkdir ~/.ssh
