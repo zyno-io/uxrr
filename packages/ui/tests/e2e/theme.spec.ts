@@ -101,8 +101,11 @@ test.describe('Theme', () => {
         const modal = page.locator('.vf-modal');
         await expect(modal).toBeVisible();
         await expect(modal).toHaveCSS('background-color', 'rgb(19, 20, 24)');
-        await expect(modal.locator('input').first()).toHaveCSS('color', 'rgb(236, 236, 240)');
-        await page.screenshot({ path: 'screenshots/admin-create-app-dark.png', fullPage: true });
+        const appKey = modal.locator('input').first();
+        await expect(appKey).toHaveCSS('color', 'rgb(236, 236, 240)');
+        // App Key is autofocused; wait for it and settle the focus-ring transition so the shot is stable.
+        await expect(appKey).toBeFocused();
+        await page.screenshot({ path: 'screenshots/admin-create-app-dark.png', fullPage: true, animations: 'disabled' });
     });
 
     test('themes replay controls without changing the recorded page', async ({ page }) => {
