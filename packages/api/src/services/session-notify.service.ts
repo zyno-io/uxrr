@@ -30,6 +30,8 @@ interface WatcherConnection {
     ws: WebSocket;
     filters: WatcherFilters;
     allowedAppKeys?: string[];
+    /** A session-locked embed token or ticket: only events for this session. */
+    allowedSessionId?: string;
 }
 
 interface ISessionPayload {
@@ -96,8 +98,8 @@ export class SessionNotifyService {
         }
     }
 
-    addWatcher(ws: WebSocket, initialFilters: WatcherFilters, allowedAppKeys?: string[]): void {
-        const watcher: WatcherConnection = { ws, filters: initialFilters, allowedAppKeys };
+    addWatcher(ws: WebSocket, initialFilters: WatcherFilters, allowedAppKeys?: string[], allowedSessionId?: string): void {
+        const watcher: WatcherConnection = { ws, filters: initialFilters, allowedAppKeys, allowedSessionId };
         this.watchers.add(watcher);
         this.logger.debug(`Session watcher connected (total: ${this.watchers.size})`);
 
@@ -191,6 +193,7 @@ export class SessionNotifyService {
                 for (const watcher of this.watchers) {
                     if (watcher.ws.readyState !== 1) continue;
                     if (watcher.allowedAppKeys && !watcher.allowedAppKeys.includes(entry.appKey)) continue;
+                    if (watcher.allowedSessionId && watcher.allowedSessionId !== sessionId) continue;
                     watcher.ws.send(msg);
                 }
             }
@@ -201,6 +204,7 @@ export class SessionNotifyService {
         for (const watcher of this.watchers) {
             if (watcher.ws.readyState !== 1) continue;
             if (watcher.allowedAppKeys && !watcher.allowedAppKeys.includes(appKey)) continue;
+            if (watcher.allowedSessionId && watcher.allowedSessionId !== payload.id) continue;
             if (!this.matchesPayloadFilters(payload, allUserIds, watcher.filters)) continue;
             watcher.ws.send(JSON.stringify({ type, session: payload }));
         }
@@ -221,6 +225,7 @@ export class SessionNotifyService {
             for (const watcher of this.watchers) {
                 if (watcher.ws.readyState !== 1) continue;
                 if (watcher.allowedAppKeys && !watcher.allowedAppKeys.includes(msg.session.appId)) continue;
+                if (watcher.allowedSessionId && watcher.allowedSessionId !== msg.session.id) continue;
                 if (!this.matchesPayloadFilters(msg.session, msg.allUserIds, watcher.filters)) continue;
                 watcher.ws.send(JSON.stringify({ type: msg.type, session: msg.session }));
             }

@@ -5,7 +5,7 @@ import { App, AutoConstruct, ScopedLogger } from '@zyno-io/ts-server-foundation'
 import WebSocket from 'ws';
 
 import { UxrrConfig } from '../config';
-import { verifyWsToken } from '../util/ws-token';
+import { verifyEmbedWsTicket, verifyWsToken } from '../util/ws-token';
 import { ApiKeyService } from './api-key.service';
 import { AppResolverService } from './app-resolver.service';
 import { LiveSessionService } from './live-session.service';
@@ -16,6 +16,13 @@ import { ShareService } from './share.service';
 import { UserService } from './user.service';
 
 const CLIENT_MAX_PAYLOAD_BYTES = 10 * 1024 * 1024;
+
+/** The embed claims a WebSocket enforces, from `?embed_token=` or from an embed ticket (`?ws_token=`). */
+interface EmbedWsClaims {
+    scope: 'readonly' | 'interactive';
+    apps: string[];
+    sid?: string;
+}
 
 @AutoConstruct()
 export class WebSocketService {
@@ -137,6 +144,13 @@ export class WebSocketService {
             // Try ephemeral ws_token first
             const wsToken = url.searchParams.get('ws_token');
             if (wsToken && this.config.UXRR_SHARE_SECRET) {
+                // An embed ticket is authorised exactly as the embed token it was minted from
+                const ticket = verifyEmbedWsTicket(this.config.UXRR_SHARE_SECRET, wsToken);
+                if (ticket) {
+                    await this.upgradeEmbedAgent(wss, sessionId, ticket, request, socket, head);
+                    return;
+                }
+
                 const payload = verifyWsToken(this.config.UXRR_SHARE_SECRET, wsToken);
                 if (payload) {
                     if (payload.userId) {
@@ -159,44 +173,19 @@ export class WebSocketService {
                 }
             }
 
-            // Try embed token
+            // Try embed token (still accepted in the URL for older clients)
             const embedToken = url.searchParams.get('embed_token');
             if (embedToken) {
+                let payload: EmbedWsClaims;
                 try {
-                    const payload = await this.apiKeySvc.verifyEmbedToken(embedToken);
-
-                    // Enforce session scope
-                    if (payload.sid && payload.sid !== sessionId) {
-                        socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
-                        socket.destroy();
-                        return;
-                    }
-
-                    // Enforce app scope
-                    if (payload.apps.length > 0) {
-                        const session = await this.sessionSvc.getOrThrow(sessionId).catch(() => null);
-                        const sessionAppKey = session ? this.appResolver.resolveAppKey(session.appId) : undefined;
-                        if (!session || !sessionAppKey || !payload.apps.includes(sessionAppKey)) {
-                            socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
-                            socket.destroy();
-                            return;
-                        }
-                    }
-
-                    wss.handleUpgrade(request, socket, head, ws => {
-                        this.guardSocketErrors(ws, 'agent', sessionId);
-                        if (payload.scope === 'interactive') {
-                            this.liveSvc.connectAgent(sessionId, ws, 'embed-user', 'Embed User');
-                        } else {
-                            this.liveSvc.connectSharedViewer(sessionId, ws);
-                        }
-                    });
-                    return;
+                    payload = await this.apiKeySvc.verifyEmbedToken(embedToken);
                 } catch {
                     socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
                     socket.destroy();
                     return;
                 }
+                await this.upgradeEmbedAgent(wss, sessionId, payload, request, socket, head);
+                return;
             }
 
             // No OIDC required and no embed token — allow only if dev mode is explicitly enabled
@@ -214,6 +203,43 @@ export class WebSocketService {
             this.logger.error('Agent WebSocket upgrade failed', err);
             socket.destroy();
         }
+    }
+
+    /** Upgrade a viewer authorised by embed claims: same session, app and scope rules for a token or a ticket. */
+    private async upgradeEmbedAgent(
+        wss: WebSocket.Server,
+        sessionId: string,
+        claims: EmbedWsClaims,
+        request: IncomingMessage,
+        socket: Socket,
+        head: Buffer
+    ): Promise<void> {
+        // Enforce session scope
+        if (claims.sid && claims.sid !== sessionId) {
+            socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+            socket.destroy();
+            return;
+        }
+
+        // Enforce app scope
+        if (claims.apps.length > 0) {
+            const session = await this.sessionSvc.getOrThrow(sessionId).catch(() => null);
+            const sessionAppKey = session ? this.appResolver.resolveAppKey(session.appId) : undefined;
+            if (!session || !sessionAppKey || !claims.apps.includes(sessionAppKey)) {
+                socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+                socket.destroy();
+                return;
+            }
+        }
+
+        wss.handleUpgrade(request, socket, head, ws => {
+            this.guardSocketErrors(ws, 'agent', sessionId);
+            if (claims.scope === 'interactive') {
+                this.liveSvc.connectAgent(sessionId, ws, 'embed-user', 'Embed User');
+            } else {
+                this.liveSvc.connectSharedViewer(sessionId, ws);
+            }
+        });
     }
 
     private async handleSharedViewerUpgrade(
@@ -242,16 +268,21 @@ export class WebSocketService {
             const url = new URL(request.url ?? '', `http://${request.headers.host}`);
             let authenticated = false;
 
-            // Try ephemeral ws_token first
+            // Try ephemeral ws_token first: an embed ticket carries the embed token's app restriction
             const wsToken = url.searchParams.get('ws_token');
+            let embedPayload: { apps: string[]; sid?: string } | undefined;
             if (wsToken && this.config.UXRR_SHARE_SECRET) {
-                const payload = verifyWsToken(this.config.UXRR_SHARE_SECRET, wsToken);
-                if (payload) authenticated = true;
+                const ticket = verifyEmbedWsTicket(this.config.UXRR_SHARE_SECRET, wsToken);
+                if (ticket) {
+                    embedPayload = ticket;
+                    authenticated = true;
+                } else if (verifyWsToken(this.config.UXRR_SHARE_SECRET, wsToken)) {
+                    authenticated = true;
+                }
             }
 
-            // Try embed token
+            // Try embed token (still accepted in the URL for older clients)
             const embedToken = url.searchParams.get('embed_token');
-            let embedPayload: { apps: string[] } | undefined;
             if (!authenticated && embedToken) {
                 try {
                     embedPayload = await this.apiKeySvc.verifyEmbedToken(embedToken);
@@ -297,9 +328,11 @@ export class WebSocketService {
             }
 
             const allowedAppKeys = embedPayload?.apps;
+            // A session-locked embed token or ticket only hears about its own session
+            const allowedSessionId = embedPayload?.sid || undefined;
             wss.handleUpgrade(request, socket, head, ws => {
                 this.guardSocketErrors(ws, 'session watcher');
-                this.notifySvc.addWatcher(ws, filters, allowedAppKeys);
+                this.notifySvc.addWatcher(ws, filters, allowedAppKeys, allowedSessionId);
             });
         } catch (err) {
             this.logger.error('Watch WebSocket upgrade failed', err);

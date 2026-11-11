@@ -189,8 +189,7 @@ function onAgentTyping() {
 }
 
 function goBack() {
-    const token = getEmbedToken();
-    router.push({ name: 'embed-sessions', query: { token: token ?? undefined } });
+    router.push({ name: 'embed-sessions' });
 }
 </script>
 

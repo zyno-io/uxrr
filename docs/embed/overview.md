@@ -126,6 +126,10 @@ Embed tokens are short-lived HMAC-SHA256 signed tokens used for iframe embedding
 | `apps`  | `string[]` | Yes      | App IDs (must be subset of key's apps)          |
 | `sid`   | `string`   | No       | Restrict to a specific session ID               |
 
+- `apps`: the `/v1/api-keys/sign` endpoint requires at least one app for an app-scoped key. For a self-signed token, an empty `apps` list means the key's apps on an app-scoped key, and all apps on an unscoped key.
+- `exp`: required, and no more than `UXRR_MAX_EMBED_TOKEN_TTL` seconds (default 30 days) in the future, plus 60 s of clock-skew allowance. The sign endpoint already enforces this; self-signed tokens without an `exp`, or with a longer lifetime, are rejected.
+- `sid`: when set, the token sees only that session: the session list, filter options and live list updates contain nothing else.
+
 ### Option A: Server-Side Convenience Endpoint
 
 ```bash
@@ -208,6 +212,16 @@ token = sign_embed_token(
 <iframe src="https://uxrr.yourcompany.com/embed/SESSION_ID?token=EMBED_TOKEN" width="100%" height="600" frameborder="0"></iframe>
 ```
 
+### What happens to the token
+
+The dashboard reads `?token=` once, removes it from the iframe's address bar, and keeps it in memory (plus the iframe's own history entry, so reloads and Back/Forward inside the iframe keep working). Navigation inside the iframe never puts it back in a URL. Live updates use a short-lived WebSocket ticket requested with the token in a header; when the server can't mint tickets (`UXRR_SHARE_SECRET` not set), the dashboard falls back to `?embed_token=` on the WebSocket URL.
+
+::: tip Compatibility
+Tokens in URLs are still accepted: `/embed?token=…` and `/embed/SESSION_ID?token=…` iframe URLs, and `?embed_token=…` on WebSocket URLs from older dashboard builds, work unchanged.
+:::
+
+Once the token has expired, the iframe shows a short notice asking the user to reopen the view from your application (a refusal before `exp`, for example a revoked key, shows the normal load error and keeps retrying). Opening an embed URL without a token shows a similar notice.
+
 ### Session-Specific Tokens
 
 Sign a token with `sid` to lock it to one session:
@@ -244,7 +258,7 @@ When `sid` is set, the back button is hidden and the token only grants access to
 The server validates embed tokens in this order:
 
 1. Parse `base64url(payload).base64url(signature)` format
-2. Check expiry (`exp` field)
+2. Check expiry (`exp` field): present, not passed, and within `UXRR_MAX_EMBED_TOKEN_TTL`
 3. Look up API key by `kid` (cached for 60s)
 4. Verify HMAC-SHA256 signature (constant-time comparison)
 5. Validate token scope does not exceed key scope

@@ -8,6 +8,8 @@ import { AppResolverService } from './app-resolver.service';
 interface SessionFilters {
     appKey?: string;
     appKeys?: string[];
+    /** A session-locked embed token: only this session. */
+    sessionId?: string;
     userId?: string;
     deviceId?: string;
     from?: string;
@@ -44,11 +46,14 @@ export class SessionService {
             if (uuids.length === 0) return [];
             query = query.filter({ appId: { $in: uuids } });
         }
+        if (filters.sessionId) {
+            query = query.filter({ id: filters.sessionId });
+        }
         if (filters.userId) {
             const rows = await this.db.rawFindUnsafe<{ sessionId: string }>(`SELECT "sessionId" FROM "session_user_ids" WHERE "userId" = ?`, [
                 filters.userId
             ]);
-            const ids = rows.map(r => r.sessionId);
+            const ids = rows.map(r => r.sessionId).filter(id => !filters.sessionId || id === filters.sessionId);
             if (ids.length === 0) return [];
             query = query.filter({ id: { $in: ids } });
         }
@@ -192,6 +197,11 @@ export class SessionService {
             if (uuids.length === 0) return { conditions, params, valid: false };
             conditions.push(`"appId" IN (${uuids.map(() => '?').join(', ')})`);
             params.push(...uuids);
+        }
+
+        if (filters.sessionId) {
+            conditions.push(`"id" = ?`);
+            params.push(filters.sessionId);
         }
 
         if (filters.userId) {

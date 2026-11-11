@@ -15,7 +15,7 @@ const log = createLogger('main');
 async function bootstrap() {
     log.log('bootstrap started');
 
-    if (window.location.pathname.startsWith('/embed')) {
+    if (/^\/embed(\/|$)/i.test(window.location.pathname)) {
         log.log('embed mode detected, initializing embed');
         initEmbed();
     }

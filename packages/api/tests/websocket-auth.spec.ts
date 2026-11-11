@@ -1,6 +1,7 @@
 import type { Logger } from '@zyno-io/ts-server-foundation';
 
 import { strict as assert } from 'node:assert';
+import { createHmac } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { describe, it, mock } from 'node:test';
 
@@ -15,7 +16,7 @@ import type { ShareService } from '../src/services/share.service';
 import type { UserService } from '../src/services/user.service';
 
 import { WebSocketService } from '../src/services/websocket.service';
-import { signWsToken } from '../src/util/ws-token';
+import { signEmbedWsTicket, signWsToken } from '../src/util/ws-token';
 
 /**
  * WebSocketService constructor calls resolve(ApplicationServer) which requires
@@ -86,7 +87,7 @@ function createService(
     const connectClientFn = mock.fn((_sessId: string, _appKey: string, _ws: unknown) => {});
     const connectAgentFn = mock.fn((_sessId: string, _ws: unknown, _email?: string, _name?: string, _userId?: string) => {});
     const connectSharedViewerFn = mock.fn((_sessId: string, _ws: unknown) => {});
-    const addWatcherFn = mock.fn((_ws: unknown, _filters: unknown, _allowedAppKeys?: string[]) => {});
+    const addWatcherFn = mock.fn((_ws: unknown, _filters: unknown, _allowedAppKeys?: string[], _allowedSessionId?: string) => {});
 
     const svc = Object.create(WebSocketService.prototype) as Record<string, unknown>;
     svc.config = (overrides.config ?? {}) as UxrrConfig;
@@ -520,5 +521,153 @@ describe('WebSocket auth — handleWatchUpgrade', () => {
 
         await (svc as TestableWsSvc).handleWatchUpgrade(wss, makeRequest('/v1/sessions/watch'), socket, Buffer.alloc(0));
         assert.equal(addWatcherFn.mock.callCount(), 1);
+    });
+});
+
+describe('WebSocket auth — embed tickets (ws_token minted from an embed token)', () => {
+    const secret = 'test-secret-that-is-long-enough-32ch';
+    const config = { UXRR_SHARE_SECRET: secret } as Partial<UxrrConfig>;
+    const ticket = (claims: { scope: 'readonly' | 'interactive'; apps: string[]; sid?: string }, ttl = 10) =>
+        encodeURIComponent(signEmbedWsTicket(secret, { exp: Math.floor(Date.now() / 1000) + ttl, ...claims }));
+
+    async function agent(svcParts: ReturnType<typeof createService>, sessionId: string, query: string) {
+        const socket = makeSocket();
+        await (svcParts.svc as TestableWsSvc).handleAgentUpgrade(
+            makeWss(),
+            sessionId,
+            makeRequest(`/v1/sessions/${sessionId}/live?${query}`),
+            socket,
+            Buffer.alloc(0)
+        );
+        return socket;
+    }
+
+    it('a readonly ticket connects as a shared viewer and cannot act as an agent', async () => {
+        const parts = createService({ config, oidcEnabled: true });
+        const socket = await agent(parts, 'sess-1', `ws_token=${ticket({ scope: 'readonly', apps: ['app-1'] })}`);
+        assert.equal(socket.write.mock.callCount(), 0);
+        assert.equal(parts.connectSharedViewerFn.mock.callCount(), 1);
+        assert.equal(parts.connectAgentFn.mock.callCount(), 0);
+    });
+
+    it('an interactive ticket connects as the embed user agent, like the embed token', async () => {
+        const parts = createService({ config, oidcEnabled: true });
+        await agent(parts, 'sess-1', `ws_token=${ticket({ scope: 'interactive', apps: ['app-1'], sid: 'sess-1' })}`);
+        assert.equal(parts.connectAgentFn.mock.callCount(), 1);
+        assert.equal(parts.connectAgentFn.mock.calls[0].arguments[2], 'embed-user');
+        assert.equal(parts.connectAgentFn.mock.calls[0].arguments[4], undefined);
+    });
+
+    it('a ticket scoped to session S cannot open session T', async () => {
+        const parts = createService({ config, oidcEnabled: true, getOrThrow: async () => ({ id: 'sess-T', appId: 'app-1' }) });
+        const socket = await agent(parts, 'sess-T', `ws_token=${ticket({ scope: 'interactive', apps: ['app-1'], sid: 'sess-S' })}`);
+        assert.ok((socket.write.mock.calls[0].arguments[0] as string).includes('403'));
+        assert.equal(parts.connectAgentFn.mock.callCount(), 0);
+        assert.equal(parts.connectSharedViewerFn.mock.callCount(), 0);
+    });
+
+    it('a ticket cannot open a session of another app', async () => {
+        const parts = createService({ config, oidcEnabled: true, getOrThrow: async () => ({ id: 'sess-1', appId: 'app-OTHER' }) });
+        const socket = await agent(parts, 'sess-1', `ws_token=${ticket({ scope: 'readonly', apps: ['app-1'] })}`);
+        assert.ok((socket.write.mock.calls[0].arguments[0] as string).includes('403'));
+        assert.equal(parts.connectSharedViewerFn.mock.callCount(), 0);
+    });
+
+    it('an expired ticket is rejected', async () => {
+        const parts = createService({ config, oidcEnabled: true });
+        const socket = await agent(parts, 'sess-1', `ws_token=${ticket({ scope: 'interactive', apps: [] }, -1)}`);
+        assert.ok((socket.write.mock.calls[0].arguments[0] as string).includes('401'));
+        assert.equal(parts.connectAgentFn.mock.callCount(), 0);
+    });
+
+    it('?embed_token= is still accepted for older clients', async () => {
+        const parts = createService({
+            config,
+            oidcEnabled: true,
+            verifyEmbedToken: async () => ({ scope: 'interactive', apps: ['app-1'], sid: 'sess-1' })
+        });
+        await agent(parts, 'sess-1', 'embed_token=tok');
+        assert.equal(parts.connectAgentFn.mock.callCount(), 1);
+    });
+
+    it('the list stream with a ticket is limited to the ticket’s apps', async () => {
+        const parts = createService({ config, oidcEnabled: true });
+        const socket = makeSocket();
+        await (parts.svc as TestableWsSvc).handleWatchUpgrade(
+            makeWss(),
+            makeRequest(`/v1/sessions/watch?ws_token=${ticket({ scope: 'readonly', apps: ['app-1', 'app-2'], sid: 'sess-1' })}`),
+            socket,
+            Buffer.alloc(0)
+        );
+        assert.equal(parts.addWatcherFn.mock.callCount(), 1);
+        assert.deepEqual(parts.addWatcherFn.mock.calls[0].arguments[2], ['app-1', 'app-2']);
+
+        const forbidden = makeSocket();
+        await (parts.svc as TestableWsSvc).handleWatchUpgrade(
+            makeWss(),
+            makeRequest(`/v1/sessions/watch?ws_token=${ticket({ scope: 'readonly', apps: ['app-1'] })}&appKey=app-FORBIDDEN`),
+            forbidden,
+            Buffer.alloc(0)
+        );
+        assert.ok((forbidden.write.mock.calls[0].arguments[0] as string).includes('403'));
+        assert.equal(parts.addWatcherFn.mock.callCount(), 1);
+    });
+
+    it('a session-locked ticket or embed token only watches its own session', async () => {
+        const parts = createService({
+            config,
+            oidcEnabled: true,
+            verifyEmbedToken: async () => ({ scope: 'readonly', apps: ['app-1'], sid: 'sess-S' })
+        });
+        await (parts.svc as TestableWsSvc).handleWatchUpgrade(
+            makeWss(),
+            makeRequest(`/v1/sessions/watch?ws_token=${ticket({ scope: 'readonly', apps: ['app-1'], sid: 'sess-S' })}`),
+            makeSocket(),
+            Buffer.alloc(0)
+        );
+        await (parts.svc as TestableWsSvc).handleWatchUpgrade(
+            makeWss(),
+            makeRequest('/v1/sessions/watch?embed_token=tok'),
+            makeSocket(),
+            Buffer.alloc(0)
+        );
+        assert.equal(parts.addWatcherFn.mock.callCount(), 2);
+        assert.equal(parts.addWatcherFn.mock.calls[0].arguments[3], 'sess-S');
+        assert.equal(parts.addWatcherFn.mock.calls[1].arguments[3], 'sess-S');
+    });
+
+    it('a share-link token presented as ws_token is refused on the watch and live paths', async () => {
+        // ShareService signs { sid, exp, jti } with UXRR_SHARE_SECRET in the same format as ws tokens
+        const payloadB64 = Buffer.from(JSON.stringify({ sid: 'sess-1', exp: Math.floor(Date.now() / 1000) + 3600, jti: 'link-1' })).toString(
+            'base64url'
+        );
+        const shareToken = `${payloadB64}.${createHmac('sha256', Buffer.from(secret, 'utf-8')).update(payloadB64).digest('base64url')}`;
+        const parts = createService({ config, oidcEnabled: true });
+
+        const watchSocket = makeSocket();
+        await (parts.svc as TestableWsSvc).handleWatchUpgrade(
+            makeWss(),
+            makeRequest(`/v1/sessions/watch?ws_token=${encodeURIComponent(shareToken)}`),
+            watchSocket,
+            Buffer.alloc(0)
+        );
+        assert.ok((watchSocket.write.mock.calls[0].arguments[0] as string).includes('401'));
+        assert.equal(parts.addWatcherFn.mock.callCount(), 0);
+
+        const liveSocket = await agent(parts, 'sess-OTHER', `ws_token=${encodeURIComponent(shareToken)}`);
+        assert.ok((liveSocket.write.mock.calls[0].arguments[0] as string).includes('401'));
+        assert.equal(parts.connectSharedViewerFn.mock.callCount(), 0);
+        assert.equal(parts.connectAgentFn.mock.callCount(), 0);
+    });
+
+    it('a single-app ticket pins the list stream to its app', async () => {
+        const parts = createService({ config, oidcEnabled: true });
+        await (parts.svc as TestableWsSvc).handleWatchUpgrade(
+            makeWss(),
+            makeRequest(`/v1/sessions/watch?ws_token=${ticket({ scope: 'readonly', apps: ['app-1'] })}`),
+            makeSocket(),
+            Buffer.alloc(0)
+        );
+        assert.equal((parts.addWatcherFn.mock.calls[0].arguments[1] as { appKey?: string }).appKey, 'app-1');
     });
 });

@@ -1,5 +1,6 @@
-import { reactive, ref, computed } from 'vue';
 import { UserManager, WebStorageStateStore, type User } from 'oidc-client-ts';
+import { reactive, ref, computed } from 'vue';
+
 import type { MeResponse } from '@/openapi-client-generated';
 
 import { createLogger } from './logger';
@@ -58,7 +59,7 @@ export async function initAuth(): Promise<void> {
         grafanaConfig.value = config.grafana ?? null;
 
         // Shared session and embed routes bypass OIDC entirely
-        if (window.location.pathname.startsWith('/share/') || window.location.pathname.startsWith('/embed')) {
+        if (window.location.pathname.startsWith('/share/') || /^\/embed(\/|$)/i.test(window.location.pathname)) {
             log.log('bypassing OIDC for share/embed route');
             authState.initialized = true;
             return;

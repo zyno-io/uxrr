@@ -245,6 +245,8 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
 
 <template>
     <div class="filter-bar">
+        <!-- VfSmartSelect renders option titles with v-html by default; names, emails and ids come from customer
+             apps (the public ingest endpoint) or the URL, so every select overrides #option to render them as text -->
         <VfSmartSelect
             :key="`app-${appOptionsVersion}`"
             v-model="filters.appKey"
@@ -256,7 +258,12 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
             remote-search
             preload
             class="filter-select"
-        />
+        >
+            <template #option="{ option }">
+                <div class="title">{{ option.title }}</div>
+                <div v-if="option.subtitle" class="subtitle">{{ option.subtitle }}</div>
+            </template>
+        </VfSmartSelect>
         <VfSmartSelect
             :key="`user-${userOptionsVersion}`"
             v-model="filters.userId"
@@ -269,7 +276,12 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
             remote-search
             preload
             class="filter-select"
-        />
+        >
+            <template #option="{ option }">
+                <div class="title">{{ option.title }}</div>
+                <div v-if="option.subtitle" class="subtitle">{{ option.subtitle }}</div>
+            </template>
+        </VfSmartSelect>
         <VfSmartSelect
             :key="`device-${deviceOptionsVersion}`"
             v-model="filters.deviceId"
@@ -281,7 +293,12 @@ defineExpose({ setFilter, getFilters, initFilters, restoreFromStorage });
             remote-search
             preload
             class="filter-select"
-        />
+        >
+            <template #option="{ option }">
+                <div class="title">{{ option.title }}</div>
+                <div v-if="option.subtitle" class="subtitle">{{ option.subtitle }}</div>
+            </template>
+        </VfSmartSelect>
         <DateRangePicker ref="datePickerRef" @change="onDateChange" />
         <label class="filter-toggle">
             <input type="checkbox" v-model="filters.isLive" @change="onToggleChange" />

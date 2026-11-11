@@ -7,7 +7,7 @@ import type { ISession, GetSessionListSessionsData } from '@/openapi-client-gene
 
 import DateRangePicker, { type DateRange } from '@/components/DateRangePicker.vue';
 import SessionTable from '@/components/SessionTable.vue';
-import { embedState, getEmbedToken } from '@/embed';
+import { embedState } from '@/embed';
 import { createLogger } from '@/logger';
 import { SessionApi } from '@/openapi-client-generated';
 import { connectEmbedSessionListStream, type SessionListStreamHandle } from '@/session-list-stream';
@@ -143,8 +143,7 @@ function onDateChange(range: DateRange) {
 }
 
 function onSelect(session: ISession) {
-    const token = getEmbedToken();
-    router.push({ name: 'embed-session-detail', params: { id: session.id }, query: { token: token ?? undefined } });
+    router.push({ name: 'embed-session-detail', params: { id: session.id } });
 }
 
 function onFilterByUser(uid: string) {

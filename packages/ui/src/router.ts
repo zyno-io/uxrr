@@ -2,6 +2,7 @@ import { h } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 
 import { isAdmin } from './auth';
+import { captureEmbedToken, embedState, stampEmbedToken } from './embed';
 
 export const router = createRouter({
     history: createWebHistory(),
@@ -73,4 +74,21 @@ router.beforeEach(to => {
     if (to.meta.admin && !isAdmin.value) {
         return '/';
     }
+});
+
+// The embed bearer token arrives as ?token= on the iframe URL. Keep it in memory (initEmbed or here,
+// whichever runs first: the router reads the initial URL when it is created) and resolve the same route
+// without it, replacing the entry, so it never stays in the address bar, history or links. The redirect
+// carries no token, so it passes straight through on the next run.
+router.beforeEach(to => {
+    if (!to.meta.embed || !('token' in to.query)) return;
+    const { token, ...rest } = to.query;
+    const value = Array.isArray(token) ? token[0] : token;
+    if (!embedState.token && typeof value === 'string' && value) captureEmbedToken(value);
+    return { path: to.path, query: rest, hash: to.hash, replace: true };
+});
+
+// vue-router writes fresh history state on push, so keep the token on this frame's current entry.
+router.afterEach(to => {
+    if (to.meta.embed && embedState.token) stampEmbedToken();
 });
