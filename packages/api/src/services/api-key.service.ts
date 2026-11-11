@@ -3,11 +3,14 @@ import { ScopedLogger } from '@zyno-io/ts-server-foundation';
 import { Crypto } from '@zyno-io/ts-server-foundation';
 import { randomBytes, createHmac, timingSafeEqual } from 'crypto';
 
+import { UxrrConfig } from '../config';
 import { UxrrDatabase } from '../database/database';
 import { ApiKeyEntity } from '../database/entities/api-key.entity';
 import { uuidv7 } from '../util/uuid';
 
 const CACHE_TTL_MS = 60_000;
+/** Clock-skew allowance when checking an embed token's lifetime against UXRR_MAX_EMBED_TOKEN_TTL. */
+const EMBED_TTL_SKEW_SECS = 60;
 
 export interface EmbedTokenPayload {
     kid: string;
@@ -28,10 +31,12 @@ export class ApiKeyService {
     private keyById = new Map<string, ApiKeyEntity>();
     private lastRefresh = 0;
     private refreshPromise?: Promise<void>;
+    private readonly narrowedAppsWarned = new Set<string>();
 
     constructor(
         private readonly db: UxrrDatabase,
-        private readonly logger: ScopedLogger
+        private readonly logger: ScopedLogger,
+        private readonly config: UxrrConfig
     ) {}
 
     // ── Management ──────────────────────────────────────────────
@@ -131,14 +136,35 @@ export class ApiKeyService {
             throw new HttpAccessDeniedError('Invalid embed token');
         }
 
-        // Check expiry before any cache/DB lookup
+        if (!payload || typeof payload !== 'object') {
+            throw new HttpAccessDeniedError('Invalid embed token');
+        }
+
+        // Check expiry and lifetime before any cache/DB lookup (self-signed tokens never went through /sign)
+        if (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp)) {
+            throw new HttpAccessDeniedError('Embed token has no expiry');
+        }
         if (payload.exp * 1000 < Date.now()) {
             throw new HttpAccessDeniedError('Embed token has expired');
+        }
+        if (payload.exp > Math.floor(Date.now() / 1000) + this.config.UXRR_MAX_EMBED_TOKEN_TTL + EMBED_TTL_SKEW_SECS) {
+            throw new HttpAccessDeniedError('Embed token lifetime exceeds the allowed maximum');
         }
 
         // Validate scope enum
         if (payload.scope !== 'readonly' && payload.scope !== 'interactive') {
             throw new HttpAccessDeniedError('Invalid embed token scope');
+        }
+
+        // Validate claim shapes; fail closed rather than let a malformed claim mean "unrestricted"
+        if (!Array.isArray(payload.apps) || !payload.apps.every(app => typeof app === 'string')) {
+            throw new HttpAccessDeniedError('Invalid embed token');
+        }
+        if (payload.sid === null || payload.sid === '') {
+            // null / empty sid has always meant "no session restriction"
+            delete payload.sid;
+        } else if (payload.sid !== undefined && typeof payload.sid !== 'string') {
+            throw new HttpAccessDeniedError('Invalid embed token');
         }
 
         // Look up key by kid
@@ -166,6 +192,13 @@ export class ApiKeyService {
                 if (!key.appKeys.includes(app)) {
                     throw new HttpAccessDeniedError('Token app not allowed for this key');
                 }
+            }
+        } else if (key.appKeys.length > 0) {
+            // A self-signed token with no apps must not reach beyond an app-scoped key: it gets the key's apps
+            payload.apps = [...key.appKeys];
+            if (!this.narrowedAppsWarned.has(key.id)) {
+                this.narrowedAppsWarned.add(key.id);
+                this.logger.warn('Embed token with no apps narrowed to its app-scoped API key apps', { keyId: key.id });
             }
         }
 

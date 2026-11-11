@@ -3,6 +3,7 @@ import type { Logger } from '@zyno-io/ts-server-foundation';
 import { strict as assert } from 'node:assert';
 import { describe, it, mock } from 'node:test';
 
+import type { UxrrConfig } from '../src/config';
 import type { UxrrDatabase } from '../src/database/database';
 import type { ApiKeyEntity } from '../src/database/entities/api-key.entity';
 
@@ -44,7 +45,7 @@ describe('ApiKeyService.update — scope validation', () => {
     it('rejects invalid scope values', async () => {
         const key = makeKey();
         const db = makeDb(key);
-        const svc = new ApiKeyService(db, makeLogger());
+        const svc = new ApiKeyService(db, makeLogger(), {} as UxrrConfig);
 
         await assert.rejects(
             () => svc.update('key-1', { scope: 'admin' }),
@@ -58,7 +59,7 @@ describe('ApiKeyService.update — scope validation', () => {
     it('rejects scope "superadmin"', async () => {
         const key = makeKey();
         const db = makeDb(key);
-        const svc = new ApiKeyService(db, makeLogger());
+        const svc = new ApiKeyService(db, makeLogger(), {} as UxrrConfig);
 
         await assert.rejects(
             () => svc.update('key-1', { scope: 'superadmin' }),
@@ -72,7 +73,7 @@ describe('ApiKeyService.update — scope validation', () => {
     it('accepts "readonly" scope', async () => {
         const key = makeKey({ scope: 'interactive' });
         const db = makeDb(key);
-        const svc = new ApiKeyService(db, makeLogger());
+        const svc = new ApiKeyService(db, makeLogger(), {} as UxrrConfig);
 
         const updated = await svc.update('key-1', { scope: 'readonly' });
         assert.equal(updated.scope, 'readonly');
@@ -81,7 +82,7 @@ describe('ApiKeyService.update — scope validation', () => {
     it('accepts "interactive" scope', async () => {
         const key = makeKey({ scope: 'readonly' });
         const db = makeDb(key);
-        const svc = new ApiKeyService(db, makeLogger());
+        const svc = new ApiKeyService(db, makeLogger(), {} as UxrrConfig);
 
         const updated = await svc.update('key-1', { scope: 'interactive' });
         assert.equal(updated.scope, 'interactive');
@@ -104,7 +105,7 @@ describe('ApiKeyService.resolveApiKey — deactivated key', () => {
             persist: mock.fn(async () => {})
         } as unknown as UxrrDatabase;
 
-        const svc = new ApiKeyService(db, makeLogger());
+        const svc = new ApiKeyService(db, makeLogger(), {} as UxrrConfig);
         const result = await svc.resolveApiKey('any-key');
         assert.equal(result, undefined);
     });

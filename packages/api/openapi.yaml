@@ -157,6 +157,11 @@ paths:
                 properties:
                   token:
                     type: string
+                  kind:
+                    type: string
+                    enum:
+                      - embed
+                    description: Set when the token is an embed ticket minted from X-Embed-Token
                 required:
                   - token
   /v1/ng/{appKey}/{sessionId}/data:

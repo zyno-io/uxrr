@@ -6,10 +6,13 @@ import { useRoute } from 'vue-router';
 import { authState, isAdmin, logout } from './auth';
 import DropdownMenu from './components/DropdownMenu.vue';
 import ThemeMenu from './components/ThemeMenu.vue';
+import { embedState } from './embed';
 
 const route = useRoute();
 const isShared = computed(() => route.meta.shared === true);
 const isEmbed = computed(() => route.meta.embed === true);
+// An embed route without a usable token (opened on its own, or the token was rejected) cannot load anything.
+const embedUnavailable = computed(() => isEmbed.value && !embedState.token);
 </script>
 
 <template>
@@ -78,7 +81,18 @@ const isEmbed = computed(() => route.meta.embed === true);
                 </div>
             </header>
             <main id="main" class="uxrr-main" tabindex="-1">
-                <router-view v-slot="{ Component }">
+                <div v-if="embedUnavailable" class="embed-unavailable">
+                    <div class="notice" role="status">
+                        <p class="notice-body">
+                            {{
+                                embedState.rejected
+                                    ? "This embedded view has expired or is no longer valid. Reopen it from the application it's embedded in."
+                                    : "This embedded view can't be opened on its own. Open it from the application it's embedded in."
+                            }}
+                        </p>
+                    </div>
+                </div>
+                <router-view v-else v-slot="{ Component }">
                     <keep-alive include="SessionList">
                         <component :is="Component" />
                     </keep-alive>
@@ -89,6 +103,18 @@ const isEmbed = computed(() => route.meta.embed === true);
 </template>
 
 <style lang="scss" scoped>
+.embed-unavailable {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 24px 16px;
+
+    .notice {
+        max-width: 480px;
+    }
+}
+
 #uxrr-app {
     display: flex;
     flex-direction: column;

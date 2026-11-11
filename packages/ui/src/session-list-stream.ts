@@ -1,7 +1,8 @@
 import type { ISession } from '@/openapi-client-generated';
-import { getEmbedToken } from './embed';
+
+import { getEmbedToken, handleEmbedUnauthorized } from './embed';
 import { createLogger } from './logger';
-import { fetchWsToken } from './ws-token';
+import { EmbedTokenRejectedError, fetchEmbedWsTicket, fetchWsToken } from './ws-token';
 
 const log = createLogger('session-stream');
 
@@ -141,16 +142,15 @@ export function connectSessionListStream(filters: SessionListFilters, callbacks:
 export function connectEmbedSessionListStream(filters: SessionListFilters, callbacks: SessionListStreamCallbacks): SessionListStreamHandle {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     let currentFilters = { ...filters };
-    let ws: WebSocket;
+    let ws: WebSocket | undefined;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let closed = false;
     let isFirstConnect = true;
     let reconnectAttempt = 0;
 
-    function buildUrl(): string {
-        const embedToken = getEmbedToken();
-        const params = new URLSearchParams();
-        if (embedToken) params.set('embed_token', embedToken);
+    // A short-lived ticket when the server can mint one; the embed token itself only for older servers
+    function buildUrl(auth: { ws_token: string } | { embed_token: string }): string {
+        const params = new URLSearchParams(auth);
         if (currentFilters.appKey) params.set('appKey', currentFilters.appKey);
         if (currentFilters.userId) params.set('userId', currentFilters.userId);
         if (currentFilters.deviceId) params.set('deviceId', currentFilters.deviceId);
@@ -159,9 +159,40 @@ export function connectEmbedSessionListStream(filters: SessionListFilters, callb
         return `${protocol}//${window.location.host}/v1/sessions/watch?${params.toString()}`;
     }
 
-    function connect() {
+    function scheduleReconnect() {
+        if (closed) return;
+        const delay = backoffDelay(reconnectAttempt++);
+        log.warn(`embed session list stream disconnected, reconnecting in ${Math.round(delay)}ms`);
+        reconnectTimer = setTimeout(() => {
+            connect();
+            if (!isFirstConnect) {
+                callbacks.onReconnect?.();
+            }
+        }, delay);
+    }
+
+    async function connect() {
         log.log('connecting embed session list stream, filters:', currentFilters);
-        ws = new WebSocket(buildUrl());
+        const embedToken = getEmbedToken();
+        if (!embedToken) {
+            log.warn('no embed token, not connecting the session list stream');
+            return;
+        }
+
+        let ticket: string | null;
+        try {
+            ticket = await fetchEmbedWsTicket(embedToken);
+        } catch (err) {
+            // a dead token stops here; a 401 before its expiry may be transient and is retried
+            if (err instanceof EmbedTokenRejectedError && handleEmbedUnauthorized()) return;
+            log.warn('failed to fetch embed ws ticket, scheduling reconnect');
+            scheduleReconnect();
+            return;
+        }
+
+        if (closed) return;
+
+        ws = new WebSocket(buildUrl(ticket ? { ws_token: ticket } : { embed_token: embedToken }));
 
         ws.onopen = () => {
             log.log('embed session list stream connected');
@@ -192,14 +223,7 @@ export function connectEmbedSessionListStream(filters: SessionListFilters, callb
 
         ws.onclose = () => {
             if (!closed) {
-                const delay = backoffDelay(reconnectAttempt++);
-                log.warn(`embed session list stream disconnected, reconnecting in ${Math.round(delay)}ms`);
-                reconnectTimer = setTimeout(() => {
-                    connect();
-                    if (!isFirstConnect) {
-                        callbacks.onReconnect?.();
-                    }
-                }, delay);
+                scheduleReconnect();
             } else {
                 log.log('embed session list stream closed');
             }
@@ -214,7 +238,7 @@ export function connectEmbedSessionListStream(filters: SessionListFilters, callb
         updateFilters(newFilters: SessionListFilters) {
             currentFilters = { ...newFilters };
             log.log('updating embed session list stream filters:', currentFilters);
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws?.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'set_filters', filters: currentFilters }));
             }
         },
@@ -222,7 +246,7 @@ export function connectEmbedSessionListStream(filters: SessionListFilters, callb
             log.log('disconnecting embed session list stream');
             closed = true;
             if (reconnectTimer) clearTimeout(reconnectTimer);
-            ws.close();
+            ws?.close();
         }
     };
 }

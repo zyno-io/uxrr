@@ -15,6 +15,8 @@ export interface AuthContext {
     scope: 'admin' | 'readonly' | 'interactive';
     appKeys?: string[];
     sessionId?: string;
+    /** Embed tokens only: the token's own expiry (Unix seconds). */
+    expiresAt?: number;
     userId?: string;
     userName?: string;
     userEmail?: string;
@@ -92,7 +94,8 @@ export class SessionAuthMiddleware extends HttpMiddleware {
                     type: 'embed-token',
                     scope: payload.scope,
                     appKeys: payload.apps.length > 0 ? payload.apps : undefined,
-                    sessionId: payload.sid
+                    sessionId: payload.sid,
+                    expiresAt: payload.exp
                 } satisfies AuthContext;
                 return;
             } catch {

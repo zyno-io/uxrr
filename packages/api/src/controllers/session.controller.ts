@@ -2,7 +2,7 @@ import { http, HttpAccessDeniedError, HttpQueries, HttpRequest } from '@zyno-io/
 import { EntityFields } from '@zyno-io/ts-server-foundation';
 
 import { SessionEntity } from '../database/entities/session.entity';
-import { SessionAuthMiddleware, getAuthContext } from '../middleware/session-auth.middleware';
+import { SessionAuthMiddleware, getAuthContext, type AuthContext } from '../middleware/session-auth.middleware';
 import { AppResolverService } from '../services/app-resolver.service';
 import { LokiService } from '../services/loki.service';
 import { RetentionService } from '../services/retention.service';
@@ -58,6 +58,11 @@ export interface IChatMessage {
 
 const LIVE_THRESHOLD_MS = 30_000;
 
+/** What the caller may see: its apps and, for a session-locked embed token, its one session. */
+function accessFilters(ctx: AuthContext): { appKeys?: string[]; sessionId?: string } {
+    return ctx.sessionId ? { appKeys: ctx.appKeys, sessionId: ctx.sessionId } : { appKeys: ctx.appKeys };
+}
+
 @http.controller('v1/sessions')
 @http.middleware(SessionAuthMiddleware)
 export class SessionController {
@@ -78,7 +83,7 @@ export class SessionController {
                 throw new HttpAccessDeniedError('Access denied for this app');
             }
         }
-        const filters = { ...query, appKeys: ctx.appKeys };
+        const filters = { ...query, ...accessFilters(ctx) };
         const sessions = await this.sessionSvc.list(filters);
         const userIdMap = await this.sessionSvc.loadAllUserIds(sessions.map(s => s.id));
         return sessions.map(s => this.withIsLive(s, userIdMap.get(s.id) ?? []));
@@ -88,14 +93,14 @@ export class SessionController {
     async autocompleteAppKeys(request: HttpRequest, query: HttpQueries<SessionAutocompleteQueryParams>): Promise<string[]> {
         const ctx = getAuthContext(request);
         const { q, appKey: _appKey, ...filters } = query;
-        return this.sessionSvc.distinctAppKeys(q, { ...filters, appKeys: ctx.appKeys });
+        return this.sessionSvc.distinctAppKeys(q, { ...filters, ...accessFilters(ctx) });
     }
 
     @http.GET('autocomplete/deviceIds')
     async autocompleteDeviceIds(request: HttpRequest, query: HttpQueries<SessionAutocompleteQueryParams>): Promise<string[]> {
         const ctx = getAuthContext(request);
         const { q, deviceId: _deviceId, ...filters } = query;
-        return this.sessionSvc.distinctDeviceIds(q, { ...filters, appKeys: ctx.appKeys });
+        return this.sessionSvc.distinctDeviceIds(q, { ...filters, ...accessFilters(ctx) });
     }
 
     @http.GET('autocomplete/users')
@@ -105,7 +110,7 @@ export class SessionController {
     ): Promise<{ userId: string; userName?: string; userEmail?: string }[]> {
         const ctx = getAuthContext(request);
         const { q, userId: _userId, ...filters } = query;
-        return this.sessionSvc.distinctUsers(q, { ...filters, appKeys: ctx.appKeys });
+        return this.sessionSvc.distinctUsers(q, { ...filters, ...accessFilters(ctx) });
     }
 
     @http.GET(':id')

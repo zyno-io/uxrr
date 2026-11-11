@@ -95,6 +95,6 @@ limits_config:
 | `UXRR_INGEST_EVENT_FLUSH_DELAY_MS`   | `30000`   | Max time to buffer ingest events before writing an S3 chunk               |
 | `UXRR_INGEST_EVENT_FLUSH_MAX_EVENTS` | `200`     | Flush ingest event buffer when this many events are queued                |
 | `UXRR_INGEST_EVENT_FLUSH_MAX_BYTES`  | `262144`  | Flush ingest event buffer when buffered JSON size reaches this many bytes |
-| `UXRR_MAX_EMBED_TOKEN_TTL`           | `2592000` | Max embed token lifetime in seconds (30 days)                             |
-| `UXRR_SHARE_SECRET`                  | —         | Secret for generating share links (min 32 characters)                     |
+| `UXRR_MAX_EMBED_TOKEN_TTL`           | `2592000` | Max embed token lifetime in seconds (30 days), self-signed tokens too     |
+| `UXRR_SHARE_SECRET`                  | —         | Secret for share links and WebSocket tokens (min 32 characters)           |
 | `DATA_RETENTION_DAYS`                | `30`      | Auto-delete sessions older than this (0 = keep forever)                   |

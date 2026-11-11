@@ -1,5 +1,6 @@
+import { handleEmbedUnauthorized } from './embed';
 import { createLogger } from './logger';
-import { fetchWsToken } from './ws-token';
+import { EmbedTokenRejectedError, fetchEmbedWsTicket, fetchWsToken } from './ws-token';
 
 const log = createLogger('live-stream');
 
@@ -162,13 +163,28 @@ export function connectEmbedLiveSession(
     callbacks: LiveStreamCallbacks
 ): LiveStreamHandle {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    let ws: WebSocket;
+    let ws: WebSocket | undefined;
     let closed = false;
     let reconnectAttempt = 0;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
-    function connect() {
-        const url = `${protocol}//${window.location.host}/v1/sessions/${sessionId}/live?embed_token=${encodeURIComponent(embedToken)}`;
+    async function connect() {
+        // A short-lived ticket when the server can mint one; the embed token itself only for older servers
+        let ticket: string | null;
+        try {
+            ticket = await fetchEmbedWsTicket(embedToken);
+        } catch (err) {
+            // a dead token stops here; a 401 before its expiry may be transient and is retried
+            if (err instanceof EmbedTokenRejectedError && handleEmbedUnauthorized()) return;
+            log.warn(`embed-live[${sessionId}] failed to fetch ws ticket, scheduling reconnect`);
+            if (!closed) reconnectTimer = setTimeout(connect, backoffDelay(reconnectAttempt++));
+            return;
+        }
+
+        if (closed) return;
+
+        const auth = ticket ? `ws_token=${encodeURIComponent(ticket)}` : `embed_token=${encodeURIComponent(embedToken)}`;
+        const url = `${protocol}//${window.location.host}/v1/sessions/${sessionId}/live?${auth}`;
 
         log.log('connecting embed live session:', sessionId, 'scope:', scope);
         ws = new WebSocket(url);
@@ -193,7 +209,7 @@ export function connectEmbedLiveSession(
     return {
         send(message: unknown) {
             if (scope === 'readonly') return;
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws?.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify(message));
             }
         },
@@ -201,7 +217,7 @@ export function connectEmbedLiveSession(
             log.log('disconnecting embed live session:', sessionId);
             closed = true;
             if (reconnectTimer) clearTimeout(reconnectTimer);
-            ws.close();
+            ws?.close();
         }
     };
 }

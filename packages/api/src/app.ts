@@ -34,6 +34,8 @@ const app = createApp({
     config: UxrrConfig,
     frameworkConfig: { port: 8977 },
     staticFiles: true,
+    // Embed tokens arrive as /embed?token= (iframe src) and older clients send ?embed_token= / ?ws_token=
+    requestLogging: { redactQueryKeys: ['token', 'embed_token', 'ws_token'] },
     db: UxrrDatabase,
     controllers: [AdminController, AuthController, IngestController, SessionController, ShareController, ApiKeyController],
     providers: [
