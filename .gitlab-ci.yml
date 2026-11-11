@@ -238,25 +238,40 @@ publish client canary:
     refs:
       - main
   stage: build
+  # Canaries go to the internal registry only; a publish problem must not block deploy/mirror.
+  allow_failure: true
+  resource_group: uxrr-client-canary
   image:
     name: node:26-alpine
     pull_policy: always
+  variables:
+    CANARY_REGISTRY: https://npm.s24.dev/
   before_script:
     - *node26_corepack
     - corepack enable
     - |
       npx --yes --@zyno-io:registry=https://registry.npmjs.org/ @zyno-io/yarn-helper@1 install --immutable
   script: |
-    set -e
+    set -eu
     : "${BUILD_VERSION:?BUILD_VERSION must be provided by prepare build}"
+    : "${PRIVATE_NPM_PUBLISHER_TOKEN:?PRIVATE_NPM_PUBLISHER_TOKEN must be configured as a CI variable}"
 
     cd packages/client
     yarn build
 
-    PKG_VERSION=${BUILD_VERSION}-canary.${CI_COMMIT_SHORT_SHA}
-    echo "Publishing client SDK canary version ${PKG_VERSION} to npm..."
-    npm pkg set version=${PKG_VERSION}
-    yarn npm publish --tag canary
+    PKG_NAME="$(node -p "require('./package.json').name")"
+    PKG_VERSION="${BUILD_VERSION}-canary.${CI_COMMIT_SHORT_SHA}"
+    npm pkg set version="${PKG_VERSION}"
+
+    # npm (not yarn npm publish): .yarnrc.yml pins the @zyno-io scope to registry.npmjs.org.
+    npm config set -- "//npm.s24.dev/:_authToken=${PRIVATE_NPM_PUBLISHER_TOKEN}"
+    if npm view "${PKG_NAME}@${PKG_VERSION}" version --registry "${CANARY_REGISTRY}" >/dev/null 2>&1; then
+      echo "${PKG_NAME}@${PKG_VERSION} already exists; restoring the canary dist-tag."
+      npm dist-tag add "${PKG_NAME}@${PKG_VERSION}" canary --registry "${CANARY_REGISTRY}"
+    else
+      echo "Publishing ${PKG_NAME}@${PKG_VERSION} to ${CANARY_REGISTRY}..."
+      npm publish --registry "${CANARY_REGISTRY}" --tag canary --ignore-scripts
+    fi
 
 # ---------- Build canary container ----------
 build:
